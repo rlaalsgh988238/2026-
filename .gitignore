@@ -13,3 +13,25 @@
 .externalNativeBuild
 .cxx
 local.properties
+# 빌드 결과물
+build/
+*/build/
+.gradle/
+/local.properties
+.externalNativeBuild
+.cxx
+captures/
+*.iml
+.idea/workspace.xml
+.idea/libraries/
+.idea/caches/
+.idea/modules.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/gradle.xml
+.idea/misc.xml
+.idea/deploymentTargetSelector.xml
+.idea/gradle.xml
+.idea/vcs.xml
+.idea/kotlinc.xml
+.DS_Store

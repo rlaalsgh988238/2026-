@@ -21,5 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "TourDataProject"
 include(":app")
-include(":KotlinForTest")
 include(":toiletDB")

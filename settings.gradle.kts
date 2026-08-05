@@ -16,9 +16,14 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://devrepo.kakao.com/nexus/content/groups/public/") }
     }
 }
 
 rootProject.name = "TourDataProject"
 include(":app")
+include(":map-presentation")
 include(":KotlinForTest")
+include(":map-remote")
+include(":map-data")
+include(":map-domain")

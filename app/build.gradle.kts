@@ -1,8 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ksp)
+
 }
+
+val properties = Properties()
+properties.load(project.rootProject.file("local.properties").inputStream())
+val kakaoMapKey = properties.getProperty("KAKAO_MAP_KEY") ?: ""
+
 
 android {
     namespace = "com.braveberry.tourdataproject"
@@ -12,11 +23,11 @@ android {
 
     defaultConfig {
         applicationId = "com.braveberry.tourdataproject"
-        minSdk = 34
+        minSdk = 31
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
+        buildConfigField("String", "KAKAO_MAP_KEY", "\"$kakaoMapKey\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -38,6 +49,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -57,4 +69,15 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.kakao.map)
+
+    //hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation(project(":map-presentation"))
+    implementation(project(":map-remote"))
 }

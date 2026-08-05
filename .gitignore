@@ -40,5 +40,4 @@ google-services.json
 # Android Profiling
 *.hprof
 # OpenAI 등 테스트 키 파일 및 폴더 무시
-/KeyFile/TestKey.txt
-
+/TestKey.txt

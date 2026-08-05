@@ -5,18 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.jetbrains.kotlin.jvm) apply false
     alias(libs.plugins.android.library) apply false
+    // ksp와 hilt 플러그인을 루트 build.gradle.kts에서 적용하지 않고, 각 모듈의 build.gradle.kts에서 적용하도록 변경
     alias(libs.plugins.ksp) apply false
-}
-allprojects {
-    configurations.all {
-        resolutionStrategy {
-            // Hilt와 KSP가 꼬이지 않도록 최신 JavaPoet 강제 고정
-            force("com.squareup:javapoet:1.13.0")
-        }
-    }
-}
-buildscript {
-    dependencies {
-        classpath("com.squareup:javapoet:1.13.0")
-    }
+    alias(libs.plugins.hilt.android) apply false
 }

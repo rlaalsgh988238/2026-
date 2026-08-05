@@ -1,4 +1,4 @@
-package com.braveberry.toiletdb
+package com.braveberry.localDB
 
 import org.junit.Test
 

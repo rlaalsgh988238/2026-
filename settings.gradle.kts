@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "TourDataProject"
 include(":app")
-include(":toiletDB")
+include(":localDB")

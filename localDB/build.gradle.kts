@@ -44,4 +44,7 @@ dependencies {
     // Hilt 디펜던시 추가
     implementation("com.google.dagger:hilt-android:2.51.1")
     ksp("com.google.dagger:hilt-compiler:2.51.1")
+
+    // 데이터 모듈 의존성 추가
+    implementation(project(":toilet-data"))
 }

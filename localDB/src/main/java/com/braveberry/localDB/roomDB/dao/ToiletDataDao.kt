@@ -3,13 +3,13 @@ package com.braveberry.localDB.roomDB.dao
 import androidx.room.Dao
 import androidx.room.Query
 import com.braveberry.localDB.model.ToiletDataLocal
-import com.braveberry.localDB.roomDB.ToiletRoomConstant
+import com.braveberry.localDB.roomDB.RoomConstant
 
 @Dao
 internal interface ToiletDataDao: BaseDao<ToiletDataLocal> {
-    @Query("SELECT * FROM ${ToiletRoomConstant.Table.TOILET} WHERE id = :toiletId")
+    @Query("SELECT * FROM ${RoomConstant.Table.TOILET} WHERE id = :toiletId")
     suspend fun getToiletData(toiletId: String): ToiletDataLocal?
 
-    @Query("SELECT * FROM ${ToiletRoomConstant.Table.TOILET}")
+    @Query("SELECT * FROM ${RoomConstant.Table.TOILET}")
     suspend fun getAllToiletData(): List<ToiletDataLocal>
 }

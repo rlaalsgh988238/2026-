@@ -1,12 +1,7 @@
-package com.braveberry.localDB.model
+package com.braveberry.toilet_data.model
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import com.braveberry.localDB.roomDB.RoomConstant
-
-@Entity(tableName = RoomConstant.Table.TOILET)
-internal data class ToiletDataLocal(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+data class ToiletEntity(
+    val id: Int = 0,
 
     // 기본 정보
     val toiletName: String,           // 화장실명

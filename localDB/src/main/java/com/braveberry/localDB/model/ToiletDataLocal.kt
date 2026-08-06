@@ -2,7 +2,9 @@ package com.braveberry.localDB.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.braveberry.localDB.mapper.LocalMapper
 import com.braveberry.localDB.roomDB.RoomConstant
+import com.braveberry.toilet_data.model.ToiletEntity
 
 @Entity(tableName = RoomConstant.Table.TOILET)
 internal data class ToiletDataLocal(
@@ -43,4 +45,31 @@ internal data class ToiletDataLocal(
 
     // 기타
     val updateDate: String?           // 데이터기준일자
-)
+): LocalMapper<ToiletEntity> {
+    override fun toData(): ToiletEntity =
+        ToiletEntity(
+            id,
+            toiletName,
+            roadAddress,
+            lotAddress,
+            isUnisex,
+            maleToiletBowlCount,
+            maleUrinalCount,
+            maleDisabledToiletCount,
+            maleDisabledUrinalCount,
+            maleChildToiletCount,
+            maleChildUrinalCount,
+            femaleToiletBowlCount,
+            femaleDisabledToiletCount,
+            femaleChildToiletCount,
+            managingAgency,
+            phoneNumber,
+            openTime,
+            latitude,
+            longitude,
+            emergencyBellExists,
+            cctvExists,
+            diaperChangingStationExists,
+            updateDate
+        )
+}

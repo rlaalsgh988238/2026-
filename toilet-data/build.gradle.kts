@@ -14,9 +14,9 @@ kotlin {
 }
 
 dependencies {
-    // javax.inject 라이브러리 직접 추가
     implementation("javax.inject:javax.inject:1")
+    implementation(libs.hilt.core)
+    ksp(libs.hilt.compiler)
 
-    // 데이터 모듈 의존성 추가
-    implementation(project(":toilet-data"))
+    project(":map-domain")
 }

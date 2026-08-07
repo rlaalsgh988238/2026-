@@ -53,10 +53,15 @@ gradlePlugin {
             id = "braveberry.android.retrofit"
             implementationClass = "AndroidRetrofitConventionPlugin"
         }
-        // 7. Retrofit 관련 (순수 JVM)
         register("jvmRetrofit") {
             id = "braveberry.jvm.retrofit"
             implementationClass = "JvmRetrofitConventionPlugin"
+        }
+
+        // 7. Compose 관련 (안드로이드)
+        register("androidCompose") {
+            id = "braveberry.android.compose"
+            implementationClass = "AndroidComposeConventionPlugin"
         }
     }
 }

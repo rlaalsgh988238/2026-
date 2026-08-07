@@ -1,6 +1,6 @@
 package com.braveberry.localDB.roomDB
 
-object ToiletRoomConstant {
+internal object RoomConstant {
     const val DB_NAME = "local_database"
     const val ROOM_VERSION = 1
 

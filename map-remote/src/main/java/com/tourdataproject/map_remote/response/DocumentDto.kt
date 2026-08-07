@@ -12,5 +12,4 @@ data class DocumentDto(
 
     @SerializedName("y")
     val latitude: String,
-
 )

@@ -17,6 +17,7 @@
             <option value="$PROJECT_DIR$/map-domain" />
             <option value="$PROJECT_DIR$/map-presentation" />
             <option value="$PROJECT_DIR$/map-remote" />
+            <option value="$PROJECT_DIR$/toilet-data" />
           </set>
         </option>
       </GradleProjectSettings>

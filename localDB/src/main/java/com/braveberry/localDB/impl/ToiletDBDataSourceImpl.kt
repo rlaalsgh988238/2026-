@@ -7,7 +7,7 @@ import com.braveberry.toilet_data.localDB.ToiletDataSource
 import com.braveberry.toilet_data.model.ToiletEntity
 import javax.inject.Inject
 
-class ToiletDBDataSourceImpl @Inject internal constructor(
+internal class ToiletDBDataSourceImpl @Inject internal constructor(
     private val toiletDao: ToiletDataDao
 ): ToiletDataSource {
     override suspend fun getToiletData(toiletId: String): ToiletEntity? =

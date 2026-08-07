@@ -1,4 +1,4 @@
-package com.tourdataproject.map_domain.model
+package com.tourdataproject.domain.model
 
 data class MapItem(
     val address: String,     // 주소

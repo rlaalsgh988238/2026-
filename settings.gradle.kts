@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -23,9 +24,8 @@ dependencyResolutionManagement {
 rootProject.name = "TourDataProject"
 include(":app")
 include(":map-presentation")
-include(":KotlinForTest")
 include(":map-remote")
 include(":map-data")
-include(":map-domain")
+include(":domain")
 include(":localDB")
 include(":toilet-data")

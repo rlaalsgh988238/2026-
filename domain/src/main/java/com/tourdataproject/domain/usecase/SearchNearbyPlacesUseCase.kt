@@ -1,7 +1,7 @@
-package com.tourdataproject.map_domain.usecase
+package com.tourdataproject.domain.usecase
 
-import com.tourdataproject.map_domain.model.MapItem
-import com.tourdataproject.map_domain.repository.MapRepository
+import com.tourdataproject.domain.model.MapItem
+import com.tourdataproject.domain.repository.MapRepository
 import javax.inject.Inject
 
 class SearchNearbyPlacesUseCase @Inject constructor(

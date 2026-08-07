@@ -1,6 +1,6 @@
-package com.tourdataproject.map_domain.repository
+package com.tourdataproject.domain.repository
 
-import com.tourdataproject.map_domain.model.MapItem
+import com.tourdataproject.domain.model.MapItem
 
 interface MapRepository {
     suspend fun getNearbyPlaces(

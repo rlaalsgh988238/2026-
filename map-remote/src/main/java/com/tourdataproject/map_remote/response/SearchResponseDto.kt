@@ -2,8 +2,8 @@ package com.tourdataproject.map_remote.response
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
-import com.tourdataproject.map_remote.RemoteMapper
-import com.tourdataproject.map_remote.toDataModel
+import com.tourdataproject.map_remote.mapper.RemoteMapper
+import com.tourdataproject.map_remote.mapper.toDataModel
 
 data class SearchResponseDto(
     @SerializedName("meta") val meta: MetaDto,

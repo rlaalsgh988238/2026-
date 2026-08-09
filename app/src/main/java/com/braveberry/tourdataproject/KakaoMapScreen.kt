@@ -19,16 +19,15 @@ import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.KakaoMapReadyCallback
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.MapLifeCycleCallback
-import com.kakao.vectormap.MapReadyCallback
 import com.kakao.vectormap.MapView
 import com.kakao.vectormap.camera.CameraAnimation
 import com.kakao.vectormap.camera.CameraUpdateFactory
-import com.tourdataproject.map_presentation.MapViewModel
+import com.tourdataproject.map_presentation.KakaoMapViewModel
 
 @Composable
 fun KakaoMapScreen(
     modifier: Modifier = Modifier,
-    viewModel: MapViewModel = hiltViewModel()
+    viewModel: KakaoMapViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current

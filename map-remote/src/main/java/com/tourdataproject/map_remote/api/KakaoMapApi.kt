@@ -1,11 +1,11 @@
-package com.tourdataproject.map_remote
+package com.tourdataproject.map_remote.api
 
 import com.tourdataproject.map_remote.response.SearchResponseDto
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-interface MapApi {
+interface KakaoMapApi {
     @GET("v2/local/search/address")
     suspend fun getSearch(
         @Query("query") query: String,

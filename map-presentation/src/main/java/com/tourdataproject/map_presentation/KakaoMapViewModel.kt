@@ -1,9 +1,6 @@
 package com.tourdataproject.map_presentation
 
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,14 +9,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-private const val TAG = "MapViewModel"
+private const val TAG = "KakaoMapViewModel"
 
 @HiltViewModel
-class MapViewModel @Inject constructor(
+class KakaoMapViewModel @Inject constructor(
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(MapUiState())
-    val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(KakaoMapUiState())
+    val uiState: StateFlow<KakaoMapUiState> = _uiState.asStateFlow()
 
     fun updateSearchQuery(query: String) {
         _uiState.value = _uiState.value.copy(

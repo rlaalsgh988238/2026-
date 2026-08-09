@@ -11,4 +11,10 @@ android {
 dependencies {
     // Hilt 네비게이션
     implementation(libs.androidx.hilt.navigation.compose)
+    // Orbit
+    implementation(libs.orbit.core)
+    implementation(libs.orbit.viewmodel)
+
+
+    implementation(project(":domain"))
 }

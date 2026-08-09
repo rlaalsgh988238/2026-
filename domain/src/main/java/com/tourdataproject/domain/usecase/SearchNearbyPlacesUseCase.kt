@@ -1,31 +1,32 @@
 package com.tourdataproject.domain.usecase
 
-import com.tourdataproject.domain.model.MapItem
-import com.tourdataproject.domain.repository.MapRepository
+import com.braveberry.data_resource.DataResource
+import com.tourdataproject.domain.model.KakaoMapItem
+import com.tourdataproject.domain.repository.KakaoMapRepository
+import jdk.jfr.internal.OldObjectSample.emit
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
 class SearchNearbyPlacesUseCase @Inject constructor(
-    private val mapRepository: MapRepository
+    private val mapRepository: KakaoMapRepository
 ) {
-    /**
-     * @param query 검색어
-     * @param longitude 중심점 x 좌표
-     * @param latitude 중심점 y 좌표
-     * @param radius 검색 반경 (기본값 2000m)
-     */
-    suspend operator fun invoke(
+    // 1. suspend 키워드 제거 완료!
+    operator fun invoke(
         query: String,
         longitude: Double,
         latitude: Double,
         radius: Int = 2000
-    ): Result<List<MapItem>> {
+    ): Flow<DataResource<List<KakaoMapItem>>> {
 
-        // 1. 도메인 로직 처리 (예: 빈 검색어 방어)
+        // 2. 검색어가 비어있을 때 DataResource.error를 담은 Flow 방출
         if (query.isBlank()) {
-            return Result.failure(IllegalArgumentException("검색어를 입력해주세요."))
+            return flow {
+                emit(DataResource.error(IllegalArgumentException("검색어를 입력해주세요.")))
+            }
         }
 
-        // 2. Repository에 데이터 요청
+        // 3. Repository에 데이터 요청
         return mapRepository.getNearbyPlaces(query, longitude, latitude, radius)
     }
 }

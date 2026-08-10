@@ -1,40 +1,56 @@
 package com.braveberry.tourdataproject
 
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Base64
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.viewinterop.AndroidView
+import com.braveberry.tourdataproject.screen.kakaoMap.KakaoMapSearchScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
-import com.kakao.vectormap.KakaoMap
-import com.kakao.vectormap.KakaoMapReadyCallback
-import com.kakao.vectormap.MapLifeCycleCallback
-import com.kakao.vectormap.MapView
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         enableEdgeToEdge()
         setContent {
             TourDataProjectTheme {
+                var isSearching by remember { mutableStateOf(false) }
+                var selectedCoordinate by remember { mutableStateOf<Pair<Double, Double>?>(null) }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    KakaoMapScreen(modifier = Modifier.padding(innerPadding))
+                    if (isSearching) {
+                        // 1. 검색 화면
+                        KakaoMapSearchScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            onBackClick = {
+                                isSearching = false
+                            },
+                            onPlaceSelected = { x, y ->
+                                selectedCoordinate = Pair(y, x) // 카카오맵 API는 보통 (경도:x, 위도:y) 이므로 필요시 순서 조정
+                                isSearching = false
+                            }
+                        )
+                    } else {
+                        // 메인 지도 화면
+                        KakaoMapScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            onNavigateToSearch = {
+                                isSearching = true
+                            },
+                            targetCoordinate = selectedCoordinate
+                        )
+                    }
                 }
             }
         }
     }
 }
-

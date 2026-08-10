@@ -40,6 +40,8 @@ dependencies {
     // 카카오맵
     implementation(libs.kakao.map)
     implementation(libs.androidx.hilt.navigation.compose)
-
+    implementation(libs.orbit.core)
+    implementation(libs.orbit.viewmodel)
+    implementation(libs.orbit.compose)
     implementation(project(":map-presentation"))
 }

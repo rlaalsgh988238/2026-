@@ -1,6 +1,6 @@
-package com.tourdataproject.map_remote.response
+package com.tourdataproject.map_data.model
 
-data class MapItemRemoteModel(
+data class KakaoMapDataModel(
     val id: String,
     val placeName: String,
     val addressName: String,

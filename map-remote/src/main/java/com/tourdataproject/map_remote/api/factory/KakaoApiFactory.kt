@@ -1,26 +1,27 @@
-package com.tourdataproject.map_remote
-
+package com.tourdataproject.map_remote.api.factory
+import com.tourdataproject.map_remote.BuildConfig
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-// map-remote 모듈 내부
-object KakaoApiFactory {
-    private const val BASE_URL = "https://dapi.kakao.com/"
-    private val KAKAO_REST_API_KEY = KakaoMapApiGetter().getKey()
 
-    fun createRetrofit(): Retrofit {
+object KakaoApiFactory {
+    private const val DEFAULT_BASE_URL = "https://dapi.kakao.com/"
+
+    fun createRetrofit(
+        baseUrl: String = DEFAULT_BASE_URL,
+        apiKey: String = BuildConfig.KAKAO_API_KEY
+    ): Retrofit {
         val client = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .header("Authorization", "KakaoAK $KAKAO_REST_API_KEY")
+                    .header("Authorization", "KakaoAK $apiKey")
                     .build()
                 chain.proceed(request)
             }
-            // 로깅 인터셉터 등 추가
             .build()
 
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(baseUrl)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

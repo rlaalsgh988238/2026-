@@ -1,4 +1,4 @@
-package com.tourdataproject.map_remote
+package com.tourdataproject.map_remote.mapper
 
 //TODO: Model 타입 맞추기
 interface RemoteMapper<T> {

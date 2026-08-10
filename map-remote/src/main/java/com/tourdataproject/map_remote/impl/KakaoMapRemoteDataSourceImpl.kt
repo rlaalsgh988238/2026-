@@ -13,22 +13,35 @@ class KakaoMapRemoteDataSourceImpl @Inject constructor(
     private val kakaoMapApi: KakaoMapApi
 ) : KakaoMapRemoteDataSource {
 
-    override fun searchAddress(query: String, page: Int): Flow<DataResource<List<KakaoMapDataModel>>> = flow {
-        val response = kakaoMapApi.getSearch(query, page)
+    override fun getNearbyPlaces(
+        query: String,
+        longitude: Double?,
+        latitude: Double?,
+        radius: Int?,
+        page: Int
+    ): Flow<DataResource<List<KakaoMapDataModel>>> = flow {
+        try {
+            val response = kakaoMapApi.getSearch(
+                query = query,
+                longitude = longitude,
+                latitude = latitude,
+                radius = radius,
+                page = page
+            )
 
-        if (response.isSuccessful) {
-            val body = response.body()
-            if (body != null) {
-                val dataModels = body.toData().toDataModelList()
-                emit(DataResource.success(dataModels))
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    val dataModels = body.toData().toDataModelList()
+                    emit(DataResource.success(dataModels))
+                } else {
+                    emit(DataResource.error(IllegalStateException("Response body is null")))
+                }
             } else {
-                // null
-                emit(DataResource.error(IllegalStateException("Response body is null")))
+                emit(DataResource.error(IllegalStateException("Network error: ${response.code()}")))
             }
-        } else {
-            // 통신 실패
-            emit(DataResource.error(IllegalStateException("Network error: ${response.code()}")))
+        } catch (e: Exception) {
+            emit(DataResource.error(e))
         }
     }
-
-    }
+}

@@ -6,6 +6,7 @@ import mu.KotlinLogging
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNotNull
 import org.junit.Before
@@ -39,16 +40,28 @@ class KakaoMapApiTest {
     }
 
     @Test
-    fun `카카오 장소 검색 API가 JSON을 SearchResponseDto로 정상 파싱한다`() = runBlocking { // 👈 suspend 함수 호출을 위해 runBlocking 사용
+    fun `카카오 장소 검색 API가 JSON을 SearchResponseDto로 정상 파싱한다`() = runBlocking {
         logger.info { "🚀 실제 KakaoMapApi 파싱 테스트 시작!" }
 
         val mockJson = """
             {
+                "meta": {
+                    "is_end": false,
+                    "pageable_count": 45,
+                    "total_count": 100
+                },
                 "documents": [
                     {
-                        "address_name": "경기 하남시 미사동",
+                        "id": "123456789",
+                        "place_name": "스타벅스 하남미사점",
+                        "address_name": "경기 하남시 미사동 123",
+                        "road_address_name": "경기 하남시 미사강변대로 123",
                         "x": "127.1938",
-                        "y": "37.5684"
+                        "y": "37.5684",
+                        "distance": "1500",
+                        "category_group_name": "카페",
+                        "phone": "02-1234-5678",
+                        "place_url": "http://place.map.kakao.com/123456789"
                     }
                 ]
             }
@@ -60,14 +73,26 @@ class KakaoMapApiTest {
                 .setBody(mockJson)
         )
 
-        val response = api.getSearch(query = "하남시", page = 1)
+        // 🌟 2. 새로 뚫어둔 위치 기반 파라미터까지 전부 넣어서 테스트!
+        val response = api.getSearch(
+            query = "스타벅스",
+            longitude = 127.1938,
+            latitude = 37.5684,
+            radius = 2000,
+            page = 1
+        )
 
         assertTrue("통신이 성공해야 합니다", response.isSuccessful)
 
         val responseBody = response.body()
         assertNotNull("응답 Body(Dto)가 null이 아니어야 합니다", responseBody)
 
+        // 🌟 3. 우리가 DTO에 새로 추가한 값들이 제대로 매핑되었는지 검증!
+        val firstDocument = responseBody!!.documents.first()
+        assertEquals("ID가 일치해야 합니다", "123456789", firstDocument.id)
+        assertEquals("장소 이름이 일치해야 합니다", "스타벅스 하남미사점", firstDocument.placeName)
+        assertEquals("거리 값이 일치해야 합니다", "1500", firstDocument.distance)
 
-        logger.info { "✅ 성공적으로 DTO 변환 완료: $responseBody" }
+        logger.info { "✅ 성공적으로 DTO 변환 완료 및 검증 통과: $responseBody" }
     }
 }

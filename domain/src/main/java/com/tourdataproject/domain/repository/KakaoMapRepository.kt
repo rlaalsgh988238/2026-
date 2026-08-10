@@ -5,11 +5,12 @@ import com.tourdataproject.domain.model.KakaoMapItem
 import kotlinx.coroutines.flow.Flow
 
 interface KakaoMapRepository {
-    // Result 대신 Flow<DataResource<T>>를 반환하도록 변경!
-    fun getNearbyPlaces(
+     fun getNearbyPlaces(
         query: String,
-        longitude: Double,
-        latitude: Double,
-        radius: Int
+        // 위치값 없을 때 위해서
+        longitude: Double? = null,
+        latitude: Double? = null,
+        radius: Int? = null,
+        page: Int = 1
     ): Flow<DataResource<List<KakaoMapItem>>>
 }

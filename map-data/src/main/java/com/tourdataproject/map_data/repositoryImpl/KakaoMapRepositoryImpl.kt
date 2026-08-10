@@ -15,15 +15,19 @@ class KakaoMapRepositoryImpl @Inject constructor(
 
     override fun getNearbyPlaces(
         query: String,
-        longitude: Double,
-        latitude: Double,
-        radius: Int
+        longitude: Double?,
+        latitude: Double?,
+        radius: Int?,
+        page: Int
     ): Flow<DataResource<List<KakaoMapItem>>> {
 
-        // 1. RemoteDataSource에서 Flow<DataResource<List<KakaoMapDataModel>>>를 가져옴
-        val remoteFlow = remoteDataSource.searchAddress(query = query, page = 1)
-
-        // 2. 아까 만들어 둔 mapListDataResource를 써서 Data 모델을 Domain 모델(KakaoMapItem)로 싹 변환!
+        val remoteFlow = remoteDataSource.getNearbyPlaces(
+            query = query,
+            longitude = longitude,
+            latitude = latitude,
+            radius = radius,
+            page = page
+        )
         return remoteFlow.mapListDataResource { dataModel ->
             dataModel.toDomainModel()
         }

@@ -1,51 +1,73 @@
 package com.tourdataproject.map_presentation
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.braveberry.data_resource.DataResource
+import com.tourdataproject.domain.usecase.SearchNearbyPlacesUseCase
+import com.tourdataproject.map_presentation.mapper.toUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import org.orbitmvi.orbit.ContainerHost
+import org.orbitmvi.orbit.syntax.simple.intent
+import org.orbitmvi.orbit.syntax.simple.postSideEffect
+import org.orbitmvi.orbit.syntax.simple.reduce
 import javax.inject.Inject
-private const val TAG = "KakaoMapViewModel"
+import org.orbitmvi.orbit.viewmodel.container
+
 
 @HiltViewModel
 class KakaoMapViewModel @Inject constructor(
-) : ViewModel() {
+    private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase
+) : ViewModel(), ContainerHost<KakaoMapUiState, KakaoMapSideEffect> {
 
-    private val _uiState = MutableStateFlow(KakaoMapUiState())
-    val uiState: StateFlow<KakaoMapUiState> = _uiState.asStateFlow()
+    // Orbit 컨테이너 초기화
+    override val container = container<KakaoMapUiState, KakaoMapSideEffect>(KakaoMapUiState())
 
-    fun updateSearchQuery(query: String) {
-        _uiState.value = _uiState.value.copy(
-            searchQuery = query
-        )
+    // 유저가 검색창에 타이핑할 때마다 State 업데이트 (검색창 글자 유지용)
+    fun updateSearchQuery(query: String) = intent {
+        reduce { state.copy(searchQuery = query) }
     }
 
-    fun searchPlace() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isLoading = true,
-                errorMessage = null // 🌟 새로운 검색 시작 시 기존 에러 메시지 초기화
-            )
+    // 실제 검색 버튼을 눌렀을 때 실행되는 함수 ->screen에 넣기
+    fun searchPlaces(query: String, longitude: Double? = null, latitude: Double? = null) = intent {
+        if (query.isBlank()) {
+            postSideEffect(KakaoMapSideEffect.ShowToast("검색어를 입력해주세요."))
+            return@intent
+        }
 
-            try {
-                Log.d(TAG, "검색어 : ${_uiState.value.searchQuery}")
+        //로딩(통신 start)
+        reduce { state.copy(isLoading = true, errorMessage = null) }
 
-                // TODO: REmote에서 나중에 받ㅈ아와서 넣기
-                _uiState.value = _uiState.value.copy(
-                    targetCoordinate = Pair(37.498095, 127.027610),
-                    isLoading = false
-                )
+        // 2. UseCase 호출
+        //TODO : local에서 자기 좌표값 가져온느거?
+        val radius = if (longitude != null && latitude != null) 2000 else null
 
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    // 🌟 Exception 객체에서 에러 메시지를 뽑아서 전달
-                    errorMessage = e.localizedMessage ?: "알 수 없는 오류가 발생했습니다."
-                )
+        searchNearbyPlacesUseCase(
+            query = query,
+            longitude = longitude,
+            latitude = latitude,
+            radius = radius,
+            page = 1
+        ).collect { resource ->
+            when (resource) {
+                is DataResource.Success -> {
+                    val uiModels = resource.data.map { it.toUiModel() }
+
+                    reduce {
+                        state.copy(
+                            isLoading = false,
+                            searchResults = uiModels
+                        )
+                    }
+                }
+
+                is DataResource.Error -> {
+                    reduce { state.copy(isLoading = false) }
+                    val errorMsg = resource.throwable.message ?: "검색 중 오류가 발생했습니다."
+                    postSideEffect(KakaoMapSideEffect.ShowToast(errorMsg))
+                }
+
+                is DataResource.Loading -> {
+                    //TODO:  로딩 화면 만들어서 넣기
+                }
             }
         }
     }

@@ -16,6 +16,14 @@ internal class ToiletDBDataSourceImpl @Inject internal constructor(
     override suspend fun getAllToiletData(): List<ToiletEntity> =
         toiletDao.getAllToiletData().toData()
 
+    override suspend fun getToiletDataInBox(
+        distance: Float,
+        latitude: Double,
+        longitude: Double
+    ): List<ToiletEntity> {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun insertToiletData(toiletEntity: ToiletEntity) {
         toiletDao.insert(toiletEntity.toLocal())
     }

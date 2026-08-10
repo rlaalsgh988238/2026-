@@ -11,7 +11,8 @@ internal class ToiletRepositoryImpl @Inject constructor(
     private val toiletDataSource: ToiletDataSource
 ): ToiletRepository{
     override fun getToiletById(id: String): Flow<DataResource<Toilet>> {
-        TODO("Not yet implemented")
+        //toiletDataSource.getToiletData(id)
+        TODO()
     }
 
     override fun getAllToilets(): Flow<DataResource<List<Toilet>>> {
@@ -19,7 +20,7 @@ internal class ToiletRepositoryImpl @Inject constructor(
     }
 
     override fun getToiletsByDistance(
-        Distance: Float,
+        distance: Float,
         latitude: Double,
         longitude: Double
     ): Flow<DataResource<List<Toilet>>> {

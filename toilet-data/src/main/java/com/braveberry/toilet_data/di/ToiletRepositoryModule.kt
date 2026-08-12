@@ -1,6 +1,7 @@
 package com.braveberry.toilet_data.di
 
 import com.braveberry.toilet_data.impl.ToiletRepositoryImpl
+import com.braveberry.toilet_data.utiltiy.FilterCalculator
 import com.tourdataproject.domain.repository.ToiletRepository
 import dagger.Binds
 import dagger.Module

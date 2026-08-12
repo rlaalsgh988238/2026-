@@ -26,6 +26,7 @@ slf4j = "2.0.9"
 coroutines = "1.7.3"
 mockwebserver = "4.12.0"
 orbit = "8.0.0"
+mockk = "1.13.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -35,6 +36,7 @@ dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = 
 javax-inject = { module = "javax.inject:javax.inject", version.ref = "javaxInject" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -49,6 +51,8 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 kakao-map = { group = "com.kakao.maps.open", name = "android", version.ref = "kakao-map" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 # Hilt (Dependency Injection)
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }

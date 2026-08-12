@@ -30,6 +30,9 @@ class JvmLibraryConventionPlugin : Plugin<Project> {
             val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
             dependencies {
                 add("implementation", libs.findLibrary("kotlinx.coroutines.core").get())
+                add("testImplementation", libs.findLibrary("junit").get())
+                add("testImplementation", libs.findLibrary("mockk").get())
+                add("testImplementation", libs.findLibrary("kotlinx.coroutines.test").get()) // runTest 사용용
             }
         }
     }

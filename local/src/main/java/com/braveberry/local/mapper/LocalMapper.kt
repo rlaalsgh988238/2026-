@@ -3,7 +3,6 @@ package com.braveberry.local.mapper
 import com.braveberry.local.model.ToiletDataLocal
 import com.braveberry.toilet_data.model.ToiletEntity
 
-// 1. 기존에 작성하신 Local -> Data 인터페이스와 확장 함수
 interface LocalMapper<DataModel> {
     fun toData(): DataModel
 }
@@ -14,7 +13,6 @@ internal fun <LocalModel : LocalMapper<DataModel>, DataModel> List<LocalModel>.t
 
 // ---------------------------------------------------------
 
-// 2. Data -> Local 변환을 위한 확장 함수 (insert용)
 internal fun ToiletEntity.toLocal(): ToiletDataLocal = ToiletDataLocal(
     id = id,
     toiletName = toiletName,
@@ -41,7 +39,6 @@ internal fun ToiletEntity.toLocal(): ToiletDataLocal = ToiletDataLocal(
     updateDate = updateDate
 )
 
-// 리스트 단위 insert를 위한 확장 함수
 internal fun List<ToiletEntity>.toLocal(): List<ToiletDataLocal> {
     return map { it.toLocal() }
 }

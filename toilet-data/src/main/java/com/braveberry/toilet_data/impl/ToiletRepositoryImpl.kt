@@ -14,10 +14,13 @@ internal class ToiletRepositoryImpl @Inject constructor(
     private val toiletDataSource: ToiletDataSource,
     private val filterCalculator: FilterCalculator
 ): ToiletRepository{
-    override fun getToiletById(id: String): Flow<DataResource<Toilet>> {
-        //toiletDataSource.getToiletData(id)
-        TODO()
-    }
+    override fun getToiletById(id: String): Flow<DataResource<Toilet?>> =
+        flow<DataResource<Toilet?>> {
+            val result = toiletDataSource.getToiletData(id)?.toDomain()
+            emit(DataResource.Success(result))
+        }.catch { e ->
+            emit(DataResource.error(e))
+        }
 
     override fun getAllToilets(): Flow<DataResource<List<Toilet>>> {
         TODO("Not yet implemented")

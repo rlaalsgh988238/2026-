@@ -2,6 +2,7 @@ package com.braveberry.toilet_data.impl
 
 import com.braveberry.data_resource.DataResource
 import com.braveberry.toilet_data.localDB.ToiletDataSource
+import com.braveberry.toilet_data.toDomain
 import com.braveberry.toilet_data.utiltiy.FilterCalculator
 import com.tourdataproject.domain.model.Toilet
 import com.tourdataproject.domain.repository.ToiletRepository
@@ -45,7 +46,11 @@ internal class ToiletRepositoryImpl @Inject constructor(
     }
 
 
-    override fun getToiletsByName(name: String): Flow<DataResource<List<Toilet>>> {
-        TODO("Not yet implemented")
+    override fun getToiletsByName(name: String): Flow<DataResource<List<Toilet>>> = flow<DataResource<List<Toilet>>> {
+        val resultList = toiletDataSource.getSimilarNameToiletData(name).toDomain()
+
+        emit(DataResource.Success(resultList))
+    }.catch { e ->
+        emit(DataResource.error(e))
     }
 }

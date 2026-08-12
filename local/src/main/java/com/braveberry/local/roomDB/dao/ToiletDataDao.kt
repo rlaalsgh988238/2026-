@@ -21,4 +21,16 @@ internal interface ToiletDataDao: BaseDao<ToiletDataLocal> {
         maxLng: Double
     ): List<ToiletDataLocal>
 
+    @Query("""
+    SELECT * FROM ${RoomConstant.Table.TOILET} 
+    WHERE toiletName LIKE :name || '%' 
+       OR toiletName LIKE '% ' || :name || '%'
+    ORDER BY 
+        CASE 
+            WHEN toiletName LIKE :name || '%' THEN 1 -- 이름으로 바로 시작하는 걸 1순위 
+            ELSE 2                              -- 중간 단어 시작(경기 가평 등)을 2순위
+        END, 
+        toiletName ASC -- 같은 순위 내에서는 가나다순
+""")
+    suspend fun getSimilarNameToiletData(name: String): List<ToiletDataLocal>
 }

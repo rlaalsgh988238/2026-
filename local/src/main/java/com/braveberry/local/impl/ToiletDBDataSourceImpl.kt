@@ -15,6 +15,10 @@ internal class ToiletDBDataSourceImpl @Inject internal constructor(
     override suspend fun getToiletData(toiletId: String): ToiletEntity? =
         toiletDao.getToiletData(toiletId)?.toData()
 
+    override suspend fun getSimilarNameToiletData(name: String): List<ToiletEntity> =
+        toiletDao.getSimilarNameToiletData(name).toData()
+
+
     override suspend fun getAllToiletData(): List<ToiletEntity> =
         toiletDao.getAllToiletData().toData()
 

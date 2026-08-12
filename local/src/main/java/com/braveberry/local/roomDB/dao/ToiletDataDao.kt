@@ -12,4 +12,13 @@ internal interface ToiletDataDao: BaseDao<ToiletDataLocal> {
 
     @Query("SELECT * FROM ${RoomConstant.Table.TOILET}")
     suspend fun getAllToiletData(): List<ToiletDataLocal>
+
+    @Query("SELECT * FROM ${RoomConstant.Table.TOILET} WHERE latitude BETWEEN :minLat AND :maxLat AND longitude BETWEEN :minLng AND :maxLng")
+    suspend fun getToiletsInBox(
+        minLat: Double,
+        maxLat: Double,
+        minLng: Double,
+        maxLng: Double
+    ): List<ToiletDataLocal>
+
 }

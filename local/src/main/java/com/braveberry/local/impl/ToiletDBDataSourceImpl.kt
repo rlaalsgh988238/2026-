@@ -3,12 +3,14 @@ package com.braveberry.local.impl
 import com.braveberry.local.roomDB.dao.ToiletDataDao
 import com.braveberry.local.mapper.toData
 import com.braveberry.local.mapper.toLocal
+import com.braveberry.local.util.LocationCalculator
 import com.braveberry.toilet_data.localDB.ToiletDataSource
 import com.braveberry.toilet_data.model.ToiletEntity
 import javax.inject.Inject
 
 internal class ToiletDBDataSourceImpl @Inject internal constructor(
-    private val toiletDao: ToiletDataDao
+    private val toiletDao: ToiletDataDao,
+    private val locationCalculator: LocationCalculator
 ): ToiletDataSource {
     override suspend fun getToiletData(toiletId: String): ToiletEntity? =
         toiletDao.getToiletData(toiletId)?.toData()
@@ -21,7 +23,12 @@ internal class ToiletDBDataSourceImpl @Inject internal constructor(
         latitude: Double,
         longitude: Double
     ): List<ToiletEntity> {
-        TODO("Not yet implemented")
+        val minLat = locationCalculator.getMinLat(latitude, distance)
+        val maxLat = locationCalculator.getMaxLat(latitude, distance)
+        val minLng = locationCalculator.getMinLng(longitude, distance)
+        val maxLng = locationCalculator.getMaxLng(longitude, distance)
+
+        return toiletDao.getToiletsInBox(minLat, maxLat, minLng, maxLng).toData()
     }
 
     override suspend fun insertToiletData(toiletEntity: ToiletEntity) {

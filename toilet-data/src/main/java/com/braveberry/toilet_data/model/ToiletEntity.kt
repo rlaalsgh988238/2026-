@@ -1,5 +1,8 @@
 package com.braveberry.toilet_data.model
 
+import com.braveberry.toilet_data.DataMapper
+import com.tourdataproject.domain.model.Toilet
+
 data class ToiletEntity(
     val id: Int = 0,
 
@@ -38,4 +41,32 @@ data class ToiletEntity(
 
     // 기타
     val updateDate: String?           // 데이터기준일자
-)
+): DataMapper<Toilet>{
+    override fun toDomain(): Toilet {
+        return Toilet(
+            id = this.id,
+            toiletName = this.toiletName,
+            roadAddress = this.roadAddress ?: this.lotAddress ?: "",
+            lotAddress = this.lotAddress ?: "",
+            longitude = this.longitude,
+            latitude = this.latitude,
+            isUnisex = this.isUnisex,
+            maleToiletBowlCount = this.maleToiletBowlCount,
+            maleUrinalCount = this.maleUrinalCount,
+            maleDisabledToiletCount = this.maleDisabledToiletCount,
+            maleDisabledUrinalCount = this.maleDisabledUrinalCount,
+            maleChildToiletCount = this.maleChildToiletCount,
+            maleChildUrinalCount = this.maleChildUrinalCount,
+            femaleToiletBowlCount = this.femaleToiletBowlCount,
+            femaleDisabledToiletCount = this.femaleDisabledToiletCount,
+            femaleChildToiletCount = this.femaleChildToiletCount,
+            managingAgency = this.managingAgency,
+            phoneNumber = this.phoneNumber,
+            openTime = this.openTime,
+            emergencyBellExists = this.emergencyBellExists,
+            cctvExists = this.cctvExists,
+            diaperChangingStationExists = this.diaperChangingStationExists,
+            updateDate = this.updateDate
+        )
+    }
+}

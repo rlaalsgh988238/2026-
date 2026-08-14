@@ -1,0 +1,119 @@
+@startuml
+' Title
+title TourData2026 — Module & Key-Class Dependency Diagram
+
+' Layout
+left to right direction
+skinparam packageStyle rectangular
+skinparam classAttributeIconSize 0
+
+' Packages (modules) and key types
+package "domain" as domain {
+  interface "KakaoMapRepository\n(com.tourdataproject.domain.repository)" as domain.KakaoMapRepository
+  interface "ToiletRepository\n(com.tourdataproject.domain.repository)" as domain.ToiletRepository
+  class "KakaoMapItem\n(com.tourdataproject.domain.model)" as domain.KakaoMapItem
+  class "Toilet\n(com.tourdataproject.domain.model)" as domain.Toilet
+}
+
+package "map-remote" as map_remote {
+  interface "KakaoMapApi\n(com.tourdataproject.map_remote.api)" as remote.KakaoMapApi
+  class "KakaoMapRemoteDataSourceImpl\n(com.tourdataproject.map_remote.impl)" as remote.KakaoMapRemoteDataSourceImpl
+  class "RemoteDiModule\n(com.tourdataproject.map_remote.di)" as remote.RemoteDiModule
+  package "dto/response" {
+    class "SearchResponseDto\n(...map_remote.response)" as remote.SearchResponseDto
+  }
+}
+
+package "map-data" as map_data {
+  interface "KakaoMapRemoteDataSource\n(com.tourdataproject.map_data.datasource)" as data.KakaoMapRemoteDataSource
+  class "KakaoMapRepositoryImpl\n(com.tourdataproject.map_data.repositoryImpl)" as data.KakaoMapRepositoryImpl
+  class "KakaoMapDataModel\n(com.tourdataproject.map_data.model)" as data.KakaoMapDataModel
+  class "KakaoMapMapper\n(com.tourdataproject.map_data.mapper)" as data.KakaoMapMapper
+}
+
+package "map-presentation" as map_presentation {
+  class "KakaoMapViewModel\n(com.tourdataproject.map_presentation)" as pres.KakaoMapViewModel
+  class "KakaoMapUiModel\n(com.tourdataproject.map_presentation.model)" as pres.KakaoMapUiModel
+  class "KakaoMapMapper\n(com.tourdataproject.map_presentation.mapper)" as pres.KakaoMapMapper
+  class "KakaoMapUiState\n(...map_presentation.uiState)" as pres.KakaoMapUiState
+}
+
+package "toilet-data" as toilet_data {
+  class "ToiletRepositoryImpl\n(com.braveberry.toilet_data.impl)" as td.ToiletRepositoryImpl
+  class "ToiletEntity\n(com.braveberry.toilet_data.model)" as td.ToiletEntity
+  class "ToiletDataSource\n(com.braveberry.toilet_data.localDB)" as td.ToiletDataSource
+  class "FilterCalculator\n(com.braveberry.toilet_data.utiltiy)" as td.FilterCalculator
+  class "ToiletRepositoryModule\n(com.braveberry.toilet_data.di)" as td.ToiletRepositoryModule
+  class "DataMapper\n(com.braveberry.toilet_data)" as td.DataMapper
+}
+
+package "local" as local {
+  class "ToiletDBDataSourceImpl\n(com.braveberry.local.impl)" as local.ToiletDBDataSourceImpl
+  class "ToiletDataLocal\n(com.braveberry.local.model)" as local.ToiletDataLocal
+  class "ToiletDatabase\n(com.braveberry.local.roomDB)" as local.ToiletDatabase
+  class "ToiletDataDao\n(...roomDB.dao)" as local.ToiletDataDao
+  class "LocalMapper\n(com.braveberry.local.mapper)" as local.LocalMapper
+  class "LocalRoomModule\n(com.braveberry.local.di)" as local.LocalRoomModule
+}
+
+package "data-resource" as data_resource {
+  class "DataResource<T>\n(com.braveberry.data_resource)" as dr.DataResource
+  class "FlowDataResource\n(com.braveberry.data_resource)" as dr.FlowDataResource
+  ' helper mapping function referenced in map-data
+  note right
+    mapListDataResource helper (extension)
+    provided by data-resource module
+  end note
+}
+
+package "app" as app {
+  class "MyApp\n(com.braveberry.tourdataproject)" as app.MyApp
+  class "MainActivity\n(com.braveberry.tourdataproject)" as app.MainActivity
+  class "KakaoMapScreen\n(...screen.kakaoMap)" as app.KakaoMapScreen
+  class "KakaoMapSearchScreen\n(...screen.kakaoMap)" as app.KakaoMapSearchScreen
+}
+
+' Relationships between classes/interfaces
+remote.KakaoMapApi <.. remote.RemoteDiModule : provides (Retrofit)
+remote.KakaoMapRemoteDataSourceImpl ..|> data.KakaoMapRemoteDataSource : implements
+remote.KakaoMapRemoteDataSourceImpl --> remote.KakaoMapApi : uses (Retrofit API)
+remote.KakaoMapRemoteDataSourceImpl --> dr.DataResource : emits DataResource<List<KakaoMapDataModel>>
+
+data.KakaoMapRepositoryImpl ..|> domain.KakaoMapRepository : implements
+data.KakaoMapRepositoryImpl --> data.KakaoMapRemoteDataSource : uses (remote data)
+data.KakaoMapRepositoryImpl --> data.KakaoMapMapper : uses
+data.KakaoMapMapper ..> data.KakaoMapDataModel : maps to domain.KakaoMapItem
+
+pres.KakaoMapViewModel --> domain.KakaoMapRepository : depends on / uses
+pres.KakaoMapViewModel --> pres.KakaoMapMapper : uses
+pres.KakaoMapMapper ..> domain.KakaoMapItem : maps domain model to UI model
+pres.KakaoMapViewModel --> dr.DataResource : consumes flows of DataResource
+
+td.ToiletRepositoryImpl ..|> domain.ToiletRepository : implements
+td.ToiletRepositoryImpl --> td.ToiletDataSource : uses / aggregates
+td.ToiletDataSource ..|> local.ToiletDBDataSourceImpl : implemented by (in local module)
+local.ToiletDBDataSourceImpl --> local.ToiletDatabase : uses (Room DB)
+local.ToiletDBDataSourceImpl --> local.ToiletDataDao : uses (DAO)
+td.ToiletRepositoryImpl --> td.DataMapper : maps local entities to domain.Toilet
+
+' Module-level dependency arrows
+map_data --> map_remote : "uses remote datasource (KakaoMapApi / DI)"
+map_data --> domain : "implements KakaoMapRepository"
+map_remote --> data_resource : "produces/uses DataResource"
+domain --> data_resource : "uses DataResource<T> in repository API"
+map_presentation --> domain : "calls use-cases / repositories"
+app --> map_presentation : "UI layer uses ViewModel"
+app --> local : "may include local DI / DB init"
+toilet_data --> local : "uses local Room DB (Toilet data source)"
+toilet_data --> domain : "implements ToiletRepository interface"
+
+' Legend for relationship types
+legend right
+  == Relationship types ==
+  ..|>  : implements / extends
+  -->   : uses / depends on
+  ..>   : maps / transforms
+endlegend
+
+@enduml
+

@@ -1,10 +1,12 @@
 package com.tourdataproject.domain.usecase
 
 import com.braveberry.data_resource.DataResource
+import com.braveberry.data_resource.onError
+import com.braveberry.data_resource.onSuccess
 import com.tourdataproject.domain.model.KakaoMapItem
 import com.tourdataproject.domain.repository.KakaoMapRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 class SearchNearbyPlacesUseCase @Inject constructor(
@@ -12,19 +14,22 @@ class SearchNearbyPlacesUseCase @Inject constructor(
 ) {
     operator fun invoke(
         query: String,
-        // 🌟 전국 검색도 가능하게 하려면 Nullable(? = null)로 두는 게 좋습니다!
         longitude: Double? = null,
         latitude: Double? = null,
         radius: Int? = null,
-        page: Int = 1 // 🌟 페이징을 위해 무조건 추가!
-    ): Flow<DataResource<List<KakaoMapItem>>> {
+        page: Int = 1
+    ): Flow<DataResource<List<KakaoMapItem>>> =
 
         if (query.isBlank()) {
-            return flow {
-                emit(DataResource.error(IllegalArgumentException("검색어를 입력해주세요.")))
-            }
-        }
+            flowOf(DataResource.error(IllegalArgumentException("검색어를 입력해주세요.")))
+        } else {
+            mapRepository.getNearbyPlaces(query, longitude, latitude, radius, page)
+                .onSuccess { data ->
+                    //아이템 개수 찍을까
 
-        return mapRepository.getNearbyPlaces(query, longitude, latitude, radius, page)
-    }
+                }
+                .onError { throwable ->
+                    //TODO: 에러 찍기? 혹은 어케하지
+                }
+        }
 }

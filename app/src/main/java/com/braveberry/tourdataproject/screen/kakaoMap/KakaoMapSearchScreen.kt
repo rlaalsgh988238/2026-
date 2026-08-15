@@ -39,33 +39,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tourdataproject.map_presentation.KakaoMapSideEffect
-import com.tourdataproject.map_presentation.KakaoMapViewModel
 import com.tourdataproject.map_presentation.model.KakaoMapUiModel
+import com.tourdataproject.map_presentation.viewmodel.KakaoMapViewModel
 
 @Composable
 fun KakaoMapSearchScreen(
     modifier: Modifier = Modifier,
     viewModel: KakaoMapViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    // 검색된 장소를 클릭했을 때 좌표를 메인 화면으로 돌려주기 위한 콜백
     onPlaceSelected: (Double, Double) -> Unit
 ) {
-    // 🌟 Orbit MVI State 관찰
     val uiState by viewModel.container.stateFlow.collectAsState()
 
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
-    // 🌟 Orbit MVI SideEffect(토스트 등) 관찰
     LaunchedEffect(viewModel) {
         viewModel.container.sideEffectFlow.collect { effect ->
             when (effect) {
                 is KakaoMapSideEffect.ShowToast -> {
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
-
-                else -> {
-                    //TODO: SideEffect에 또 다른거 넣을 때 사용
+                is KakaoMapSideEffect.NavigateBackToMap -> {
+                    onPlaceSelected(effect.x, effect.y)
                 }
             }
         }
@@ -89,7 +85,9 @@ fun KakaoMapSearchScreen(
 
             OutlinedTextField(
                 value = uiState.searchQuery,
-                onValueChange = { viewModel.updateSearchQuery(it) },
+                onValueChange = {
+                    viewModel.updateSearchQuery(it)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(end = 8.dp),
@@ -98,7 +96,6 @@ fun KakaoMapSearchScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
-                        // 🌟 여기서 통신 시작! (임시로 전국 검색을 위해 x, y는 null)
                         viewModel.searchPlaces(query = uiState.searchQuery)
                         focusManager.clearFocus()
                     }
@@ -108,18 +105,34 @@ fun KakaoMapSearchScreen(
 
         Divider()
 
-        // 2. 검색 결과 리스트 & 로딩 인디케이터
+        // 2. 검색 결과 리스트 & 로딩 인디케이터 & 자동완성
         Box(modifier = Modifier.fillMaxSize()) {
             if (uiState.isLoading) {
+                // 화면 전체 로딩
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+
+            } else if (uiState.autoCompleteResults.isNotEmpty()) {
+                // 🌟 타이핑 중에 자동완성 결과가 있으면 이것부터 최우선으로 보여줍니다!
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(uiState.autoCompleteResults, key = { it.id }) { place ->
+                        PlaceItem(
+                            place = place,
+                            onClick = {
+                                // 연관 검색어 클릭 시 곧바로 해당 장소로 이동!
+                                viewModel.selectPlace(place.x, place.y)
+                                focusManager.clearFocus()
+                            }
+                        )
+                    }
+                }
             } else {
+                // 🌟 검색 완료 후 돋보기 버튼을 눌렀을 때 나오는 진짜 결과창
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(uiState.searchResults, key = { it.id }) { place ->
                         PlaceItem(
                             place = place,
                             onClick = {
-                                // 🌟 장소를 클릭하면 해당 x, y 좌표를 들고 이전 화면(지도)으로 복귀!
-                                onPlaceSelected(place.x, place.y)
+                                viewModel.selectPlace(place.x, place.y)
                             }
                         )
                     }
@@ -141,7 +154,6 @@ fun PlaceItem(place: KakaoMapUiModel, onClick: () -> Unit) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = place.address, color = Color.Gray, fontSize = 14.sp)
 
-        // 거리가 존재할 경우에만 표시 (전국 검색 시 거리가 없을 수도 있음)
         if (place.distanceText.isNotBlank()) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = place.distanceText, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)

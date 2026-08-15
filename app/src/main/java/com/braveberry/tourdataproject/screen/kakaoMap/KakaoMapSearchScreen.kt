@@ -1,6 +1,7 @@
 package com.braveberry.tourdataproject.screen.kakaoMap
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -53,7 +54,12 @@ fun KakaoMapSearchScreen(
 
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
-
+    BackHandler {
+        onBackClick()
+    }
+    LaunchedEffect(Unit) {
+        viewModel.updateSearchQuery("")
+    }
     LaunchedEffect(viewModel) {
         viewModel.container.sideEffectFlow.collect { effect ->
             when (effect) {

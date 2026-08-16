@@ -1,11 +1,14 @@
 package com.braveberry.local.impl
 
+import com.braveberry.data_resource.DataResource
 import com.braveberry.local.provider.LocalLocationProvider
 import com.braveberry.local.mapper.LocalLocationMapper
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
+import com.tourdataproject.map_data.model.LocationDataModel
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class LocationLocalDataSourceImpl @Inject constructor(
+internal class LocationLocalDataSourceImpl @Inject constructor(
     private val locationProvider: LocalLocationProvider,
     private val locationMapper: LocalLocationMapper
 ) : LocationLocalDataSource {
@@ -19,5 +22,9 @@ class LocationLocalDataSourceImpl @Inject constructor(
 
         // 3. Mapper를 사용해 Repository가 원하는 Pair<Double, Double> 형태로 파싱하여 반환합니다.
         return locationMapper.mapFromByteArray(rawData)
+    }
+
+    override fun getUserLocationFlow(): Flow<DataResource<LocationDataModel>> {
+        TODO("Not yet implemented")
     }
 }

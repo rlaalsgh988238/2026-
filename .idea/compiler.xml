@@ -3,7 +3,6 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="11">
       <module name="TourDataProject.localDB" target="21" />
-      <module name="TourDataProject.tourdata-remote" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>

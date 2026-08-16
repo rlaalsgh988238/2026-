@@ -29,22 +29,23 @@ fun ByteArray.toDataModelList(): List<KakaoMapDataModel> {
     // ByteArray를 다시 JSON String으로 복원
     val jsonString = String(this, Charsets.UTF_8)
 
-    // JSON String을 SearchResponseDto로 역직렬화
-    val responseDto = Gson().fromJson(jsonString, SearchResponseDto::class.java)
+    // 🌟 핵심 수정 포인트: SearchResponseDto가 아니라,
+    // 실제 직렬화했던 타입인 Array<MapItemRemoteModel>로 파싱합니다!
+    val remoteModels = Gson().fromJson(jsonString, Array<MapItemRemoteModel>::class.java)
 
-    // 풍부해진 DTO 데이터를 KakaoMapDataModel에 빠짐없이 맵핑
-    return responseDto.documents.map { document ->
+    // 풍부해진 Remote 모델 데이터를 Data 계층의 KakaoMapDataModel에 빠짐없이 맵핑
+    return remoteModels.map { remoteModel ->
         KakaoMapDataModel(
-            id = document.id,
-            placeName = document.placeName,
-            addressName = document.addressName,
-            roadAddressName = document.roadAddressName,
-            longitude = document.x.toDoubleOrNull() ?: 0.0,
-            latitude = document.y.toDoubleOrNull() ?: 0.0,
-            distance = document.distance.toIntOrNull() ?: 0,
-            categoryGroupName = document.categoryGroupName,
-            phone = document.phone,
-            placeUrl = document.placeUrl
+            id = remoteModel.id,
+            placeName = remoteModel.placeName,
+            addressName = remoteModel.addressName,
+            roadAddressName = remoteModel.roadAddressName,
+            longitude = remoteModel.longitude, // 이미 toData() 단계에서 Double로 변환되었음
+            latitude = remoteModel.latitude,
+            distance = remoteModel.distance,
+            categoryGroupName = remoteModel.categoryGroupName,
+            phone = remoteModel.phone,
+            placeUrl = remoteModel.placeUrl
         )
     }
 }

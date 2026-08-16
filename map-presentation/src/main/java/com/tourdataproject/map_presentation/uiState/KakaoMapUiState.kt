@@ -7,7 +7,8 @@ data class KakaoMapUiState(
     val targetCoordinate: Pair<Double, Double>? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val searchResults: List<KakaoMapUiModel> = emptyList()
+    val searchResults: List<KakaoMapUiModel> = emptyList(),
+    val autoCompleteResults: List<KakaoMapUiModel> = emptyList()
 )
 //근데 SideEffect 가 있나 흠
 sealed class KakaoMapSideEffect {

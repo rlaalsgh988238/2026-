@@ -1,7 +1,7 @@
 package com.braveberry.local.provider
 
 import android.annotation.SuppressLint
-import com.braveberry.localDB.model.LocationLocalModel
+import com.braveberry.local.model.LocationLocalModel
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.gson.Gson
 import kotlinx.coroutines.tasks.await

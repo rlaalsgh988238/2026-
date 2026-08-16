@@ -1,6 +1,6 @@
-package com.braveberry.localDB.mapper
+package com.braveberry.local.mapper
 
-import com.braveberry.localDB.model.LocationLocalModel
+import com.braveberry.local.model.LocationLocalModel
 import com.google.gson.Gson
 import javax.inject.Inject
 

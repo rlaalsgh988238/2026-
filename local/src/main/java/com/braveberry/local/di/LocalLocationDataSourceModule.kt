@@ -1,5 +1,6 @@
-package com.braveberry.localDB.di
+package com.braveberry.local.di
 
+import com.braveberry.local.impl.LocationLocalDataSourceImpl
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
 import com.tourdataproject.map_data.repositoryImpl.KakaoMapRepositoryImpl
 import dagger.Binds

@@ -1,4 +1,4 @@
-package com.braveberry.localDB.di
+package com.braveberry.local.di
 
 import android.content.Context
 import com.google.android.gms.location.FusedLocationProviderClient

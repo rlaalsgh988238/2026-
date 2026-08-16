@@ -1,4 +1,4 @@
-package com.braveberry.localDB.model
+package com.braveberry.local.model
 
 data class LocationLocalModel(
     val latitude: Double,

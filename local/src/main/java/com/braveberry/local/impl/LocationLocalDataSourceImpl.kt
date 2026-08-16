@@ -1,7 +1,7 @@
 package com.braveberry.local.impl
 
 import com.braveberry.local.provider.LocalLocationProvider
-import com.braveberry.localDB.mapper.LocalLocationMapper
+import com.braveberry.local.mapper.LocalLocationMapper
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
 import javax.inject.Inject
 

@@ -111,20 +111,16 @@ fun KakaoMapSearchScreen(
 
         Divider()
 
-        // 2. 검색 결과 리스트 & 로딩 인디케이터 & 자동완성
         Box(modifier = Modifier.fillMaxSize()) {
             if (uiState.isLoading) {
-                // 화면 전체 로딩
+                // TODO: 로딩시 화면 추후 수정필요한지?
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-
             } else if (uiState.autoCompleteResults.isNotEmpty()) {
-                // 🌟 타이핑 중에 자동완성 결과가 있으면 이것부터 최우선으로 보여줍니다!
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(uiState.autoCompleteResults, key = { it.id }) { place ->
                         PlaceItem(
                             place = place,
                             onClick = {
-                                // 연관 검색어 클릭 시 곧바로 해당 장소로 이동!
                                 viewModel.selectPlace(place.x, place.y)
                                 focusManager.clearFocus()
                             }

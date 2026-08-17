@@ -20,15 +20,15 @@ import org.orbitmvi.orbit.syntax.simple.postSideEffect
 import org.orbitmvi.orbit.syntax.simple.reduce
 import org.orbitmvi.orbit.viewmodel.container
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
-@HiltViewModel // 🌟 클래스 위의 @OptIn은 깔끔하게 제거!
+@HiltViewModel
 class KakaoMapViewModel @Inject constructor(
     private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase
 ) : ViewModel(), ContainerHost<KakaoMapUiState, KakaoMapSideEffect> {
 
     override val container = container<KakaoMapUiState, KakaoMapSideEffect>(KakaoMapUiState())
 
-    // 자동완성 통제를 위한 내부 파이프라인
     private val queryFlow = MutableStateFlow("")
 
     init {
@@ -45,11 +45,10 @@ class KakaoMapViewModel @Inject constructor(
         queryFlow.value = query
     }
 
-    // 2. 디바운스(타이머) 로직
-    @OptIn(FlowPreview::class) // 🌟 딱 이 함수에만 허락 도장 쾅!
+    @OptIn(FlowPreview::class)
     private fun observeQueryForAutoComplete() {
         queryFlow
-            .debounce(300L) // 여기서 에러 안 남
+            .debounce(300L.milliseconds)
             .filter { it.isNotBlank() }
             .onEach { finalQuery ->
                 searchPlacesForAutoComplete(finalQuery)
@@ -57,7 +56,6 @@ class KakaoMapViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    // 3. 조용히 돌아가는 자동완성 전용 통신 함수
     private fun searchPlacesForAutoComplete(query: String) = intent {
         searchNearbyPlacesUseCase(
             query = query,
@@ -67,6 +65,7 @@ class KakaoMapViewModel @Inject constructor(
             page = 1
         ).collect { resource ->
             if (resource is DataResource.Success) {
+                //TODO: 예외일 때 로직
                 val uiModels = resource.data.map { it.toUiModel() }
 
                 reduce {
@@ -76,7 +75,6 @@ class KakaoMapViewModel @Inject constructor(
         }
     }
 
-    // 4. 유저가 검색 버튼을 명시적으로 눌렀을 때 호출
     fun searchPlaces(query: String, longitude: Double? = null, latitude: Double? = null) = intent {
         if (query.isBlank()) {
             postSideEffect(KakaoMapSideEffect.ShowToast("검색어를 입력해주세요."))
@@ -102,7 +100,7 @@ class KakaoMapViewModel @Inject constructor(
                         state.copy(
                             isLoading = false,
                             searchResults = uiModels,
-                            autoCompleteResults = emptyList() // 진짜 검색 완료 시 자동완성 리스트는 닫음
+                            autoCompleteResults = emptyList()
                         )
                     }
                 }

@@ -25,7 +25,6 @@ class SearchNearbyPlacesUseCase @Inject constructor(
         } else {
             mapRepository.getNearbyPlaces(query, longitude, latitude, radius, page)
                 .onSuccess { data ->
-                    //아이템 개수 찍을까
 
                 }
                 .onError { throwable ->

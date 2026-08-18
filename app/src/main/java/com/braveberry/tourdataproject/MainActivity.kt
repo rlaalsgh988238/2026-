@@ -26,19 +26,17 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    // 🌟 1. 권한 요청 결과를 처리하는 런처 등록 (클래스 최상단에 위치해야 합니다)
+    //권한 요청
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         when {
             permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) -> {
-                // 정확한 위치 권한 허용됨 (이제 DataSource가 정상적으로 ByteArray를 가져옵니다)
             }
             permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
-                // 대략적인 위치 권한 허용됨
             }
             else -> {
-                // 권한 거부됨 (우리가 짠 로직대로 Repository가 알아서 null로 처리하고 전국구 검색을 실행합니다)
+                //거부
             }
         }
     }
@@ -46,7 +44,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🌟 2. 앱이 켜지자마자 권한 요청 팝업 띄우기 실행
         locationPermissionRequest.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,

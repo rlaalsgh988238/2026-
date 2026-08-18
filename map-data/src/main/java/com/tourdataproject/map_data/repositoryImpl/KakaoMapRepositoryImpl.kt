@@ -7,8 +7,10 @@ import com.tourdataproject.domain.repository.KakaoMapRepository
 import com.tourdataproject.map_data.datasource.KakaoMapRemoteDataSource
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
 import com.tourdataproject.map_data.mapper.toDomainModel
+import com.tourdataproject.map_data.uitlity.calculateLocationParams
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
@@ -25,30 +27,21 @@ class KakaoMapRepositoryImpl @Inject constructor(
         page: Int
     ): Flow<DataResource<List<KakaoMapItem>>> = flow {
 
-        var targetLng = longitude
-        var targetLat = latitude
+        val params = locationLocalDataSource.calculateLocationParams(longitude, latitude, radius)
 
-        if (targetLng == null || targetLat == null) {
-            val localLocation = locationLocalDataSource.getUserLocation()
-            targetLng = localLocation?.first
-            targetLat = localLocation?.second
-        }
-
-        val targetRadius = if (targetLng != null && targetLat != null) radius ?: 2000 else null
-
-        remoteDataSource.getNearbyPlaces(
-            query = query,
-            longitude = targetLng,
-            latitude = targetLat,
-            radius = targetRadius,
-            page = page
-        ).mapListDataResource { dataModel ->
-            dataModel.toDomainModel()
-        }.collect { resource ->
-            emit(resource)
-        }
+        emitAll(
+            remoteDataSource.getNearbyPlaces(
+                query = query,
+                longitude = params.lng,
+                latitude = params.lat,
+                radius = params.radius,
+                page = page
+            ).mapListDataResource { dataModel -> dataModel.toDomainModel() }
+        )
 
     }.catch { e ->
         emit(DataResource.error(e))
     }
 }
+
+

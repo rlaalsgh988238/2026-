@@ -1,5 +1,6 @@
 package com.braveberry.data_resource
 
+import jdk.jfr.internal.OldObjectSample.emit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
@@ -7,6 +8,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.onStart
 
 
 suspend fun <T> Flow<DataResource<T>>.collectDataResource(
@@ -77,3 +79,12 @@ fun <T, R> Flow<DataResource<T>>.flatMapDataResource(operation: (T) -> Flow<Data
             }
         }
     }
+
+fun <T> Flow<T>.asDataResourceFlow(): Flow<DataResource<T>> =
+    transform { value ->
+    emit(DataResource.success(value) as DataResource<T>)
+}.onStart {
+    emit(DataResource.loading())
+}.catch { e ->
+    emit(DataResource.error(e))
+}

@@ -27,7 +27,6 @@ internal class LocalLocationProvider @Inject constructor(
     private val fusedLocationClient: FusedLocationProviderClient,
     private val permissionChecker: PermissionChecker
 ) {
-    // 🚨 위치 권한 승인은 UI(화면) 단에서 이미 받았다고 가정하고 에러를 무시하는 어노테이션입니다.
     suspend fun getCurrentLocationAsByteArray(): ByteArray? {
         return try {
             // 코루틴의 await()를 사용해 비동기로 마지막 위치를 가져옵니다.

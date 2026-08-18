@@ -1,6 +1,7 @@
 package com.braveberry.local.impl
 
 import com.braveberry.data_resource.DataResource
+import com.braveberry.data_resource.mapDataResource
 import com.braveberry.local.provider.LocalLocationProvider
 import com.braveberry.local.mapper.LocalLocationMapper
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
@@ -25,6 +26,8 @@ internal class LocationLocalDataSourceImpl @Inject constructor(
     }
 
     override fun getUserLocationFlow(): Flow<DataResource<LocationDataModel>> {
-        TODO("Not yet implemented")
+        return locationProvider.provideUserLocation().mapDataResource{
+            it.toData()
+        }
     }
 }

@@ -2,9 +2,10 @@ package com.braveberry.local.mapper
 
 import com.braveberry.local.model.LocationLocalModel
 import com.google.gson.Gson
+import com.tourdataproject.map_data.model.LocationDataModel
 import javax.inject.Inject
 
-class LocalLocationMapper @Inject constructor() {
+internal class LocalLocationMapper @Inject constructor() {
     fun mapFromByteArray(rawData: ByteArray): Pair<Double, Double>? {
         return try {
             val jsonString = String(rawData, Charsets.UTF_8)
@@ -18,3 +19,9 @@ class LocalLocationMapper @Inject constructor() {
         }
     }
 }
+
+internal fun LocationLocalModel.toData(): LocationDataModel =
+    LocationDataModel(
+        longitude = this.longitude,
+        latitude = this.latitude
+    )

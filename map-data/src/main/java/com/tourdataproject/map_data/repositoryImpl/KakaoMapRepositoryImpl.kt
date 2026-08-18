@@ -1,12 +1,15 @@
 package com.tourdataproject.map_data.repositoryImpl
 
 import com.braveberry.data_resource.DataResource
+import com.braveberry.data_resource.mapDataResource
 import com.braveberry.data_resource.mapListDataResource
 import com.tourdataproject.domain.model.KakaoMapItem
+import com.tourdataproject.domain.model.Location
 import com.tourdataproject.domain.repository.KakaoMapRepository
 import com.tourdataproject.map_data.datasource.KakaoMapRemoteDataSource
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
 import com.tourdataproject.map_data.mapper.toDomainModel
+import com.tourdataproject.map_data.model.LocationDataModel
 import com.tourdataproject.map_data.uitlity.calculateLocationParams
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -42,6 +45,7 @@ class KakaoMapRepositoryImpl @Inject constructor(
     }.catch { e ->
         emit(DataResource.error(e))
     }
+
+    override fun getUserLocation(): Flow<DataResource<Location>> =
+        locationLocalDataSource.getUserLocationFlow().mapDataResource { it.toDomain() }
 }
-
-

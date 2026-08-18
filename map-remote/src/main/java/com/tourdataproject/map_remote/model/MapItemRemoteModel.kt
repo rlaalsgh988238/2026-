@@ -1,4 +1,4 @@
-package com.tourdataproject.map_remote.response
+package com.tourdataproject.map_remote.model
 
 data class MapItemRemoteModel(
     val id: String,

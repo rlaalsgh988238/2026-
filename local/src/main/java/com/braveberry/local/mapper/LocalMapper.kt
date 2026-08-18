@@ -1,7 +1,7 @@
 package com.braveberry.local.mapper
 
-import com.braveberry.local.model.ToiletDataLocal
-import com.braveberry.toilet_data.model.ToiletEntity
+import com.braveberry.local.model.ToiletDataLocalModel
+import com.braveberry.toilet_data.model.ToiletDataModel
 
 interface LocalMapper<DataModel> {
     fun toData(): DataModel
@@ -13,7 +13,7 @@ internal fun <LocalModel : LocalMapper<DataModel>, DataModel> List<LocalModel>.t
 
 // ---------------------------------------------------------
 
-internal fun ToiletEntity.toLocal(): ToiletDataLocal = ToiletDataLocal(
+internal fun ToiletDataModel.toLocal(): ToiletDataLocalModel = ToiletDataLocalModel(
     id = id,
     toiletName = toiletName,
     roadAddress = roadAddress,
@@ -39,6 +39,6 @@ internal fun ToiletEntity.toLocal(): ToiletDataLocal = ToiletDataLocal(
     updateDate = updateDate
 )
 
-internal fun List<ToiletEntity>.toLocal(): List<ToiletDataLocal> {
+internal fun List<ToiletDataModel>.toLocal(): List<ToiletDataLocalModel> {
     return map { it.toLocal() }
 }

@@ -7,7 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.braveberry.local.impl.ToiletDBDataSourceImpl
 import com.braveberry.local.roomDB.ToiletDatabase
 import com.braveberry.local.util.LocationCalculator
-import com.braveberry.toilet_data.model.ToiletEntity
+import com.braveberry.toilet_data.model.ToiletDataModel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -123,8 +123,8 @@ class ToiletDBDataSourceImplTest {
         name: String,
         lat: Double = 0.0,
         lng: Double = 0.0
-    ): ToiletEntity {
-        return ToiletEntity(
+    ): ToiletDataModel {
+        return ToiletDataModel(
             id = id,
             toiletName = name,
             roadAddress = "도로명 주소",

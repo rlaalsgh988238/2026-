@@ -1,7 +1,7 @@
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.map_data.datasource.KakaoMapRemoteDataSource
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
-import com.tourdataproject.map_data.repositoryImpl.KakaoMapRepositoryImpl
+import com.tourdataproject.map_data.repositoryImpl.MapRepositoryImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -18,12 +18,12 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class KakaoMapRepositoryImplTest {
+class MapRepositoryImplTest {
 
     // 1. 가짜(Mock) 의존성 객체 선언
     private lateinit var remoteDataSource: KakaoMapRemoteDataSource
     private lateinit var locationLocalDataSource: LocationLocalDataSource
-    private lateinit var repository: KakaoMapRepositoryImpl
+    private lateinit var repository: MapRepositoryImpl
 
     @Before
     fun setUp() {
@@ -31,7 +31,7 @@ class KakaoMapRepositoryImplTest {
         locationLocalDataSource = mockk()
 
         // 2. 가짜 객체들을 주입하여 레포지토리 생성
-        repository = KakaoMapRepositoryImpl(remoteDataSource, locationLocalDataSource)
+        repository = MapRepositoryImpl(remoteDataSource, locationLocalDataSource)
     }
 
     @Test

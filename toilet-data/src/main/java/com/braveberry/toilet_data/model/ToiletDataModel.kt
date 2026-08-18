@@ -1,14 +1,10 @@
-package com.braveberry.local.model
+package com.braveberry.toilet_data.model
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import com.braveberry.local.mapper.LocalMapper
-import com.braveberry.local.roomDB.RoomConstant
-import com.braveberry.toilet_data.model.ToiletEntity
+import com.braveberry.toilet_data.DataMapper
+import com.tourdataproject.domain.model.Toilet
 
-@Entity(tableName = RoomConstant.Table.TOILET)
-internal data class ToiletDataLocal(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+data class ToiletDataModel(
+    val id: Int = 0,
 
     // 기본 정보
     val toiletName: String,           // 화장실명
@@ -45,31 +41,32 @@ internal data class ToiletDataLocal(
 
     // 기타
     val updateDate: String?           // 데이터기준일자
-): LocalMapper<ToiletEntity> {
-    override fun toData(): ToiletEntity =
-        ToiletEntity(
-            id,
-            toiletName,
-            roadAddress,
-            lotAddress,
-            isUnisex,
-            maleToiletBowlCount,
-            maleUrinalCount,
-            maleDisabledToiletCount,
-            maleDisabledUrinalCount,
-            maleChildToiletCount,
-            maleChildUrinalCount,
-            femaleToiletBowlCount,
-            femaleDisabledToiletCount,
-            femaleChildToiletCount,
-            managingAgency,
-            phoneNumber,
-            openTime,
-            latitude,
-            longitude,
-            emergencyBellExists,
-            cctvExists,
-            diaperChangingStationExists,
-            updateDate
+): DataMapper<Toilet>{
+    override fun toDomain(): Toilet {
+        return Toilet(
+            id = this.id,
+            toiletName = this.toiletName,
+            roadAddress = this.roadAddress ?: this.lotAddress ?: "",
+            lotAddress = this.lotAddress ?: "",
+            longitude = this.longitude,
+            latitude = this.latitude,
+            isUnisex = this.isUnisex,
+            maleToiletBowlCount = this.maleToiletBowlCount,
+            maleUrinalCount = this.maleUrinalCount,
+            maleDisabledToiletCount = this.maleDisabledToiletCount,
+            maleDisabledUrinalCount = this.maleDisabledUrinalCount,
+            maleChildToiletCount = this.maleChildToiletCount,
+            maleChildUrinalCount = this.maleChildUrinalCount,
+            femaleToiletBowlCount = this.femaleToiletBowlCount,
+            femaleDisabledToiletCount = this.femaleDisabledToiletCount,
+            femaleChildToiletCount = this.femaleChildToiletCount,
+            managingAgency = this.managingAgency,
+            phoneNumber = this.phoneNumber,
+            openTime = this.openTime,
+            emergencyBellExists = this.emergencyBellExists,
+            cctvExists = this.cctvExists,
+            diaperChangingStationExists = this.diaperChangingStationExists,
+            updateDate = this.updateDate
         )
+    }
 }

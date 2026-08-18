@@ -2,16 +2,16 @@ package com.braveberry.local.roomDB.dao
 
 import androidx.room.Dao
 import androidx.room.Query
-import com.braveberry.local.model.ToiletDataLocal
+import com.braveberry.local.model.ToiletDataLocalModel
 import com.braveberry.local.roomDB.RoomConstant
 
 @Dao
-internal interface ToiletDataDao: BaseDao<ToiletDataLocal> {
+internal interface ToiletDataDao: BaseDao<ToiletDataLocalModel> {
     @Query("SELECT * FROM ${RoomConstant.Table.TOILET} WHERE id = :toiletId")
-    suspend fun getToiletData(toiletId: String): ToiletDataLocal?
+    suspend fun getToiletData(toiletId: String): ToiletDataLocalModel?
 
     @Query("SELECT * FROM ${RoomConstant.Table.TOILET}")
-    suspend fun getAllToiletData(): List<ToiletDataLocal>
+    suspend fun getAllToiletData(): List<ToiletDataLocalModel>
 
     @Query("SELECT * FROM ${RoomConstant.Table.TOILET} WHERE latitude BETWEEN :minLat AND :maxLat AND longitude BETWEEN :minLng AND :maxLng")
     suspend fun getToiletsInBox(
@@ -19,7 +19,7 @@ internal interface ToiletDataDao: BaseDao<ToiletDataLocal> {
         maxLat: Double,
         minLng: Double,
         maxLng: Double
-    ): List<ToiletDataLocal>
+    ): List<ToiletDataLocalModel>
 
     @Query("""
     SELECT * FROM ${RoomConstant.Table.TOILET} 
@@ -32,5 +32,5 @@ internal interface ToiletDataDao: BaseDao<ToiletDataLocal> {
         END, 
         toiletName ASC -- 같은 순위 내에서는 가나다순
 """)
-    suspend fun getSimilarNameToiletData(name: String): List<ToiletDataLocal>
+    suspend fun getSimilarNameToiletData(name: String): List<ToiletDataLocalModel>
 }

@@ -4,13 +4,13 @@ import com.braveberry.data_resource.DataResource
 import com.braveberry.data_resource.onError
 import com.braveberry.data_resource.onSuccess
 import com.tourdataproject.domain.model.KakaoMapItem
-import com.tourdataproject.domain.repository.KakaoMapRepository
+import com.tourdataproject.domain.repository.MapRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 class SearchNearbyPlacesUseCase @Inject constructor(
-    private val mapRepository: KakaoMapRepository
+    private val mapRepository: MapRepository
 ) {
     operator fun invoke(
         query: String,

@@ -1,6 +1,6 @@
 package com.braveberry.toilet_data
 
-import com.braveberry.toilet_data.model.ToiletEntity
+import com.braveberry.toilet_data.model.ToiletDataModel
 import com.tourdataproject.domain.model.Toilet
 import kotlin.collections.map
 
@@ -12,8 +12,8 @@ internal fun <DataModel : DataMapper<DomainModel>, DomainModel> List<DataModel>.
     return map { it.toDomain() }
 }
 
-internal fun Toilet.toData(): ToiletEntity {
-    return ToiletEntity(
+internal fun Toilet.toData(): ToiletDataModel {
+    return ToiletDataModel(
         id = this.id,
         toiletName = this.toiletName,
         roadAddress = this.roadAddress,

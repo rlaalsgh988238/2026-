@@ -1,5 +1,5 @@
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
-import com.tourdataproject.map_data.model.CalculateLocationParams
+import com.tourdataproject.map_data.model.internal.CalculateLocationParams
 import com.tourdataproject.map_data.uitlity.calculateLocationParams
 import io.mockk.coEvery
 import io.mockk.coVerify

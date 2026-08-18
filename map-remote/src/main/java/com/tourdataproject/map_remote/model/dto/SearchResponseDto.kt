@@ -1,9 +1,10 @@
-package com.tourdataproject.map_remote.response
+package com.tourdataproject.map_remote.model.dto
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.tourdataproject.map_remote.mapper.RemoteMapper
 import com.tourdataproject.map_remote.mapper.toDataModel
+import com.tourdataproject.map_remote.model.MapItemRemoteModel
 
 data class SearchResponseDto(
     @SerializedName("meta") val meta: MetaDto,

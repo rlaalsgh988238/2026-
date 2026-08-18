@@ -2,7 +2,7 @@ package com.braveberry.toilet_data.impl
 
 import com.braveberry.data_resource.DataResource
 import com.braveberry.toilet_data.localDB.ToiletDataSource
-import com.braveberry.toilet_data.model.ToiletEntity
+import com.braveberry.toilet_data.model.ToiletDataModel
 import com.braveberry.toilet_data.utiltiy.FilterCalculator
 import com.tourdataproject.domain.model.Toilet
 import io.mockk.coEvery
@@ -50,8 +50,8 @@ class ToiletRepositoryImplTest {
         assertTrue(result is DataResource.Error)
     }
 
-    private fun createMockEntity(id: Int, name: String, lat: Double, lng: Double): ToiletEntity {
-        return mockk<ToiletEntity>(relaxed = true).apply {
+    private fun createMockEntity(id: Int, name: String, lat: Double, lng: Double): ToiletDataModel {
+        return mockk<ToiletDataModel>(relaxed = true).apply {
             every { this@apply.id } returns id
             every { toiletName } returns name
             every { latitude } returns lat

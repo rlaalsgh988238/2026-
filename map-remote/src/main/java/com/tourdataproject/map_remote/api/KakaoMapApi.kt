@@ -1,6 +1,6 @@
 package com.tourdataproject.map_remote.api
 
-import com.tourdataproject.map_remote.response.SearchResponseDto
+import com.tourdataproject.map_remote.model.dto.SearchResponseDto
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query

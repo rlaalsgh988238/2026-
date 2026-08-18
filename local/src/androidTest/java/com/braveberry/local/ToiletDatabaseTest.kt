@@ -5,7 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.braveberry.local.model.ToiletDataLocal
+import com.braveberry.local.model.ToiletDataLocalModel
 import com.braveberry.local.roomDB.ToiletDatabase
 import com.braveberry.local.roomDB.dao.ToiletDataDao
 import com.braveberry.local.roomDB.toiletDataLoader.initToiletTableFromCsv
@@ -44,7 +44,7 @@ class ToiletDatabaseTest {
 
     @Test
     fun insertAndGetToiletData() = runBlocking {
-        val dummyData = ToiletDataLocal(
+        val dummyData = ToiletDataLocalModel(
             id = 1,
             toiletName = "테스트 화장실",
             roadAddress = "서울시 테스트구 테스트동",

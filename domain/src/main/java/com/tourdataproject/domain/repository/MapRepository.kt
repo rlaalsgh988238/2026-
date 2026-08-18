@@ -5,7 +5,7 @@ import com.tourdataproject.domain.model.KakaoMapItem
 import com.tourdataproject.domain.model.Location
 import kotlinx.coroutines.flow.Flow
 
-interface KakaoMapRepository {
+interface MapRepository {
     fun getNearbyPlaces(
         query: String,
         longitude: Double? = null,

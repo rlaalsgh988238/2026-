@@ -1,16 +1,15 @@
 package com.tourdataproject.domain.usecase.user_data
 
 import com.braveberry.data_resource.DataResource
-import com.braveberry.data_resource.collectDataResource
 import com.tourdataproject.domain.model.Location
-import com.tourdataproject.domain.repository.KakaoMapRepository
+import com.tourdataproject.domain.repository.MapRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
-class TrackUserLocationUseCase @Inject constructor(private val kakaoMapRepository: KakaoMapRepository){
+class TrackUserLocationUseCase @Inject constructor(private val mapRepository: MapRepository){
     operator fun invoke(): Flow<DataResource<Location>> = flow{
-        kakaoMapRepository.getUserLocation().collect {
+        mapRepository.getUserLocation().collect {
             when(it){
                 is DataResource.Success -> {
                     emit(it)

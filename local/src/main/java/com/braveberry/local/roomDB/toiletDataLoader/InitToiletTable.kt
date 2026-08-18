@@ -1,7 +1,7 @@
 package com.braveberry.local.roomDB.toiletDataLoader
 
 import android.content.Context
-import com.braveberry.local.model.ToiletDataLocal
+import com.braveberry.local.model.ToiletDataLocalModel
 import com.braveberry.local.roomDB.dao.ToiletDataDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,7 +15,7 @@ internal suspend fun initToiletTableFromCsv(context: Context, toiletDao: ToiletD
 
         val inputStream = context.assets.open("toiletData.csv")
         val reader = BufferedReader(InputStreamReader(inputStream, "UTF-8"))
-        val localDataList = mutableListOf<ToiletDataLocal>()
+        val localDataList = mutableListOf<ToiletDataLocalModel>()
 
         reader.readLine() // 헤더 스킵
 
@@ -24,7 +24,7 @@ internal suspend fun initToiletTableFromCsv(context: Context, toiletDao: ToiletD
 
             if (tokens.size >= 23) {
                 // ToiletEntity가 아닌 Room DB 모델(ToiletDataLocal)로 바로 파싱
-                val localData = ToiletDataLocal(
+                val localData = ToiletDataLocalModel(
                     id = 0,
                     toiletName = tokens[0],
                     roadAddress = tokens[1].takeIf { it.isNotBlank() },

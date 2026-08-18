@@ -1,10 +1,14 @@
-package com.braveberry.toilet_data.model
+package com.braveberry.local.model
 
-import com.braveberry.toilet_data.DataMapper
-import com.tourdataproject.domain.model.Toilet
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import com.braveberry.local.mapper.LocalMapper
+import com.braveberry.local.roomDB.RoomConstant
+import com.braveberry.toilet_data.model.ToiletDataModel
 
-data class ToiletEntity(
-    val id: Int = 0,
+@Entity(tableName = RoomConstant.Table.TOILET)
+internal data class ToiletDataLocalModel(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
     // 기본 정보
     val toiletName: String,           // 화장실명
@@ -41,32 +45,31 @@ data class ToiletEntity(
 
     // 기타
     val updateDate: String?           // 데이터기준일자
-): DataMapper<Toilet>{
-    override fun toDomain(): Toilet {
-        return Toilet(
-            id = this.id,
-            toiletName = this.toiletName,
-            roadAddress = this.roadAddress ?: this.lotAddress ?: "",
-            lotAddress = this.lotAddress ?: "",
-            longitude = this.longitude,
-            latitude = this.latitude,
-            isUnisex = this.isUnisex,
-            maleToiletBowlCount = this.maleToiletBowlCount,
-            maleUrinalCount = this.maleUrinalCount,
-            maleDisabledToiletCount = this.maleDisabledToiletCount,
-            maleDisabledUrinalCount = this.maleDisabledUrinalCount,
-            maleChildToiletCount = this.maleChildToiletCount,
-            maleChildUrinalCount = this.maleChildUrinalCount,
-            femaleToiletBowlCount = this.femaleToiletBowlCount,
-            femaleDisabledToiletCount = this.femaleDisabledToiletCount,
-            femaleChildToiletCount = this.femaleChildToiletCount,
-            managingAgency = this.managingAgency,
-            phoneNumber = this.phoneNumber,
-            openTime = this.openTime,
-            emergencyBellExists = this.emergencyBellExists,
-            cctvExists = this.cctvExists,
-            diaperChangingStationExists = this.diaperChangingStationExists,
-            updateDate = this.updateDate
+): LocalMapper<ToiletDataModel> {
+    override fun toData(): ToiletDataModel =
+        ToiletDataModel(
+            id,
+            toiletName,
+            roadAddress,
+            lotAddress,
+            isUnisex,
+            maleToiletBowlCount,
+            maleUrinalCount,
+            maleDisabledToiletCount,
+            maleDisabledUrinalCount,
+            maleChildToiletCount,
+            maleChildUrinalCount,
+            femaleToiletBowlCount,
+            femaleDisabledToiletCount,
+            femaleChildToiletCount,
+            managingAgency,
+            phoneNumber,
+            openTime,
+            latitude,
+            longitude,
+            emergencyBellExists,
+            cctvExists,
+            diaperChangingStationExists,
+            updateDate
         )
-    }
 }

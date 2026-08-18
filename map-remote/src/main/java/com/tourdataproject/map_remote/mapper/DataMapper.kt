@@ -2,9 +2,8 @@ package com.tourdataproject.map_remote.mapper
 
 import com.google.gson.Gson
 import com.tourdataproject.map_data.model.KakaoMapDataModel
-import com.tourdataproject.map_remote.response.DocumentDto
-import com.tourdataproject.map_remote.response.MapItemRemoteModel
-import com.tourdataproject.map_remote.response.SearchResponseDto
+import com.tourdataproject.map_remote.model.dto.DocumentDto
+import com.tourdataproject.map_remote.model.MapItemRemoteModel
 
 // DocumentDto를 MapItemRemoteModel로 변환하는 역할을 전담합니다.
 fun DocumentDto.toDataModel(): MapItemRemoteModel {

@@ -5,28 +5,28 @@ import com.braveberry.local.mapper.toData
 import com.braveberry.local.mapper.toLocal
 import com.braveberry.local.util.LocationCalculator
 import com.braveberry.toilet_data.localDB.ToiletDataSource
-import com.braveberry.toilet_data.model.ToiletEntity
+import com.braveberry.toilet_data.model.ToiletDataModel
 import javax.inject.Inject
 
 internal class ToiletDBDataSourceImpl @Inject internal constructor(
     private val toiletDao: ToiletDataDao,
     private val locationCalculator: LocationCalculator
 ): ToiletDataSource {
-    override suspend fun getToiletData(toiletId: String): ToiletEntity? =
+    override suspend fun getToiletData(toiletId: String): ToiletDataModel? =
         toiletDao.getToiletData(toiletId)?.toData()
 
-    override suspend fun getSimilarNameToiletData(name: String): List<ToiletEntity> =
+    override suspend fun getSimilarNameToiletData(name: String): List<ToiletDataModel> =
         toiletDao.getSimilarNameToiletData(name).toData()
 
 
-    override suspend fun getAllToiletData(): List<ToiletEntity> =
+    override suspend fun getAllToiletData(): List<ToiletDataModel> =
         toiletDao.getAllToiletData().toData()
 
     override suspend fun getToiletDataInBox(
         distance: Float,
         latitude: Double,
         longitude: Double
-    ): List<ToiletEntity> {
+    ): List<ToiletDataModel> {
         val minLat = locationCalculator.getMinLat(latitude, distance)
         val maxLat = locationCalculator.getMaxLat(latitude, distance)
         val minLng = locationCalculator.getMinLng(longitude, distance)
@@ -35,11 +35,11 @@ internal class ToiletDBDataSourceImpl @Inject internal constructor(
         return toiletDao.getToiletsInBox(minLat, maxLat, minLng, maxLng).toData()
     }
 
-    override suspend fun insertToiletData(toiletEntity: ToiletEntity) {
-        toiletDao.insert(toiletEntity.toLocal())
+    override suspend fun insertToiletData(toiletDataModel: ToiletDataModel) {
+        toiletDao.insert(toiletDataModel.toLocal())
     }
 
-    override suspend fun insertToiletDataList(toiletEntityList: List<ToiletEntity>) {
-        toiletDao.insertList(toiletEntityList.toLocal())
+    override suspend fun insertToiletDataList(toiletDataModelList: List<ToiletDataModel>) {
+        toiletDao.insertList(toiletDataModelList.toLocal())
     }
 }

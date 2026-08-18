@@ -1,4 +1,4 @@
-package com.tourdataproject.map_remote.response
+package com.tourdataproject.map_remote.model.dto
 
 import com.google.gson.annotations.SerializedName
 

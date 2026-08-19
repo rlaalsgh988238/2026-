@@ -11,6 +11,7 @@ android {
 dependencies {
     implementation(project(":toilet-data"))
     implementation(project(":map-data"))
+    implementation(project(":course-data"))
     implementation(project(":data-resource"))
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.play.services)

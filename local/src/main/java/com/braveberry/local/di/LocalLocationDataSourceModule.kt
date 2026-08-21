@@ -10,7 +10,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class LocalLocationDataSourceModule {
+internal abstract class LocalLocationDataSourceModule {
 
     @Binds
     @Singleton

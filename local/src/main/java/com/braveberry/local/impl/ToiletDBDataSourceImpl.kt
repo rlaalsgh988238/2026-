@@ -4,7 +4,7 @@ import com.braveberry.local.roomDB.dao.ToiletDataDao
 import com.braveberry.local.mapper.toData
 import com.braveberry.local.mapper.toLocal
 import com.braveberry.local.util.LocationCalculator
-import com.braveberry.toilet_data.localDB.ToiletDataSource
+import com.braveberry.toilet_data.dataSource.ToiletDataSource
 import com.braveberry.toilet_data.model.ToiletDataModel
 import javax.inject.Inject
 

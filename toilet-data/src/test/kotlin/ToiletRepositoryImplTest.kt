@@ -1,7 +1,7 @@
 package com.braveberry.toilet_data.impl
 
 import com.braveberry.data_resource.DataResource
-import com.braveberry.toilet_data.localDB.ToiletDataSource
+import com.braveberry.toilet_data.dataSource.ToiletDataSource
 import com.braveberry.toilet_data.model.ToiletDataModel
 import com.braveberry.toilet_data.utiltiy.FilterCalculator
 import com.tourdataproject.domain.model.Toilet

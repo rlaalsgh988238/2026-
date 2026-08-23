@@ -1,0 +1,247 @@
+package com.braveberry.tourdataproject.screen.plan
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.tourdataproject.map_presentation.model.region.City
+import com.tourdataproject.map_presentation.model.region.RegionSelectionEffect
+import com.tourdataproject.map_presentation.model.region.RegionSelectionEvent
+import com.tourdataproject.map_presentation.model.region.RegionSelectionState
+import com.tourdataproject.map_presentation.viewmodel.RegionSelectionViewModel
+
+// 프로젝트에서 사용할 주요 색상 정의 (실제 테마 색상으로 교체 가능)
+val PrimaryTeal = Color(0xFF38B29C)
+val DisabledGray = Color(0xFFAAAAAA)
+val BackgroundGray = Color(0xFFF5F5F5)
+
+@Composable
+fun RegionSelectionRoute(
+    viewModel: RegionSelectionViewModel = hiltViewModel(),
+    onNavigateToDateSelection: (Int) -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    val state by viewModel.state.collectAsState()
+    val effect = viewModel.effect
+
+    LaunchedEffect(effect) {
+        effect.collect { currentEffect ->
+            when (currentEffect) {
+                is RegionSelectionEffect.NavigateToDateSelection -> {
+                    onNavigateToDateSelection(currentEffect.selectedCityId)
+                }
+                is RegionSelectionEffect.NavigateBack -> {
+                    onNavigateBack()
+                }
+            }
+        }
+    }
+
+    RegionSelectionScreen(
+        state = state,
+        onEvent = viewModel::setEvent
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RegionSelectionScreen(
+    state: RegionSelectionState,
+    onEvent: (RegionSelectionEvent) -> Unit
+) {
+    Scaffold(
+        containerColor = Color.White,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "플랜 만들기",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { onEvent(RegionSelectionEvent.OnBackButtonClicked) }) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
+            )
+        },
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                // 선택된 도시 칩 표시 영역
+                if (state.selectedCity != null) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.dp, PrimaryTeal),
+                        color = PrimaryTeal.copy(alpha = 0.1f),
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clickable { onEvent(RegionSelectionEvent.OnCityDeselected) }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = state.selectedCity!!.name,
+                                color = PrimaryTeal,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "선택 취소",
+                                tint = PrimaryTeal,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                // 다음 버튼
+                Button(
+                    onClick = { onEvent(RegionSelectionEvent.OnNextButtonClicked) },
+                    enabled = state.isNextButtonEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryTeal,
+                        disabledContainerColor = DisabledGray
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = "다음",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 20.dp)
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "어디로 떠나시나요?",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 검색 바
+            TextField(
+                value = state.searchQuery,
+                onValueChange = { onEvent(RegionSelectionEvent.OnSearchQueryChanged(it)) },
+                placeholder = {
+                    Text("도시 이름을 입력해주세요", color = Color.Gray, fontSize = 14.sp)
+                },
+                trailingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "검색", tint = Color.Gray)
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = BackgroundGray,
+                    unfocusedContainerColor = BackgroundGray,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = PrimaryTeal
+                ),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 도시 선택 그리드
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(state.popularCities) { city ->
+                    val isSelected = state.selectedCity == city
+
+                    Surface(
+                        shape = CircleShape,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (isSelected) PrimaryTeal else Color(0xFFE0E0E0)
+                        ),
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(2f) // 가로가 더 긴 타원형 비율
+                            .clip(CircleShape)
+                            .clickable { onEvent(RegionSelectionEvent.OnCitySelected(city)) }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = city.name,
+                                color = if (isSelected) PrimaryTeal else Color.Black,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RegionSelectionScreenPreview() {
+    val dummyCities = listOf(
+        City(1, "서울"), City(2, "대전"), City(3, "청주"), City(4, "인천"),
+        City(5, "수원"), City(6, "대구"), City(7, "부산"), City(8, "전주"),
+        City(9, "광주"), City(10, "나주"), City(11, "제주"), City(12, "거제")
+    )
+
+    RegionSelectionScreen(
+        state = RegionSelectionState(
+            popularCities = dummyCities,
+            selectedCity = dummyCities[11] // 거제가 선택된 상태
+        ),
+        onEvent = {}
+    )
+}

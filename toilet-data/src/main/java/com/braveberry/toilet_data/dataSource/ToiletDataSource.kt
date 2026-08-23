@@ -1,4 +1,4 @@
-package com.braveberry.toilet_data.localDB
+package com.braveberry.toilet_data.dataSource
 
 import com.braveberry.toilet_data.model.ToiletDataModel
 

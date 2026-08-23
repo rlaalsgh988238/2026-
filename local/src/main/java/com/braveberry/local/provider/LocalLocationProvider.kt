@@ -7,6 +7,7 @@ import com.braveberry.local.permission.PermissionChecker
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.google.gson.Gson
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -32,7 +33,7 @@ internal class LocalLocationProvider @Inject constructor(
                             )
                             trySend(DataResource.success(model))
                         } ?: run {
-                            trySend(DataResource.error(Exception("Location is null")))
+                            trySend(DataResource.error(Exception("GPS 오류")))
                         }
                     }
                 }
@@ -41,6 +42,6 @@ internal class LocalLocationProvider @Inject constructor(
                 }
             }
         else {
-            flowOf(DataResource.error(Exception("Permission Denied")))
+            flowOf(DataResource.error(Exception("권한 거부")))
         }
 }

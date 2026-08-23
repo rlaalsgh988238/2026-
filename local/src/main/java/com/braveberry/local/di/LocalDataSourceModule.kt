@@ -5,7 +5,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import com.braveberry.local.impl.ToiletDBDataSourceImpl
-import com.braveberry.toilet_data.localDB.ToiletDataSource
+import com.braveberry.toilet_data.dataSource.ToiletDataSource
 import javax.inject.Singleton
 
 @Module

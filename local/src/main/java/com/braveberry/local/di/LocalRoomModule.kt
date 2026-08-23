@@ -7,7 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import com.braveberry.local.roomDB.ToiletDatabase
+import com.braveberry.local.roomDB.AppDatabase
 import com.braveberry.local.roomDB.RoomConstant
 import com.braveberry.local.roomDB.dao.ToiletDataDao
 import javax.inject.Singleton
@@ -18,14 +18,14 @@ internal object LocalRoomModule {
 
     @Provides
     @Singleton
-    fun provideToiletDatabase(@ApplicationContext context: Context): ToiletDatabase =
+    fun provideToiletDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(
             context,
-            ToiletDatabase::class.java,
+            AppDatabase::class.java,
             RoomConstant.DB_NAME
         ).build()
 
     @Provides
     @Singleton
-    fun provideToiletDao(database: ToiletDatabase): ToiletDataDao = database.toiletDao()
+    fun provideToiletDao(database: AppDatabase): ToiletDataDao = database.toiletDao()
 }

@@ -5,7 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.braveberry.local.impl.ToiletDBDataSourceImpl
-import com.braveberry.local.roomDB.ToiletDatabase
+import com.braveberry.local.roomDB.AppDatabase
 import com.braveberry.local.util.LocationCalculator
 import com.braveberry.toilet_data.model.ToiletDataModel
 import kotlinx.coroutines.runBlocking
@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ToiletDBDataSourceImplTest {
 
-    private lateinit var db: ToiletDatabase
+    private lateinit var db: AppDatabase
     private lateinit var dataSource: ToiletDBDataSourceImpl
     private lateinit var locationCalculator: LocationCalculator
 
@@ -26,7 +26,7 @@ class ToiletDBDataSourceImplTest {
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(
-            context, ToiletDatabase::class.java
+            context, AppDatabase::class.java
         ).allowMainThreadQueries().build()
 
         locationCalculator = LocationCalculator()

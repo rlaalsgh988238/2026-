@@ -1,7 +1,7 @@
 package com.braveberry.local.util
 
 import androidx.room.TypeConverter
-import com.braveberry.local.model.DayPlanLocalModel
+import com.braveberry.local.model.course.DayPlanLocalModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 

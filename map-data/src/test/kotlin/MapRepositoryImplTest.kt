@@ -1,7 +1,7 @@
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.map_data.datasource.KakaoMapRemoteDataSource
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
-import com.tourdataproject.map_data.repositoryImpl.MapRepositoryImpl
+import com.tourdataproject.map_data.impl.MapRepositoryImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

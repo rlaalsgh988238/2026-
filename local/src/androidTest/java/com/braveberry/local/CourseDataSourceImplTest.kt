@@ -11,7 +11,7 @@ import com.braveberry.toilet_data.course_data.model.DayPlanDataModel
 import com.braveberry.toilet_data.course_data.model.ScheduleItemDataModel
 import kotlinx.coroutines.flow.first
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.braveberry.local.roomDB.ToiletDatabase
+import com.braveberry.local.roomDB.AppDatabase
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull
 import kotlinx.coroutines.runBlocking
@@ -24,7 +24,7 @@ import kotlin.jvm.java
 @RunWith(AndroidJUnit4::class)
 class CourseDataSourceImplTest {
 
-    private lateinit var database: ToiletDatabase
+    private lateinit var database: AppDatabase
     private lateinit var dao: CourseDao
     private lateinit var dataSource: CourseDataSourceImpl
 
@@ -67,7 +67,7 @@ class CourseDataSourceImplTest {
     fun setup() {
         // 1. 가짜(In-Memory) DB 생성: 테스트 끝나면 램에서 싹 지워짐!
         val context = ApplicationProvider.getApplicationContext<Context>()
-        database = Room.inMemoryDatabaseBuilder(context, ToiletDatabase::class.java)
+        database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries() // 테스트 환경이므로 메인 스레드 동작 허용
             .build()
 

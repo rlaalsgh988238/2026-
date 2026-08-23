@@ -2,7 +2,7 @@ package com.braveberry.local.roomDB.dao
 
 import androidx.room.Dao
 import androidx.room.Query
-import com.braveberry.local.model.ToiletDataLocalModel
+import com.braveberry.local.model.toilet.ToiletDataLocalModel
 import com.braveberry.local.roomDB.RoomConstant
 
 @Dao

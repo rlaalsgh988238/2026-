@@ -2,12 +2,11 @@ package com.braveberry.local.provider
 
 import android.annotation.SuppressLint
 import com.braveberry.data_resource.DataResource
-import com.braveberry.local.model.LocationLocalModel
+import com.braveberry.local.model.location.LocationLocalModel
 import com.braveberry.local.permission.PermissionChecker
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
-import com.google.gson.Gson
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

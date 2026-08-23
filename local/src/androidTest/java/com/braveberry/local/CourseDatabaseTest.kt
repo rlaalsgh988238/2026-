@@ -1,13 +1,16 @@
 package com.braveberry.local
 
-import com.braveberry.local.roomDB.ToiletDatabase
+import com.braveberry.local.roomDB.AppDatabase
 import kotlin.jvm.java
 
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.braveberry.local.model.*
+import com.braveberry.local.model.course.AccessibilityInfoLocalModel
+import com.braveberry.local.model.course.CourseLocalModel
+import com.braveberry.local.model.course.DayPlanLocalModel
+import com.braveberry.local.model.course.ScheduleItemLocalModel
 import com.braveberry.local.roomDB.dao.CourseDao
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -21,7 +24,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class CourseDatabaseTest {
 
-    private lateinit var db: ToiletDatabase
+    private lateinit var db: AppDatabase
     private lateinit var dao: CourseDao
 
     // 테스트용 'Local' 더미 데이터 (DataSource 테스트 때와 다르게 LocalModel을 씁니다!)
@@ -65,7 +68,7 @@ class CourseDatabaseTest {
 
         // 1. 메모리 DB 생성 (AppDatabase 사용)
         db = Room.inMemoryDatabaseBuilder(
-            context, ToiletDatabase::class.java
+            context, AppDatabase::class.java
         )
             .allowMainThreadQueries() // 테스트 환경에서 Flow 처리를 위해 메인 스레드 쿼리 허용
             .build()

@@ -39,9 +39,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tourdataproject.map_presentation.KakaoMapSideEffect
-import com.tourdataproject.map_presentation.model.KakaoMapUiModel
-import com.tourdataproject.map_presentation.viewmodel.KakaoMapViewModel
+import com.tourdataproject.presentation.KakaoMapSideEffect
+import com.tourdataproject.presentation.model.KakaoMapUiModel
+import com.tourdataproject.presentation.viewmodel.KakaoMapViewModel
 
 @Composable
 fun KakaoMapSearchScreen(

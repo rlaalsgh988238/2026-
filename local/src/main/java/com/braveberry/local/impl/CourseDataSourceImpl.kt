@@ -1,7 +1,7 @@
 package com.braveberry.local.impl
 
 import com.braveberry.local.mapper.toData
-import com.braveberry.local.mapper.toLocalModel
+import com.braveberry.local.model.course.toLocalModel
 import com.braveberry.local.roomDB.dao.CourseDao
 import com.braveberry.toilet_data.course_data.datasource.CourseDataSource
 import com.braveberry.toilet_data.course_data.model.CourseDataModel

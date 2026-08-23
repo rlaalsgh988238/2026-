@@ -1,7 +1,7 @@
 package com.braveberry.local.roomDB.toiletDataLoader
 
 import android.content.Context
-import com.braveberry.local.model.ToiletDataLocalModel
+import com.braveberry.local.model.toilet.ToiletDataLocalModel
 import com.braveberry.local.roomDB.dao.ToiletDataDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

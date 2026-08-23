@@ -3,11 +3,9 @@ package com.braveberry.local.impl
 import com.braveberry.data_resource.DataResource
 import com.braveberry.data_resource.mapDataResource
 import com.braveberry.local.provider.LocalLocationProvider
-import com.braveberry.local.mapper.LocalLocationMapper
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
 import com.tourdataproject.map_data.model.LocationDataModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 

@@ -43,7 +43,7 @@ dependencies {
     implementation(libs.orbit.core)
     implementation(libs.orbit.viewmodel)
     implementation(libs.orbit.compose)
-    implementation(project(":map-presentation"))
+    implementation(project(":presentation"))
     implementation(project(":map-data"))
     implementation(project(":map-remote"))
     implementation(project(":local"))

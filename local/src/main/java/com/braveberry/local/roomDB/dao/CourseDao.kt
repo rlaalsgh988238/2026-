@@ -2,7 +2,7 @@ package com.braveberry.local.roomDB.dao
 
 import androidx.room.Dao
 import androidx.room.Query
-import com.braveberry.local.model.CourseLocalModel
+import com.braveberry.local.model.course.CourseLocalModel
 import com.braveberry.local.roomDB.RoomConstant
 import kotlinx.coroutines.flow.Flow
 

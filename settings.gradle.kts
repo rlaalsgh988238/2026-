@@ -23,7 +23,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "TourDataProject"
 include(":app")
-include(":map-presentation")
+include(":presentation")
 include(":map-remote")
 include(":map-data")
 include(":domain")

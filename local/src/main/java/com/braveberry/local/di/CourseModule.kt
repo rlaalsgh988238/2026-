@@ -1,7 +1,7 @@
 package com.braveberry.local.di
 
 import com.braveberry.local.impl.CourseDataSourceImpl
-import com.braveberry.local.roomDB.ToiletDatabase
+import com.braveberry.local.roomDB.AppDatabase
 import com.braveberry.local.roomDB.dao.CourseDao
 import com.braveberry.toilet_data.course_data.datasource.CourseDataSource
 import dagger.Binds
@@ -17,7 +17,7 @@ internal object CourseLocalProvideModule {
 
     @Provides
     @Singleton
-    fun provideCourseDao(database: ToiletDatabase): CourseDao {
+    fun provideCourseDao(database: AppDatabase): CourseDao {
         return database.courseDao()
     }
 }

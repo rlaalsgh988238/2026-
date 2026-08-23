@@ -7,5 +7,6 @@ internal object RoomConstant {
     object Table{
         const val TOILET = "toilet"
         const val USER = "user"
+        const val COURSE = "course"
     }
 }

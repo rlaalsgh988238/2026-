@@ -14,7 +14,7 @@ internal abstract class LocalLocationDataSourceModule {
 
     @Binds
     @Singleton
-    abstract fun bindLocationLocalDataSource(
+    internal abstract fun bindLocationLocalDataSource(
         impl: LocationLocalDataSourceImpl
     ): LocationLocalDataSource
 }

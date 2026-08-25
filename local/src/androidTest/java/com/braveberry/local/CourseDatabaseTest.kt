@@ -12,7 +12,7 @@ import com.braveberry.local.model.course.CourseLocalModel
 import com.braveberry.local.model.course.DayPlanLocalModel
 import com.braveberry.local.model.course.ScheduleItemLocalModel
 import com.braveberry.local.roomDB.dao.CourseDao
-import kotlinx.coroutines.flow.first
+// ❌ import kotlinx.coroutines.flow.first (삭제!)
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -27,7 +27,6 @@ class CourseDatabaseTest {
     private lateinit var db: AppDatabase
     private lateinit var dao: CourseDao
 
-    // 테스트용 'Local' 더미 데이터 (DataSource 테스트 때와 다르게 LocalModel을 씁니다!)
     private val dummyLocalCourse = CourseLocalModel(
         courseId = "db_test_course_1",
         destination = "제주도",
@@ -66,14 +65,12 @@ class CourseDatabaseTest {
     fun createDb() {
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        // 1. 메모리 DB 생성 (AppDatabase 사용)
         db = Room.inMemoryDatabaseBuilder(
             context, AppDatabase::class.java
         )
-            .allowMainThreadQueries() // 테스트 환경에서 Flow 처리를 위해 메인 스레드 쿼리 허용
+            .allowMainThreadQueries()
             .build()
 
-        // 2. CourseDao 뽑아오기
         dao = db.courseDao()
     }
 
@@ -84,35 +81,36 @@ class CourseDatabaseTest {
 
     @Test
     fun insertAndGetCourseData() = runBlocking {
-        // Given (준비): 코스 데이터를 insert 한다 (BaseDao 기능)
+        // Given
         dao.insert(dummyLocalCourse)
 
-        // When (실행): Flow로 던져주는 단건 데이터를 .first()로 받아온다
-        val loadedData = dao.getCourseById("db_test_course_1").first()
+        // 🌟 수정: Flow가 아니므로 .first() 삭제!
+        val loadedData = dao.getCourseById("db_test_course_1")
 
-        // Then (검증)
-        // 1. 최상단 코스 정보가 잘 저장되었는가?
+        // Then
         assertEquals(dummyLocalCourse.courseName, loadedData?.courseName)
 
-        // 2. 🌟 TypeConverter가 중첩 리스트 압축을 완벽하게 해냈는가? (가장 중요)
         val loadedScheduleName = loadedData?.dayPlans?.get(0)?.schedules?.get(0)?.scheduleName
         assertEquals("공항 도착 및 렌트카", loadedScheduleName)
     }
 
     @Test
     fun deleteCourseData() = runBlocking {
-        // Given (준비): 데이터를 넣고 잘 들어갔는지 확인한다
+        // Given
         dao.insert(dummyLocalCourse)
-        val beforeDeleteList = dao.getAllCourses().first()
+
+        // 🌟 수정: .first() 삭제!
+        val beforeDeleteList = dao.getAllCourses()
         assertEquals(1, beforeDeleteList.size)
 
-        // When (실행): 커스텀 쿼리로 만든 ID 기반 삭제 함수 호출
+        // When
         dao.deleteCourseById("db_test_course_1")
 
-        // Then (검증): 지운 후에는 리스트가 비어있어야 하고, 단건 조회 시 null이어야 한다
-        val afterDeleteList = dao.getAllCourses().first()
-        val afterDeleteSingle = dao.getCourseById("db_test_course_1").first()
+        // 🌟 수정: .first() 삭제!
+        val afterDeleteList = dao.getAllCourses()
+        val afterDeleteSingle = dao.getCourseById("db_test_course_1")
 
+        // Then
         assertEquals(0, afterDeleteList.size)
         assertNull(afterDeleteSingle)
     }

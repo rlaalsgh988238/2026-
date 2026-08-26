@@ -13,19 +13,18 @@ class CourseDataSourceImpl @Inject internal constructor(
     private val courseDao: CourseDao
 ) : CourseDataSource {
 
-    // 1. 코스 저장 및 수정
     override suspend fun saveCourse(course: CourseDataModel) {
         courseDao.insert(course.toLocalModel())
     }
 
-    // 2. 전체 코스 목록 가져오기
-    override fun getAllCourses(): Flow<List<CourseDataModel>> {
+    // 2. 전체 코스 목록 가져오기 (🌟 Flow 걷어내고 List 직행!)
+    override suspend fun getAllCourses(): List<CourseDataModel> {
         return courseDao.getAllCourses().map { it.toData() }
     }
 
-    // 3. 특정 코스 상세 정보 가져오기
-    override fun getCourseById(courseId: String): Flow<CourseDataModel?> {
-        return courseDao.getCourseById(courseId).map { it?.toData() }
+    // 3. 특정 코스 상세 정보 가져오기 (🌟 Flow 걷어내고 Model 직행!)
+    override suspend fun getCourseById(courseId: String): CourseDataModel? {
+        return courseDao.getCourseById(courseId)?.toData()
     }
 
     // 4. 코스 삭제

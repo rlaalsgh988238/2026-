@@ -8,5 +8,6 @@ internal object RoomConstant {
         const val TOILET = "toilet"
         const val USER = "user"
         const val COURSE = "course"
+        const val REGION = "region"
     }
 }

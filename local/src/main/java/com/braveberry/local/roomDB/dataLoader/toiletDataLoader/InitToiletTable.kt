@@ -1,4 +1,4 @@
-package com.braveberry.local.roomDB.toiletDataLoader
+package com.braveberry.local.roomDB.dataLoader.toiletDataLoader
 
 import android.content.Context
 import com.braveberry.local.model.toilet.ToiletDataLocalModel

@@ -1,11 +1,13 @@
-package com.tourdataproject.presentation.viewmodel
+package com.tourdataproject.presentation.viewmodel.plan.regionSelect
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tourdataproject.presentation.model.region.City
-import com.tourdataproject.presentation.model.region.RegionSelectionEffect
-import com.tourdataproject.presentation.model.region.RegionSelectionEvent
-import com.tourdataproject.presentation.model.region.RegionSelectionState
+import com.braveberry.data_resource.onSuccess
+import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
+import com.tourdataproject.presentation.model.CityUiModel
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,10 +18,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// RegionSelectionViewModel.kt
 @HiltViewModel
 class RegionSelectionViewModel @Inject constructor(
-    // private val getPopularCitiesUseCase: GetPopularCitiesUseCase
+    private val getPopularCitiesUseCase: GetPopularCitiesUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RegionSelectionState())
@@ -29,7 +30,7 @@ class RegionSelectionViewModel @Inject constructor(
     val effect: SharedFlow<RegionSelectionEffect> = _effect.asSharedFlow()
 
     init {
-        loadPopularCities()
+        loadDummyPopularCities()
     }
 
     fun setEvent(event: RegionSelectionEvent) {
@@ -58,12 +59,18 @@ class RegionSelectionViewModel @Inject constructor(
         }
     }
 
-    private fun loadPopularCities() {
-        val dummyCities = listOf(
-            City(1, "서울"), City(2, "대전"), City(3, "청주"), City(4, "인천"),
-            City(5, "수원"), City(6, "대구"), City(7, "부산"), City(8, "전주"),
-            City(9, "광주"), City(10, "나주"), City(11, "제주"), City(12, "거제")
+    private fun loadPopularCities(){
+        val popularCities = createCityList()
+    }
+
+    private fun loadDummyPopularCities() {
+        val dummyCities = createCityList(
+            "서울", "대전", "청주", "인천", "수원", "대구",
+            "부산", "전주", "광주", "나주", "제주", "거제"
         )
         _state.value = _state.value.copy(popularCities = dummyCities)
     }
+
+    private fun createCityList(vararg names: String): List<CityUiModel> =
+        names.mapIndexed { index, name -> CityUiModel(index + 1, name) }
 }

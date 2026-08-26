@@ -7,5 +7,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface LocationLocalDataSource {
      suspend fun getUserLocation(): Pair<Double, Double>? // (경도, 위도)
-    fun getUserLocationFlow(): Flow<DataResource<LocationDataModel>>
+     fun getUserLocationFlow(): Flow<DataResource<LocationDataModel>>
 }

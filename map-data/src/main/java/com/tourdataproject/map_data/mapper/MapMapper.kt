@@ -7,6 +7,10 @@ internal interface DataMapper <domainModel>{
     fun toDomain(): domainModel
 }
 
+internal fun <DomainModel, DataList: List<DataMapper<DomainModel>>> DataList.toDomain(): List<DomainModel> =
+    this.map { it.toDomain() }
+
+
 // Data 계층의 Model Mapper는 오직 Data Model을 Domain Model로
 fun KakaoMapDataModel.toDomainModel(): KakaoMapItem {
     return KakaoMapItem(

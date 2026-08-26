@@ -1,12 +1,11 @@
-package com.tourdataproject.presentation.model.region
+package com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState
 
-//TODO("얘 도메인에 넣기")
-data class City(val id: Int, val name: String)
+import com.tourdataproject.presentation.model.CityUiModel
 
 data class RegionSelectionState(
     val searchQuery: String = "",
-    val popularCities: List<City> = emptyList(),
-    val selectedCity: City? = null,
+    val popularCities: List<CityUiModel> = emptyList(),
+    val selectedCity: CityUiModel? = null,
     val isLoading: Boolean = false
 ) {
     // 선택된 도시가 있을 때만 다음 버튼 활성화
@@ -16,7 +15,7 @@ data class RegionSelectionState(
 
 sealed class RegionSelectionEvent {
     data class OnSearchQueryChanged(val query: String) : RegionSelectionEvent()
-    data class OnCitySelected(val city: City) : RegionSelectionEvent()
+    data class OnCitySelected(val city: CityUiModel) : RegionSelectionEvent()
     object OnCityDeselected : RegionSelectionEvent()
     object OnNextButtonClicked : RegionSelectionEvent()
     object OnBackButtonClicked : RegionSelectionEvent()

@@ -16,7 +16,8 @@ internal class ToiletRepositoryImpl @Inject constructor(
     private val filterCalculator: FilterCalculator
 ): ToiletRepository{
     override fun getToiletById(id: String): Flow<DataResource<Toilet?>> =
-        flow<DataResource<Toilet?>> {
+        flow{
+            emit(DataResource.Loading())
             val result = toiletDataSource.getToiletData(id)?.toDomain()
             emit(DataResource.Success(result))
         }.catch { e ->
@@ -31,7 +32,8 @@ internal class ToiletRepositoryImpl @Inject constructor(
         distance: Float,
         latitude: Double,
         longitude: Double
-    ): Flow<DataResource<List<Toilet>>> = flow<DataResource<List<Toilet>>> {
+    ): Flow<DataResource<List<Toilet>>> = flow{
+        emit(DataResource.Loading())
         val resultList = toiletDataSource.getToiletDataInBox(distance, latitude, longitude)
             .filter {
                 filterCalculator.isInCircle(
@@ -46,9 +48,9 @@ internal class ToiletRepositoryImpl @Inject constructor(
     }
 
 
-    override fun getToiletsByName(name: String): Flow<DataResource<List<Toilet>>> = flow<DataResource<List<Toilet>>> {
+    override fun getToiletsByName(name: String): Flow<DataResource<List<Toilet>>> = flow{
+        emit(DataResource.Loading())
         val resultList = toiletDataSource.getSimilarNameToiletData(name).toDomain()
-
         emit(DataResource.Success(resultList))
     }.catch { e ->
         emit(DataResource.error(e))

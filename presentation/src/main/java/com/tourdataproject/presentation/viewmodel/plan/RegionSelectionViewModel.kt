@@ -1,4 +1,4 @@
-package com.tourdataproject.presentation.viewmodel
+package com.tourdataproject.presentation.viewmodel.plan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

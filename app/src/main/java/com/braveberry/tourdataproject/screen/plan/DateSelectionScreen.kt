@@ -19,45 +19,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.braveberry.tourdataproject.ui.theme.DisabledGray
+import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
+import com.braveberry.tourdataproject.ui.theme.WeekendBlue
+import com.tourdataproject.presentation.viewmodel.plan.DateSelectionViewModel
+import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionEffect
+import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionState
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 
-// 색상 정의 (기존 코드와 동일)
-val WeekendBlue = Color(0xFF4FA8F7)
 
-// 1. State, Event, Effect 정의
-data class DateSelectionState(
-    val selectedDate: LocalDate? = null,
-    val targetMonths: List<YearMonth> = listOf(
-        YearMonth.now(),
-        YearMonth.now().plusMonths(1)
-    )
-) {
-    val isNextButtonEnabled: Boolean
-        get() = selectedDate != null
-}
 
-sealed interface DateSelectionEvent {
-    data class OnDateSelected(val date: LocalDate) : DateSelectionEvent
-    object OnNextButtonClicked : DateSelectionEvent
-    object OnBackButtonClicked : DateSelectionEvent
-}
 
-sealed interface DateSelectionEffect {
-    object NavigateToNextScreen : DateSelectionEffect
-    object NavigateBack : DateSelectionEffect
-}
 
 // 2. Route 컴포저블 (ViewModel 연결용 뼈대)
 @Composable
 fun DateSelectionRoute(
-    // viewModel: DateSelectionViewModel = hiltViewModel(),
+    viewModel: DateSelectionViewModel = hiltViewModel(),
     onNavigateToNext: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     // 실제 연결 시 아래 주석을 해제하고 사용합니다.
-    /*
     val state by viewModel.state.collectAsState()
     val effect = viewModel.effect
 
@@ -74,10 +58,9 @@ fun DateSelectionRoute(
         state = state,
         onEvent = viewModel::setEvent
     )
-    */
 }
 
-// 3. UI 화면 컴포저블
+// UI 화면 컴포저블
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateSelectionScreen(

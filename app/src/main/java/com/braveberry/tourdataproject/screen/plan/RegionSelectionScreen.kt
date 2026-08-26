@@ -23,16 +23,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.braveberry.tourdataproject.ui.theme.BackgroundGray
+import com.braveberry.tourdataproject.ui.theme.DisabledGray
+import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.tourdataproject.presentation.model.region.City
 import com.tourdataproject.presentation.model.region.RegionSelectionEffect
 import com.tourdataproject.presentation.model.region.RegionSelectionEvent
 import com.tourdataproject.presentation.model.region.RegionSelectionState
-import com.tourdataproject.presentation.viewmodel.RegionSelectionViewModel
+import com.tourdataproject.presentation.viewmodel.plan.RegionSelectionViewModel
 
-// 프로젝트에서 사용할 주요 색상 정의 (실제 테마 색상으로 교체 가능)
-val PrimaryTeal = Color(0xFF38B29C)
-val DisabledGray = Color(0xFFAAAAAA)
-val BackgroundGray = Color(0xFFF5F5F5)
+
 
 @Composable
 fun RegionSelectionRoute(

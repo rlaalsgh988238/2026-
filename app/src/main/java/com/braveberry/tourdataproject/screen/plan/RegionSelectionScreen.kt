@@ -26,11 +26,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.BackgroundGray
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
-import com.tourdataproject.presentation.model.region.City
-import com.tourdataproject.presentation.model.region.RegionSelectionEffect
-import com.tourdataproject.presentation.model.region.RegionSelectionEvent
-import com.tourdataproject.presentation.model.region.RegionSelectionState
-import com.tourdataproject.presentation.viewmodel.plan.RegionSelectionViewModel
+import com.tourdataproject.presentation.model.CityUiModel
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.RegionSelectionViewModel
 
 
 
@@ -232,10 +232,11 @@ fun RegionSelectionScreen(
 @Composable
 fun RegionSelectionScreenPreview() {
     val dummyCities = listOf(
-        City(1, "서울"), City(2, "대전"), City(3, "청주"), City(4, "인천"),
-        City(5, "수원"), City(6, "대구"), City(7, "부산"), City(8, "전주"),
-        City(9, "광주"), City(10, "나주"), City(11, "제주"), City(12, "거제")
-    )
+        "서울", "대전", "청주", "인천", "수원", "대구",
+        "부산", "전주", "광주", "나주", "제주", "거제"
+    ).mapIndexed { index, name ->
+        CityUiModel(id = index + 1, name = name)
+    }
 
     RegionSelectionScreen(
         state = RegionSelectionState(

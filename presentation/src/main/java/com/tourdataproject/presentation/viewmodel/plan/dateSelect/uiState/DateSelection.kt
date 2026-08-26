@@ -1,4 +1,4 @@
-package com.tourdataproject.presentation.viewmodel.plan.uiState
+package com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState
 
 import java.time.LocalDate
 import java.time.YearMonth

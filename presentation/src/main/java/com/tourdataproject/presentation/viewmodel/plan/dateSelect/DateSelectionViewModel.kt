@@ -1,10 +1,10 @@
-package com.tourdataproject.presentation.viewmodel.plan
+package com.tourdataproject.presentation.viewmodel.plan.dateSelect
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionEffect
-import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionEvent
-import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionState
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow

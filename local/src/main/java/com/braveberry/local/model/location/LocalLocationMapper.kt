@@ -18,9 +18,3 @@ internal class LocalLocationMapper @Inject constructor() {
         }
     }
 }
-
-internal fun LocationLocalModel.toData(): LocationDataModel =
-    LocationDataModel(
-        longitude = this.longitude,
-        latitude = this.latitude
-    )

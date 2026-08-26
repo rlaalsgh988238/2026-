@@ -23,10 +23,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
-import com.tourdataproject.presentation.viewmodel.plan.DateSelectionViewModel
-import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionEffect
-import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionEvent
-import com.tourdataproject.presentation.viewmodel.plan.uiState.DateSelectionState
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import java.time.LocalDate
 import java.time.YearMonth
 

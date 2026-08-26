@@ -3,11 +3,14 @@ package com.tourdataproject.map_data.impl
 import com.braveberry.data_resource.DataResource
 import com.braveberry.data_resource.mapDataResource
 import com.braveberry.data_resource.mapListDataResource
+import com.tourdataproject.domain.model.Region
 import com.tourdataproject.domain.model.KakaoMapItem
 import com.tourdataproject.domain.model.Location
 import com.tourdataproject.domain.repository.MapRepository
 import com.tourdataproject.map_data.datasource.KakaoMapRemoteDataSource
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
+import com.tourdataproject.map_data.datasource.RegionLocalDataSource
+import com.tourdataproject.map_data.mapper.toDomain
 import com.tourdataproject.map_data.mapper.toDomainModel
 import com.tourdataproject.map_data.uitlity.calculateLocationParams
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +21,8 @@ import javax.inject.Inject
 
 class MapRepositoryImpl @Inject constructor(
     private val remoteDataSource: KakaoMapRemoteDataSource,
-    private val locationLocalDataSource: LocationLocalDataSource
+    private val locationLocalDataSource: LocationLocalDataSource,
+    private val regionLocalDataSource: RegionLocalDataSource
 ) : MapRepository {
 
     override fun getNearbyPlaces(
@@ -47,4 +51,12 @@ class MapRepositoryImpl @Inject constructor(
 
     override fun getUserLocation(): Flow<DataResource<Location>> =
         locationLocalDataSource.getUserLocationFlow().mapDataResource { it.toDomain() }
+
+    override fun getPopularCity(): Flow<DataResource<List<Region>>> = flow{
+        emit(DataResource.Loading())
+        val result = regionLocalDataSource.getPopularRegion()
+        emit(DataResource.Success(result.toDomain()))
+    }.catch { e ->
+        emit(DataResource.Error(e))
+    }
 }

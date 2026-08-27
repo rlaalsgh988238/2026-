@@ -2,9 +2,8 @@ package com.tourdataproject.presentation.viewmodel.plan.regionSelect
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.braveberry.data_resource.onSuccess
 import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
-import com.tourdataproject.presentation.model.CityUiModel
+import com.tourdataproject.presentation.model.RegionUiModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
@@ -48,7 +47,7 @@ class RegionSelectionViewModel @Inject constructor(
             is RegionSelectionEvent.OnNextButtonClicked -> {
                 val selectedCity = _state.value.selectedCity ?: return
                 viewModelScope.launch {
-                    _effect.emit(RegionSelectionEffect.NavigateToDateSelection(selectedCity.id))
+                    _effect.emit(RegionSelectionEffect.NavigateToDateSelection(selectedCity.code))
                 }
             }
             is RegionSelectionEvent.OnBackButtonClicked -> {
@@ -71,6 +70,6 @@ class RegionSelectionViewModel @Inject constructor(
         _state.value = _state.value.copy(popularCities = dummyCities)
     }
 
-    private fun createCityList(vararg names: String): List<CityUiModel> =
-        names.mapIndexed { index, name -> CityUiModel(index + 1, name) }
+    private fun createCityList(vararg names: String): List<RegionUiModel> =
+        names.mapIndexed { index, name -> RegionUiModel((index + 1).toString(), name) }
 }

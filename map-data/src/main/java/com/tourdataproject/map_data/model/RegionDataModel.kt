@@ -11,12 +11,13 @@ data class RegionDataModel(
     val village: String?,             // 리명 (예: 군내리)
     val isPopular: Boolean = false    // 인기 도시 여부
 ): DataMapper<Region>{
-    override fun toDomain(): Region = Region(
-        code,
-        province,
-        city,
-        town,
-        village,
-        isPopular
-    )
+    override fun toDomain(): Region =
+        Region(
+            code,
+            province,
+            city,
+            town,
+            village,
+            isPopular
+        )
 }

@@ -1,5 +1,6 @@
 package com.braveberry.tourdataproject.screen.plan
 
+import android.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,7 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.BackgroundGray
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
-import com.tourdataproject.presentation.model.CityUiModel
+import com.tourdataproject.presentation.model.RegionUiModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
@@ -37,7 +38,7 @@ import com.tourdataproject.presentation.viewmodel.plan.regionSelect.RegionSelect
 @Composable
 fun RegionSelectionRoute(
     viewModel: RegionSelectionViewModel = hiltViewModel(),
-    onNavigateToDateSelection: (Int) -> Unit,
+    onNavigateToDateSelection: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
@@ -111,7 +112,8 @@ fun RegionSelectionScreen(
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = state.selectedCity!!.name,
+                                text = state.selectedCity!!.city
+                                    ?: state.selectedCity!!.province,
                                 color = PrimaryTeal,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -197,8 +199,8 @@ fun RegionSelectionScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(state.popularCities) { city ->
-                    val isSelected = state.selectedCity == city
+                items(state.popularCities) { region ->
+                    val isSelected = state.selectedCity == region
 
                     Surface(
                         shape = CircleShape,
@@ -211,11 +213,12 @@ fun RegionSelectionScreen(
                             .fillMaxWidth()
                             .aspectRatio(2f) // 가로가 더 긴 타원형 비율
                             .clip(CircleShape)
-                            .clickable { onEvent(RegionSelectionEvent.OnCitySelected(city)) }
+                            .clickable { onEvent(RegionSelectionEvent.OnCitySelected(region)) }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = city.name,
+                                text = region.city
+                                    ?: region.province,
                                 color = if (isSelected) PrimaryTeal else Color.Black,
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center
@@ -235,7 +238,7 @@ fun RegionSelectionScreenPreview() {
         "서울", "대전", "청주", "인천", "수원", "대구",
         "부산", "전주", "광주", "나주", "제주", "거제"
     ).mapIndexed { index, name ->
-        CityUiModel(id = index + 1, name = name)
+        RegionUiModel(code = (index + 1).toString(), province = name)
     }
 
     RegionSelectionScreen(

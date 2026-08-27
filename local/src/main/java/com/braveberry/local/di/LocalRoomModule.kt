@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import com.braveberry.local.roomDB.AppDatabase
 import com.braveberry.local.roomDB.RoomConstant
+import com.braveberry.local.roomDB.dao.RegionDataDao
 import com.braveberry.local.roomDB.dao.ToiletDataDao
 import javax.inject.Singleton
 
@@ -28,4 +29,10 @@ internal object LocalRoomModule {
     @Provides
     @Singleton
     fun provideToiletDao(database: AppDatabase): ToiletDataDao = database.toiletDao()
+
+    @Provides
+    @Singleton
+    fun provideRegionDataDao(db: AppDatabase): RegionDataDao {
+        return db.regionDao()
+    }
 }

@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEvent
@@ -30,35 +31,33 @@ import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSe
 import java.time.LocalDate
 import java.time.YearMonth
 
-
-
-
-
 // 2. Route 컴포저블 (ViewModel 연결용 뼈대)
 @Composable
 fun DateSelectionRoute(
+    sharedViewModel: PlanSharedViewModel, // 공유 뷰모델 주입받음
     viewModel: DateSelectionViewModel = hiltViewModel(),
     onNavigateToNext: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    // 실제 연결 시 아래 주석을 해제하고 사용합니다.
     val state by viewModel.state.collectAsState()
     val effect = viewModel.effect
 
     LaunchedEffect(effect) {
         effect.collect { currentEffect ->
             when (currentEffect) {
-                is DateSelectionEffect.NavigateToNextScreen -> onNavigateToNext()
+                is DateSelectionEffect.NavigateToNextScreen -> {
+                    // 🌟 공유 뷰모델에 날짜 저장
+                    state.selectedDate?.let { sharedViewModel.updateDate(it) }
+                    onNavigateToNext()
+                }
                 is DateSelectionEffect.NavigateBack -> onNavigateBack()
             }
         }
     }
 
-    DateSelectionScreen(
-        state = state,
-        onEvent = viewModel::setEvent
-    )
+    DateSelectionScreen(state = state, onEvent = viewModel::setEvent)
 }
+
 
 // UI 화면 컴포저블
 @OptIn(ExperimentalMaterial3Api::class)

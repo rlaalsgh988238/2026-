@@ -47,9 +47,9 @@ fun ScheduleItemDataModel.toDomain(): ScheduleItem {
 
 fun AccessibilityInfoDataModel.toDomain(): AccessibilityInfo {
     return AccessibilityInfo(
-        // String -> Enum 복구. 에러 나면 안전하게 UNKNOWN 처리
+        //TODO: 에러나면 BAD인데 이것도 나중에 수정 생각
         status = runCatching { AccessibilityStatus.valueOf(this.status) }
-            .getOrDefault(AccessibilityStatus.UNKNOWN),
+            .getOrDefault(AccessibilityStatus.BAD),
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
         planBToiletId = this.planBToiletId

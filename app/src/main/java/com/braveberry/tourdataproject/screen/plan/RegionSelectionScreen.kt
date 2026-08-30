@@ -50,7 +50,10 @@ fun RegionSelectionRoute(
             when (currentEffect) {
                 is RegionSelectionEffect.NavigateToDateSelection -> {
                     // 🌟 1. 공유 뷰모델에 데이터 저장
-                    state.selectedCity?.let { sharedViewModel.updateRegion(it) }
+                    state.selectedCity?.let { region ->
+                        val regionName = region.city ?: region.province
+                        sharedViewModel.updateRegion(regionName)
+                    }
                     // 2. 화면 이동
                     onNavigateToDateSelection()
                 }

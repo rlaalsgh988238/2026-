@@ -17,6 +17,8 @@ sealed interface CourseEvent {
     // TODO: 기획변경 유의 하단 버튼 이벤트
     object OnMapButtonClicked : CourseEvent
     object OnNextButtonClicked : CourseEvent
+    //저장 버튼
+    data class OnSaveButtonClicked(val finalCourse: TravelCourseUiModel) : CourseEvent
 
     data class OnAddScheduleClicked(val dayNumber: Int) : CourseEvent
     data class OnScheduleItemClicked(val scheduleId: String) : CourseEvent
@@ -31,6 +33,6 @@ sealed interface CourseEffect {
     data class NavigateToAddSchedule(val courseId: String, val dayNumber: Int) : CourseEffect
 
     object NavigateToMapScreen : CourseEffect
-    object NavigateToNextScreen : CourseEffect
+    object NavigateToHomeScreen : CourseEffect
     data class ShowToast(val message: String) : CourseEffect
 }

@@ -7,24 +7,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,41 +37,82 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tourdataproject.presentation.KakaoMapSideEffect
+import com.tourdataproject.presentation.KakaoMapEffect
+import com.tourdataproject.presentation.KakaoMapEvent
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
+
+@Composable
+fun KakaoMapSearchRoute(
+    sharedViewModel: PlanSharedViewModel, // 🌟 공유 뷰모델 주입받음
+    modifier: Modifier = Modifier,
+    viewModel: KakaoMapViewModel = hiltViewModel(),
+    onBackClick: () -> Unit,
+    onNavigateToNext: () -> Unit // 🌟 x, y 대신 화면 이동 콜백으로 변경
+) {
+    val uiState by viewModel.container.stateFlow.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(""))
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.container.sideEffectFlow.collect { effect ->
+            when (effect) {
+                is KakaoMapEffect.ShowToast -> {
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                }
+                is KakaoMapEffect.NavigateNextScreen -> {
+                    // 🌟 1. 선택한 장소를 임시 저장소에 담기
+                    sharedViewModel.setDraftSchedule(effect.place)
+                    // 🌟 2. 일정 상세(메모) 화면으로 이동
+                    onNavigateToNext()
+                }
+            }
+        }
+    }
+
+    // 🌟 뒤로가기 누를 때 임시 데이터 초기화 후 이전 화면으로 이동
+    val handleBackClick = {
+        sharedViewModel.clearDraftSchedule()
+        onBackClick()
+    }
+
+    KakaoMapSearchScreen(
+        modifier = modifier,
+        searchQuery = uiState.searchQuery,
+        isLoading = uiState.isLoading,
+        searchResults = uiState.searchResults,
+        autoCompleteResults = uiState.autoCompleteResults,
+        onQueryChanged = { viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(it)) },
+        onSearch = { query -> viewModel.onEvent(KakaoMapEvent.OnSearchClicked(query)) },
+        onPlaceClick = { place -> viewModel.onEvent(KakaoMapEvent.OnPlaceItemClicked(place)) },
+        onBackClick = handleBackClick
+    )
+}
 
 @Composable
 fun KakaoMapSearchScreen(
     modifier: Modifier = Modifier,
-    viewModel: KakaoMapViewModel = hiltViewModel(),
-    onBackClick: () -> Unit,
-    onPlaceSelected: (Double, Double) -> Unit
+    searchQuery: String,
+    isLoading: Boolean,
+    searchResults: List<KakaoMapUiModel>,
+    autoCompleteResults: List<KakaoMapUiModel>,
+    onQueryChanged: (String) -> Unit,
+    onSearch: (String) -> Unit,
+    onPlaceClick: (KakaoMapUiModel) -> Unit, // 🌟 파라미터 타입 변경
+    onBackClick: () -> Unit
 ) {
-    val uiState by viewModel.container.stateFlow.collectAsState()
-
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
+
     BackHandler {
         onBackClick()
-    }
-    LaunchedEffect(Unit) {
-        viewModel.updateSearchQuery("")
-    }
-    LaunchedEffect(viewModel) {
-        viewModel.container.sideEffectFlow.collect { effect ->
-            when (effect) {
-                is KakaoMapSideEffect.ShowToast -> {
-                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
-                }
-                is KakaoMapSideEffect.NavigateBackToMap -> {
-                    onPlaceSelected(effect.x, effect.y)
-                }
-            }
-        }
     }
 
     Column(
@@ -90,10 +132,8 @@ fun KakaoMapSearchScreen(
             }
 
             OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = {
-                    viewModel.updateSearchQuery(it)
-                },
+                value = searchQuery,
+                onValueChange = onQueryChanged,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(end = 8.dp),
@@ -102,39 +142,44 @@ fun KakaoMapSearchScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
-                        viewModel.searchPlaces(query = uiState.searchQuery)
+                        onSearch(searchQuery)
                         focusManager.clearFocus()
                     }
                 )
             )
+            Button(
+                onClick = {
+                    onSearch(searchQuery)
+                    focusManager.clearFocus()
+                },
+                modifier = Modifier.height(56.dp)
+            ) {
+                Text("검색")
+            }
         }
 
-        Divider()
-
         Box(modifier = Modifier.fillMaxSize()) {
-            if (uiState.isLoading) {
-                // TODO: 로딩시 화면 추후 수정필요한지?
+            if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.autoCompleteResults.isNotEmpty()) {
+            } else if (autoCompleteResults.isNotEmpty()) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(uiState.autoCompleteResults, key = { it.id }) { place ->
+                    items(autoCompleteResults, key = { it.id }) { place ->
                         PlaceItem(
                             place = place,
                             onClick = {
-                                viewModel.selectPlace(place.x, place.y)
+                                onPlaceClick(place) // 🌟 place 전체 넘김
                                 focusManager.clearFocus()
                             }
                         )
                     }
                 }
             } else {
-                // 🌟 검색 완료 후 돋보기 버튼을 눌렀을 때 나오는 진짜 결과창
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(uiState.searchResults, key = { it.id }) { place ->
+                    items(searchResults, key = { it.id }) { place ->
                         PlaceItem(
                             place = place,
                             onClick = {
-                                viewModel.selectPlace(place.x, place.y)
+                                onPlaceClick(place) // 🌟 place 전체 넘김
                             }
                         )
                     }
@@ -162,4 +207,30 @@ fun PlaceItem(place: KakaoMapUiModel, onClick: () -> Unit) {
         }
     }
     Divider(color = Color.LightGray, thickness = 0.5.dp)
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+fun KakaoMapSearchScreenPreview() {
+    KakaoMapSearchScreen(
+        searchQuery = "서울역",
+        isLoading = false,
+        searchResults = listOf(
+            KakaoMapUiModel(
+                id = "1",
+                placeName = "서울역",
+                address = "서울 용산구 한강대로 405",
+                distanceText = "1.2km",
+                x = 126.9723,
+                y = 37.5546,
+                category = "교통",
+                phone = "02-1234-5678"
+            )
+        ),
+        autoCompleteResults = emptyList(),
+        onQueryChanged = {},
+        onSearch = {},
+        onPlaceClick = { _ -> }, // 🌟 람다 파라미터 수정
+        onBackClick = {}
+    )
 }

@@ -1,8 +1,10 @@
 package com.tourdataproject.presentation.viewmodel.plan
 
 import androidx.lifecycle.ViewModel
+import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.model.RegionUiModel
 import com.tourdataproject.presentation.model.course.DayPlanUiModel
+import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,18 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlanSharedViewModel @Inject constructor() : ViewModel() {
-//TODO
-    /*
-    * data class TravelCourseUiModel(
-    val courseId: String = UUID.randomUUID().toString(),
-    val destination: String = "",
-    val courseName: String = "",
-    val datePeriod: String = "",
-    val rawStartDate: Long = 0L,
-    val rawEndDate: Long = 0L,
-    val dayPlans: List<DayPlanUiModel> = emptyList()
-)
-*이렇게 채워놓고 써야하나 근데 이럴거면 음...중복코드 아닌가 모델이랑 뭔가  */
+
     private val _courseState = MutableStateFlow(
         TravelCourseUiModel()
     )
@@ -41,7 +32,6 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    //TODO: 다음 화면으로 넘어갈 때, stateDate, EndDate만 넘겨주십셔
 
     fun updateDates(
         startDate: Long,
@@ -56,6 +46,7 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
         }
     }
 
+    //TODO :코스 이름 수정 화면 만들시
     fun updateCourseName(newName: String) {
         _courseState.update { currentState ->
             currentState.copy(courseName = newName)
@@ -63,5 +54,94 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
     }
 
 
+    //화면 저장 & 삭제 & 재배치 등을 SharedViewModel에서 들고있다가, 마지막에 "저장"버튼을 눌렀을 때, DB로 가게 하는거니까 여기가 맞는듯?
+    fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemUiModel) {
+        _courseState.update { currentState ->
+            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
+                if (dayPlan.rawDayNumber == targetDay) {
+                    dayPlan.copy(schedules = dayPlan.schedules + newPlace)
+                } else dayPlan
+            }
+            currentState.copy(dayPlans = updatedDayPlans)
+        }
+    }
+
+    fun deleteSchedule(targetDay: Int, scheduleIdToRemove: String) {
+        _courseState.update { currentState ->
+            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
+                if (dayPlan.rawDayNumber == targetDay) {
+                    dayPlan.copy(schedules = dayPlan.schedules.filterNot { it.scheduleId == scheduleIdToRemove })
+                } else dayPlan
+            }
+            currentState.copy(dayPlans = updatedDayPlans)
+        }
+    }
+
+    fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemUiModel>) {
+        _courseState.update { currentState ->
+            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
+                if (dayPlan.rawDayNumber == targetDay) {
+                    dayPlan.copy(schedules = reorderedSchedules)
+                } else dayPlan
+            }
+            currentState.copy(dayPlans = updatedDayPlans)
+        }
+    }
+
+
+    val currentAddingDayNumber = MutableStateFlow(1)
+    private val _draftSchedule = MutableStateFlow<ScheduleItemUiModel?>(null)
+    val draftSchedule = _draftSchedule.asStateFlow()
+
+    //임시 저장
+    fun setDraftSchedule(place: KakaoMapUiModel) {
+        _draftSchedule.value = ScheduleItemUiModel(
+            scheduleId = UUID.randomUUID().toString(), // 고유 ID 부여
+            scheduleName = place.placeName,
+            latitude = place.y,
+            longitude = place.x,
+            placeId = place.id,
+            address = place.address,
+            category = place.category,
+            memo = "" // 메모는 다음 화면에서 채울 예정
+        )
+    }
+
+    // [일정 정보 추가 화면] 저장
+    fun confirmAndAddSchedule(memoInput: String) {
+        val draft = _draftSchedule.value ?: return
+        val finalSchedule = draft.copy(memo = memoInput)
+
+        val currentCourse = _courseState.value
+        val targetDayNum = currentAddingDayNumber.value
+
+        val updatedDayPlans = currentCourse.dayPlans.map { dayPlan ->
+            if (dayPlan.rawDayNumber == targetDayNum) {
+                dayPlan.copy(
+                    schedules = dayPlan.schedules + finalSchedule.copy(order = dayPlan.schedules.size + 1)
+                )
+            } else {
+                dayPlan
+            }
+        }
+        _courseState.value = currentCourse.copy(dayPlans = updatedDayPlans)
+        _draftSchedule.value = null
+
+
+        // 🌟 dayPlans로 들어가기 전에, 만들어진 단일 일정(Schedule) 데이터를 바로 까보기!
+        android.util.Log.d("PlanDebug", "=== [저장된 단일 일정 확인] ===")
+        android.util.Log.d("PlanDebug", "장소 이름: ${finalSchedule.scheduleName}") // 도메인 모델 변수명에 맞게!
+        android.util.Log.d("PlanDebug", "작성한 메모: ${finalSchedule.memo}")
+        android.util.Log.d("PlanDebug", "장소 ID(또는 주소): ${finalSchedule.scheduleId}")
+        android.util.Log.d("PlanDebug", "=================================")
+
+
+    }
+
+    fun clearDraftSchedule() {
+        _draftSchedule.value = null
+    }
+
 }
+
 

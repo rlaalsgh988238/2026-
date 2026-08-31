@@ -2,7 +2,7 @@ package com.tourdataproject.presentation
 
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 
-data class KakaoMapUiState(
+data class KakaoMapState(
     val searchQuery: String = "",
     val targetCoordinate: Pair<Double, Double>? = null,
     val isLoading: Boolean = false,
@@ -10,8 +10,16 @@ data class KakaoMapUiState(
     val searchResults: List<KakaoMapUiModel> = emptyList(),
     val autoCompleteResults: List<KakaoMapUiModel> = emptyList()
 )
-sealed class KakaoMapSideEffect {
-    data class ShowToast(val message: String) : KakaoMapSideEffect()
-    // 유저가 검색 결과를 클릭하면, 그 좌표를 들고 메인 지도로 돌아가기 위한 액션
-    data class NavigateBackToMap(val x: Double, val y: Double) : KakaoMapSideEffect()
+
+sealed interface KakaoMapEvent {
+    data class OnSearchQueryChanged(val query: String) : KakaoMapEvent
+    data class OnSearchClicked(val query: String) : KakaoMapEvent
+
+    data class OnPlaceItemClicked(val place: KakaoMapUiModel) : KakaoMapEvent
+}
+
+sealed interface KakaoMapEffect {
+    data class ShowToast(val message: String) : KakaoMapEffect
+
+    data class NavigateNextScreen(val place: KakaoMapUiModel) : KakaoMapEffect
 }

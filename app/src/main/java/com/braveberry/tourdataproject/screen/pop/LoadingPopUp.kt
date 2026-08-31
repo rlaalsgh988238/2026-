@@ -1,4 +1,4 @@
-package com.braveberry.tourdataproject.utility.pop
+package com.braveberry.tourdataproject.screen.pop
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

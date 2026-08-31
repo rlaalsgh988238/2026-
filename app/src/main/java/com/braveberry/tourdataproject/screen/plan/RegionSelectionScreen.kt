@@ -26,7 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.BackgroundGray
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
-import com.braveberry.tourdataproject.utility.pop.LoadingPopUp
+import com.braveberry.tourdataproject.screen.pop.LoadingPopUp
 import com.tourdataproject.presentation.model.RegionUiModel
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
@@ -118,8 +118,7 @@ fun RegionSelectionScreen(
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = state.selectedCity!!.city
-                                    ?: state.selectedCity!!.province,
+                                text = state.selectedCity!!.shortName,
                                 color = PrimaryTeal,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -223,8 +222,7 @@ fun RegionSelectionScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = region.city
-                                    ?: region.province,
+                                text = region.shortName,
                                 color = if (isSelected) PrimaryTeal else Color.Black,
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center

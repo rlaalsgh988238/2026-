@@ -85,13 +85,13 @@ class RegionSelectionViewModel @Inject constructor(
 
 
     private fun loadDummyPopularCities() {
-        val dummyCities = createCityList(
+        val dummyCities = createDummyCityList(
             "서울", "대전", "청주", "인천", "수원", "대구",
             "부산", "전주", "광주", "나주", "제주", "거제"
         )
         _state.value = _state.value.copy(popularCities = dummyCities)
     }
 
-    private fun createCityList(vararg names: String): List<RegionUiModel> =
+    private fun createDummyCityList(vararg names: String): List<RegionUiModel> =
         names.mapIndexed { index, name -> RegionUiModel((index + 1).toString(), name) }
 }

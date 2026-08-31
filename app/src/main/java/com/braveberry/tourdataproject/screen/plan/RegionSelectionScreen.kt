@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.BackgroundGray
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
+import com.braveberry.tourdataproject.utility.pop.LoadingPopUp
 import com.tourdataproject.presentation.model.RegionUiModel
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
@@ -33,12 +34,10 @@ import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.Regi
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.RegionSelectionViewModel
 
-
-
 @Composable
 fun RegionSelectionRoute(
-    sharedViewModel: PlanSharedViewModel, // 공유 뷰모델 주입받음
-    viewModel: RegionSelectionViewModel = hiltViewModel(), // 전용 뷰모델
+    sharedViewModel: PlanSharedViewModel,
+    viewModel: RegionSelectionViewModel = hiltViewModel(),
     onNavigateToDateSelection: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -72,6 +71,10 @@ fun RegionSelectionScreen(
     state: RegionSelectionState,
     onEvent: (RegionSelectionEvent) -> Unit
 ) {
+    if (state.isLoading) {
+        LoadingPopUp(message = "도시 정보를 가져오고 있습니다")
+    }
+
     Scaffold(
         containerColor = Color.White,
         topBar = {

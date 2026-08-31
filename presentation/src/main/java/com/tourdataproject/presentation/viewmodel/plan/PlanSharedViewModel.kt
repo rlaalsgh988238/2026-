@@ -14,18 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlanSharedViewModel @Inject constructor() : ViewModel() {
-//TODO
-    /*
-    * data class TravelCourseUiModel(
-    val courseId: String = UUID.randomUUID().toString(),
-    val destination: String = "",
-    val courseName: String = "",
-    val datePeriod: String = "",
-    val rawStartDate: Long = 0L,
-    val rawEndDate: Long = 0L,
-    val dayPlans: List<DayPlanUiModel> = emptyList()
-)
-*이렇게 채워놓고 써야하나 근데 이럴거면 음...중복코드 아닌가 모델이랑 뭔가  */
+
     private val _courseState = MutableStateFlow(
         TravelCourseUiModel()
     )
@@ -62,6 +51,11 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
         }
     }
 
+    fun updateRegionPosition(longitude: Double, latitude: Double){
+        _courseState.update {
+            it.copy(destinationLatitude = latitude, destinationLongitude = longitude)
+        }
+    }
 
 }
 

@@ -1,9 +1,12 @@
 package com.tourdataproject.presentation.viewmodel.plan.regionSelect
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
 import com.tourdataproject.presentation.model.RegionUiModel
+import com.tourdataproject.presentation.model.toUiModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,20 +33,19 @@ class RegionSelectionViewModel @Inject constructor(
     val effect: SharedFlow<RegionSelectionEffect> = _effect.asSharedFlow()
 
     init {
-        loadDummyPopularCities()
+        loadPopularCities()
     }
 
     fun setEvent(event: RegionSelectionEvent) {
         when (event) {
             is RegionSelectionEvent.OnSearchQueryChanged -> {
-                _state.value = _state.value.copy(searchQuery = event.query)
-                // 필요하다면 여기서 검색 API 호출 로직 추가
+                _state.update { it.copy(searchQuery = event.query) }
             }
             is RegionSelectionEvent.OnCitySelected -> {
-                _state.value = _state.value.copy(selectedCity = event.city)
+                _state.update { it.copy(selectedCity = event.city) }
             }
             is RegionSelectionEvent.OnCityDeselected -> {
-                _state.value = _state.value.copy(selectedCity = null)
+                _state.update { it.copy(selectedCity = null) }
             }
             is RegionSelectionEvent.OnNextButtonClicked -> {
                 val selectedCity = _state.value.selectedCity ?: return
@@ -58,9 +61,29 @@ class RegionSelectionViewModel @Inject constructor(
         }
     }
 
-    private fun loadPopularCities(){
-        val popularCities = createCityList()
+    private fun loadPopularCities() {
+        viewModelScope.launch {
+            getPopularCitiesUseCase().collect { resource ->
+                //  로그 추가
+                Log.d("RegionSelection", "Resource State: ${resource::class.java.simpleName}")
+
+                when (resource) {
+                    is DataResource.Success -> {
+                        Log.d("RegionSelection", "Data Size: ${resource.data.size}") // 데이터 개수 확인
+                        val uiModels = resource.data.map { it.toUiModel() }
+                        _state.update { it.copy(popularCities = uiModels, isLoading = false) }
+                    }
+                    is DataResource.Error -> {
+                        Log.e("RegionSelection", "Error: ${resource.throwable.message}")
+                    }
+                    is DataResource.Loading -> {
+                        _state.update { it.copy(isLoading = true) }
+                    }
+                }
+            }
+        }
     }
+
 
     private fun loadDummyPopularCities() {
         val dummyCities = createCityList(

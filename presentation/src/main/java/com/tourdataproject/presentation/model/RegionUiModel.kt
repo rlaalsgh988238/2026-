@@ -20,3 +20,8 @@ internal fun RegionUiModel.toDomain() =
         village,
         isPopular
     )
+
+internal fun Region.toUiModel() =
+    RegionUiModel(
+        code, province, city, town, village, isPopular
+    )

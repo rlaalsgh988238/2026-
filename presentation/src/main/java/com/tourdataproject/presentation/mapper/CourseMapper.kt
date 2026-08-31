@@ -65,4 +65,5 @@ fun AccessibilityStatus.toUiModel(): AccessibilityStatusUiModel = when (this) {
     AccessibilityStatus.GOOD -> AccessibilityStatusUiModel.GOOD
     AccessibilityStatus.WARNING -> AccessibilityStatusUiModel.WARNING
     AccessibilityStatus.BAD -> AccessibilityStatusUiModel.BAD
+    AccessibilityStatus.UNKNOWN -> TODO()
 }

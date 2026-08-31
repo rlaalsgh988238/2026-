@@ -4,17 +4,17 @@ import com.tourdataproject.domain.model.course.ScheduleItem
 import com.tourdataproject.presentation.mapper.UiMapper
 
 data class ScheduleItemUiModel(
-    val scheduleId: String,
-    val order: Int,
-    val scheduleName: String,
-    val visitTime: String,
-    val memo: String,
-    val latitude: Double,
-    val longitude: Double,
-    val placeId: String?,
-    val address: String?,
-    val category: String?,
-    val accessibilityInfo: AccessibilityInfoUiModel // UI 모델 연결
+    val scheduleId: String = "",
+    val order: Int = 0,
+    val scheduleName: String = "",
+    val visitTime: String = "",
+    val memo: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val placeId: String? = null,
+    val address: String? = null,
+    val category: String? = null,
+    val accessibilityInfo: AccessibilityInfoUiModel = AccessibilityInfoUiModel() // UI 모델 연결
 ) : UiMapper<ScheduleItem> {
 
     override fun toDomain(): ScheduleItem {

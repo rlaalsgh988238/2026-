@@ -9,11 +9,11 @@ import java.util.Date
 import java.util.Locale
 
 data class DayPlanUiModel(
-    val dayLabel: String,   // "1일차"
-    val dateLabel: String,  // "8/30"
-    val rawDayNumber: Int,  // 1
-    val rawDate: Long,      // 1693353600000L
-    val schedules: List<ScheduleItemUiModel>
+    val dayLabel: String = "",   // "1일차"
+    val dateLabel: String = "",  // "8/30"
+    val rawDayNumber: Int = 0,  // 1
+    val rawDate: Long = 0,      // 1693353600000L
+    val schedules: List<ScheduleItemUiModel> = emptyList()
 ) {
     fun toDomain(): DayPlan {
         return DayPlan(

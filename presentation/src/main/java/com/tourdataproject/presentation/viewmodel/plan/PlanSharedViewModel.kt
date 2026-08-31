@@ -27,15 +27,7 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
 )
 *이렇게 채워놓고 써야하나 근데 이럴거면 음...중복코드 아닌가 모델이랑 뭔가  */
     private val _courseState = MutableStateFlow(
-        TravelCourseUiModel(
-            courseId = UUID.randomUUID().toString(),
-            destination = "",
-            courseName = "",
-            datePeriod = "", //"2박 3일"
-            rawStartDate = 0L,
-            rawEndDate = 0L,
-            dayPlans = emptyList()
-        )
+        TravelCourseUiModel()
     )
     val courseState = _courseState.asStateFlow()
 

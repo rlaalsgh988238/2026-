@@ -47,7 +47,7 @@ fun DateSelectionRoute(
             when (currentEffect) {
                 is DateSelectionEffect.NavigateToNextScreen -> {
                     // 🌟 공유 뷰모델에 날짜 저장
-                    state.selectedDate?.let { sharedViewModel.updateDate(it) }
+                    state.selectedDate?.let { }
                     onNavigateToNext()
                 }
                 is DateSelectionEffect.NavigateBack -> onNavigateBack()

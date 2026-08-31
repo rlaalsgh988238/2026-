@@ -4,10 +4,10 @@ import com.tourdataproject.domain.model.course.AccessibilityInfo
 import com.tourdataproject.presentation.mapper.UiMapper
 
 data class AccessibilityInfoUiModel(
-    val status: AccessibilityStatusUiModel,
-    val safetyScore: Int,
-    val planAToiletId: String?,
-    val planBToiletId: String?
+    val status: AccessibilityStatusUiModel = AccessibilityStatusUiModel.UNKNOWN,
+    val safetyScore: Int = 0,
+    val planAToiletId: String? = null,
+    val planBToiletId: String? = null
 ) : UiMapper<AccessibilityInfo> {
     override fun toDomain(): AccessibilityInfo {
         return AccessibilityInfo(

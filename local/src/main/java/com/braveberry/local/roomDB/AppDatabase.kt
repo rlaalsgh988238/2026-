@@ -1,6 +1,7 @@
 package com.braveberry.local.roomDB
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -33,27 +34,46 @@ internal abstract class AppDatabase : RoomDatabase() {
     abstract fun courseDao(): CourseDao
     abstract fun regionDao(): RegionDataDao
 
+    // AppDatabase.kt 내부
     companion object {
-        private const val DATABASE_NAME = "tour_data.db"
+        fun buildDatabase(
+            context: Context,
+            registrationManager: DatabaseRegistrationManager
+        ): AppDatabase {
+            val dbFile = context.getDatabasePath(RoomConstant.DB_NAME)
+            val isFirstRun = !dbFile.exists()
 
-        fun buildDatabase(context: Context): AppDatabase {
-            lateinit var database: AppDatabase
-
-            database = Room.databaseBuilder(
+            val database = Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
-                DATABASE_NAME
+                RoomConstant.DB_NAME
             ).addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
-                    // 데이터베이스가 생성된 후 별도 스코프에서 초기화 진행
-                    CoroutineScope(Dispatchers.IO).launch {
-                        // 생성된 database 인스턴스에서 직접 dao를 가져옵니다.
-                        initRegionTableFromCsv(context, database.regionDao())
-                        initToiletTableFromCsv(context, database.toiletDao())
-                    }
+                    // onCreate에서는 아무것도 하지 않습니다.
+                    // 여기서 비동기를 돌리면 인스턴스 참조 문제가 생길 수 있기 때문입니다.
                 }
             }).build()
+
+            // DB 객체 생성이 완료된 후 로직 실행
+            if (isFirstRun) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        Log.d("TOUR_DATA_DEBUG", "Starting CSV Initial Load...")
+                        initRegionTableFromCsv(context, database.regionDao())
+                        initToiletTableFromCsv(context, database.toiletDao())
+
+                        registrationManager.markAsReady()
+                        Log.d("TOUR_DATA_DEBUG", "CSV Load Success")
+                    } catch (e: Exception) {
+                        Log.e("TOUR_DATA_DEBUG", "CRITICAL: CSV Load Failed", e)
+                        // 여기에 실패 시 재시도 로직이나 에러 처리를 추가할 수 있음
+                    }
+                }
+            } else {
+                // 이미 파일이 있다면 즉시 완료
+                registrationManager.markAsReady()
+            }
 
             return database
         }

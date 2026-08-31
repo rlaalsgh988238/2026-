@@ -64,7 +64,6 @@ class RegionSelectionViewModel @Inject constructor(
     private fun loadPopularCities() {
         viewModelScope.launch {
             getPopularCitiesUseCase().collect { resource ->
-                //  로그 추가
                 Log.d("RegionSelection", "Resource State: ${resource::class.java.simpleName}")
 
                 when (resource) {

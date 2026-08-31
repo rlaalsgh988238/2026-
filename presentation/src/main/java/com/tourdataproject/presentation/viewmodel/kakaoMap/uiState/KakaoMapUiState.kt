@@ -10,7 +10,6 @@ data class KakaoMapUiState(
     val searchResults: List<KakaoMapUiModel> = emptyList(),
     val autoCompleteResults: List<KakaoMapUiModel> = emptyList()
 )
-//근데 SideEffect 가 있나 흠
 sealed class KakaoMapSideEffect {
     data class ShowToast(val message: String) : KakaoMapSideEffect()
     // 유저가 검색 결과를 클릭하면, 그 좌표를 들고 메인 지도로 돌아가기 위한 액션

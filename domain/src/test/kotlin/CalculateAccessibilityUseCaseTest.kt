@@ -18,12 +18,17 @@ class CalculateAccessibilityUseCaseTest {
     private lateinit var toiletRepository: ToiletRepository
     private lateinit var useCase: CalculateAccessibilityUseCase
 
+    private lateinit var calculator: AccessibilityCalculator
     @Before
     fun setup() {
-        // 1. Repository를 가짜(Mock)로 만듭니다.
+        // 1. Repository는 DB를 타니까 가짜(Mock)로 만듭니다.
         toiletRepository = mockk(relaxed = true)
-        // 2. 테스트할 UseCase에 가짜 Repo를 주입합니다.
-        useCase = CalculateAccessibilityUseCase(toiletRepository)
+
+        // 2. Calculator는 순수 연산 로직이므로 진짜(Real) 객체로 만듭니다.
+        calculator = AccessibilityCalculator()
+
+        // 3. 테스트할 UseCase에 가짜 Repo와 진짜 Calculator를 모두 주입합니다.
+        useCase = CalculateAccessibilityUseCase(toiletRepository, calculator)
     }
 
     @Test

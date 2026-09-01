@@ -59,4 +59,9 @@ class MapRepositoryImpl @Inject constructor(
     }.catch { e ->
         emit(DataResource.Error(e))
     }
+
+    override fun getRegionPosition(regionName: String): Flow<DataResource<Location>> =
+        remoteDataSource.getQueryPosition(regionName).mapDataResource {
+            it.toDomain()
+        }
 }

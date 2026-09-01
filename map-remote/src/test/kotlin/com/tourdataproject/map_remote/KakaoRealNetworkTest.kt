@@ -53,4 +53,33 @@ class KakaoRealNetworkTest {
         logger.info { "🔍 [실제 데이터 확인] 지번 주소: ${firstDocument.addressName}" }
         logger.info { "🔍 [실제 데이터 확인] 중심 좌표로부터의 거리: ${firstDocument.distance}m" }
     }
+
+    @Test
+    fun `실제 카카오 주소 검색 API를 통해 지역명으로 좌표를 정상적으로 가져온다`() = runBlocking {
+        logger.info { "🚀 실제 카카오 서버 통신 테스트 시작 (지역명 좌표 검색)" }
+
+        // Given: 사용자가 선택한 지역명
+        val regionQuery = "전남 장흥"
+
+        // When: 질문자님이 정의하신 getRegionCoordinate 호출
+        val response = api.getRegionCoordinate(
+            query = regionQuery,
+            page = 1
+        )
+
+        // Then: 1. 통신 성공 여부 확인
+        assertTrue("통신이 성공해야 합니다. (API 키 및 네트워크 확인)", response.isSuccessful)
+
+        // Then: 2. 데이터 파싱 확인
+        val responseBody = response.body()
+        assertNotNull("응답 Body가 null이 아니어야 합니다", responseBody)
+        assertTrue("검색된 지역 결과가 있어야 합니다", responseBody!!.documents.isNotEmpty())
+
+        // Then: 3. 실제 좌표 데이터 로그 출력
+        val firstResult = responseBody.documents.first()
+        logger.info { "✅ [지역 좌표 확인] 검색어: $regionQuery" }
+        logger.info { "✅ [지역 좌표 확인] 전체 명칭: ${firstResult.addressName}" }
+        logger.info { "✅ [지역 좌표 확인] 위도(y): ${firstResult.y}" }
+        logger.info { "✅ [지역 좌표 확인] 경도(x): ${firstResult.x}" }
+    }
 }

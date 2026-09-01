@@ -31,10 +31,9 @@ import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSe
 import java.time.LocalDate
 import java.time.YearMonth
 
-// 2. Route 컴포저블 (ViewModel 연결용 뼈대)
 @Composable
 fun DateSelectionRoute(
-    sharedViewModel: PlanSharedViewModel, // 공유 뷰모델 주입받음
+    sharedViewModel: PlanSharedViewModel,
     viewModel: DateSelectionViewModel = hiltViewModel(),
     onNavigateToNext: () -> Unit,
     onNavigateBack: () -> Unit
@@ -46,8 +45,9 @@ fun DateSelectionRoute(
         effect.collect { currentEffect ->
             when (currentEffect) {
                 is DateSelectionEffect.NavigateToNextScreen -> {
-                    // 🌟 공유 뷰모델에 날짜 저장
-                    state.selectedDate?.let { }
+                    state.selectedDate?.let {
+                        //TODO 공유 뷰모델에 선택한 날짜 저장
+                    }
                     onNavigateToNext()
                 }
                 is DateSelectionEffect.NavigateBack -> onNavigateBack()
@@ -58,8 +58,6 @@ fun DateSelectionRoute(
     DateSelectionScreen(state = state, onEvent = viewModel::setEvent)
 }
 
-
-// UI 화면 컴포저블
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateSelectionScreen(
@@ -88,30 +86,36 @@ fun DateSelectionScreen(
             )
         },
         bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            // 🌟 하단 네비게이션 바 가림 방지 적용
+            Surface(
+                color = Color.White,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    onClick = { onEvent(DateSelectionEvent.OnNextButtonClicked) },
-                    enabled = state.isNextButtonEnabled,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryTeal,
-                        disabledContainerColor = DisabledGray
-                    ),
-                    shape = RoundedCornerShape(12.dp),
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .navigationBarsPadding() // 시스템 바 영역 확보
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
-                    Text(
-                        text = "다음",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Button(
+                        onClick = { onEvent(DateSelectionEvent.OnNextButtonClicked) },
+                        enabled = state.isNextButtonEnabled,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryTeal,
+                            disabledContainerColor = DisabledGray
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        Text(
+                            text = "다음",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -151,7 +155,6 @@ fun DateSelectionScreen(
     }
 }
 
-// 4. 달력 월별 뷰 컴포저블
 @Composable
 fun CalendarMonthView(
     yearMonth: YearMonth,
@@ -160,15 +163,14 @@ fun CalendarMonthView(
 ) {
     val daysOfWeek = listOf("일", "월", "화", "수", "목", "금", "토")
     val firstDayOfMonth = yearMonth.atDay(1)
-    // java.time의 DayOfWeek는 월(1)~일(7) 기준이므로, 일(0)~토(6)으로 변환
+    // 일(0)~토(6) 오프셋 계산
     val firstDayOffset = if (firstDayOfMonth.dayOfWeek.value == 7) 0 else firstDayOfMonth.dayOfWeek.value
     val daysInMonth = yearMonth.lengthOfMonth()
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // 월 헤더
         Text(
-            text = "${yearMonth.monthValue}월",
-            fontSize = 14.sp,
+            text = "${yearMonth.year}년 ${yearMonth.monthValue}월",
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
@@ -176,7 +178,6 @@ fun CalendarMonthView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 요일 헤더
         Row(modifier = Modifier.fillMaxWidth()) {
             daysOfWeek.forEachIndexed { index, day ->
                 val textColor = if (index == 0 || index == 6) WeekendBlue else Color.Gray
@@ -192,7 +193,6 @@ fun CalendarMonthView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 날짜 그리드
         val totalCells = firstDayOffset + daysInMonth
         val rows = Math.ceil(totalCells / 7.0).toInt()
 
@@ -214,18 +214,23 @@ fun CalendarMonthView(
                             val isWeekend = col == 0 || col == 6
 
                             Surface(
-                                shape = RoundedCornerShape(4.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 border = if (isSelected) BorderStroke(1.dp, PrimaryTeal) else null,
-                                color = Color.Transparent,
+                                color = if (isSelected) PrimaryTeal.copy(alpha = 0.1f) else Color.Transparent,
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(40.dp)
                                     .clickable { onDateSelected(currentDate) }
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
                                         text = dayNumber.toString(),
                                         fontSize = 14.sp,
-                                        color = if (isWeekend && !isSelected) WeekendBlue else Color.Black
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = when {
+                                            isSelected -> PrimaryTeal
+                                            isWeekend -> WeekendBlue
+                                            else -> Color.Black
+                                        }
                                     )
                                 }
                             }
@@ -242,7 +247,7 @@ fun CalendarMonthView(
 @Composable
 fun DateSelectionScreenPreview() {
     val mockState = DateSelectionState(
-        selectedDate = LocalDate.now().withDayOfMonth(17),
+        selectedDate = LocalDate.now(),
         targetMonths = listOf(
             YearMonth.now(),
             YearMonth.now().plusMonths(1)

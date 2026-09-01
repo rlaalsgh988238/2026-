@@ -13,13 +13,22 @@ import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
-class PlanSharedViewModel @Inject constructor() : ViewModel() {
+class PlanSharedViewModel @Inject constructor(
+
+) : ViewModel() {
 
     private val _courseState = MutableStateFlow(
         TravelCourseUiModel()
     )
     val courseState = _courseState.asStateFlow()
 
+    fun setEvent(event: PlanSharedEvent){
+        when (event) {
+            is PlanSharedEvent.OnCitySelected -> {
+                updateRegion(event.cityName)
+            }
+        }
+    }
 
     fun updateRegion(regionName: String) {
         _courseState.update { currentState ->
@@ -56,6 +65,8 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
             it.copy(destinationLatitude = latitude, destinationLongitude = longitude)
         }
     }
-
 }
 
+sealed class PlanSharedEvent{
+    data class OnCitySelected(val cityName: String): PlanSharedEvent()
+}

@@ -2,6 +2,7 @@ package com.tourdataproject.map_data.datasource
 
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.map_data.model.KakaoMapDataModel
+import com.tourdataproject.map_data.model.LocationDataModel
 import kotlinx.coroutines.flow.Flow
 
 interface KakaoMapRemoteDataSource {
@@ -12,4 +13,8 @@ interface KakaoMapRemoteDataSource {
           radius: Int? = null,
           page: Int
      ): Flow<DataResource<List<KakaoMapDataModel>>>
+
+     fun getQueryPosition(
+          query: String
+     ): Flow<DataResource<LocationDataModel>>
 }

@@ -41,12 +41,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.braveberry.tourdataproject.ui.theme.TextMint
+import com.braveberry.tourdataproject.R
+import com.braveberry.tourdataproject.ui.theme.Green
+import com.braveberry.tourdataproject.ui.theme.Mint100
+import com.braveberry.tourdataproject.ui.theme.Mint20
+import com.braveberry.tourdataproject.ui.theme.Red
+import com.braveberry.tourdataproject.ui.theme.Yellow
+import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
+import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEvent
@@ -56,6 +65,8 @@ import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 data class MakeCourseUiState(
     val isLoading: Boolean = true,
+    val isError: Boolean = false,
+    val errorMessage: String? = null,
     val courseName: String = "",
     val datePeriod: String = "",
     val dayPlans: List<MakeCourseDayPlanState> = emptyList()
@@ -73,18 +84,29 @@ data class MakeCourseScheduleState(
     val placeName: String,
     val order: Int,
     val memo: String,
-    val category: String?
+    val category: String?,
+    val accessibilityInfo: AccessibilityInfoUiModel? = null
 )
 
 
 
 fun CourseState.toMakeCourseState(): MakeCourseUiState {
     try {
+        if (this.isLoading) {
+            return MakeCourseUiState(isLoading = true)
+        }
+
         val course = this.course
-        //TODO: 에러 처리 생각 해야함 이거
-        val tempCourseName = course?.courseName ?: ""
-        val tempDatePeriod = course?.datePeriod ?: ""
-        val tempDayPlans = course?.dayPlans?.map { dayPlan ->
+
+        if (course == null || course.courseName.isBlank() || course.datePeriod.isBlank()) {
+            return MakeCourseUiState(
+                isLoading = false,
+                isError = true,
+                errorMessage = "코스 기본 정보(이름, 날짜)가 누락되었습니다."
+            )
+        }
+
+        val tempDayPlans = course.dayPlans.map { dayPlan ->
             MakeCourseDayPlanState(
                 dayLabel = dayPlan.dayLabel,
                 dateLabel = dayPlan.dateLabel,
@@ -95,21 +117,27 @@ fun CourseState.toMakeCourseState(): MakeCourseUiState {
                         placeName = schedule.scheduleName,
                         order = schedule.order,
                         memo = schedule.memo,
-                        category = schedule.category
+                        category = schedule.category,
+                        accessibilityInfo = schedule.accessibilityInfo
                     )
                 }
             )
-        } ?: emptyList()
+        }
 
         return MakeCourseUiState(
-            isLoading = this.isLoading,
-            courseName = tempCourseName,
-            datePeriod = tempDatePeriod,
+            isLoading = false,
+            isError = false,
+            courseName = course.courseName,
+            datePeriod = course.datePeriod,
             dayPlans = tempDayPlans
         )
     } catch (e: Exception) {
         android.util.Log.e("CrashCatch", "🚨 매퍼에서 크래시 발생: ${e.message}", e)
-        return MakeCourseUiState(isLoading = false)
+        return MakeCourseUiState(
+            isLoading = false,
+            isError = true,
+            errorMessage = "데이터를 처리하는 중 문제가 발생했습니다."
+        )
     }
 }
 
@@ -144,10 +172,14 @@ fun MakeCourseRoute(
             }
         }
     }
-
-    if (uiState.isLoading) {
+    if (uiState.isError) {
+        LaunchedEffect(uiState.errorMessage) {
+            onShowToast(uiState.errorMessage ?: "오류가 발생했습니다.")
+            onNavigateBack()
+        }
+    } else if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color(0xFF00B493))
+            CircularProgressIndicator(color = Mint100)
         }
     } else {
         MakeCourseScreen(
@@ -178,7 +210,6 @@ fun MakeCourseScreen(
             )
         },
         bottomBar = {
-            // 🌟 하단 큼지막한 [저장] 버튼 영역 추가
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -188,7 +219,7 @@ fun MakeCourseScreen(
                 Button(
                     onClick = onFinalSaveClick,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = TextMint // 기획안의 청록색 포인트 컬러
+                        containerColor = Mint100
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -219,7 +250,7 @@ fun MakeCourseScreen(
                 Surface(
                     onClick = { /* TODO: 숙소 추가 로직 필요 시 Event 추가 */ },
                     shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                    border = BorderStroke(1.dp, Mint100),
                     color = Color.White
                 ) {
                     Row(
@@ -306,7 +337,7 @@ fun DayPlanItem(
         // 1. N일차 날짜 헤더
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
-                color = Color(0xFFD0F0EA),
+                color = Mint20,
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.padding(end = 8.dp)
             ) {
@@ -314,7 +345,7 @@ fun DayPlanItem(
                     text = dayPlan.dayLabel,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextMint,
+                    color = Mint100,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 )
             }
@@ -328,15 +359,13 @@ fun DayPlanItem(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🌟 2. 추가된 일정이 있다면 리스트 쫙 그려주기
+
         dayPlan.schedules.forEach { schedule ->
             ScheduleItemView(schedule = schedule)
-            Spacer(modifier = Modifier.height(12.dp)) // 일정 간 간격
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // 3. '일정 추가' 버튼
         OutlinedButton(
-            // 🌟 여기서 넘겨준 dayNumber(N일차)가 뷰모델을 거쳐 SharedViewModel의 currentAddingDayNumber가 됩니다!
             onClick = onAddScheduleClick,
             modifier = Modifier
                 .fillMaxWidth()
@@ -355,6 +384,7 @@ fun DayPlanItem(
             )
         }
     }
+
 }
 
 @Composable
@@ -368,7 +398,7 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
         // 1. 좌측 순서 번호 동그라미
         Surface(
             shape = CircleShape,
-            color = Color(0xFF00B493),
+            color = Mint100,
             modifier = Modifier.size(28.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -383,11 +413,10 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // 2. 우측 장소 정보 카드 (청록색 테두리)
         Surface(
             modifier = Modifier.weight(1f), // 남은 가로 영역 꽉 채우기
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color(0xFF00B493)), // 🌟 테두리 적용
+            border = BorderStroke(1.dp, Mint100),
             color = Color.White
         ) {
             Row(
@@ -417,10 +446,14 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // 3. 우측 접근성 아이콘 (디자인 시안의 녹색/노란색 휠체어 아이콘)
-                // TODO: 실제 데이터(category 등)에 따라 색상을 분기하도록 추후 수정 가능합니다.
-                val iconColor =
-                    if (schedule.order % 2 == 1) Color(0xFF70AD47) else Color(0xFFFF9900)
+
+                // TODO: 화장실 usecase 적용
+                val iconColor = when (schedule.accessibilityInfo?.status) {
+                    AccessibilityStatusUiModel.GOOD -> Green
+                    AccessibilityStatusUiModel.WARNING -> Yellow
+                    AccessibilityStatusUiModel.BAD -> Red
+                    else -> Color.Gray
+                }
                 Surface(
                     shape = CircleShape,
                     color = iconColor,
@@ -428,7 +461,7 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Default.Person, //TODO : 아이콘 교체
+                            imageVector = ImageVector.vectorResource(id = R.drawable.accessible),
                             contentDescription = "접근성 아이콘",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)

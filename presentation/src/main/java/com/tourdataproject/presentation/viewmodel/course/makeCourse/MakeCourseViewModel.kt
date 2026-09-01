@@ -2,6 +2,7 @@ package com.tourdataproject.presentation.viewmodel.course
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tourdataproject.domain.usecase.calculateAceesibility.CalculateAccessibilityUseCase
 import com.tourdataproject.domain.usecase.course.SaveCourseUseCase
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEffect
@@ -19,7 +20,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 @HiltViewModel
 class MakeCourseViewModel @Inject constructor(
-    private val saveCourseUseCase: SaveCourseUseCase // SavedStateHandle 삭제!
+    private val saveCourseUseCase: SaveCourseUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CourseState(isLoading = true))

@@ -1,8 +1,10 @@
 package com.tourdataproject.presentation.viewmodel.plan
 
 import androidx.lifecycle.ViewModel
+import com.tourdataproject.domain.model.course.AccessibilityInfo
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.model.RegionUiModel
+import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.DayPlanUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
@@ -114,9 +116,17 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
     }
 
     // [일정 정보 추가 화면] 저장
-    fun confirmAndAddSchedule(memoInput: String) {
+    fun confirmAndAddSchedule(
+        memoInput: String,
+        accessibilityInfo: AccessibilityInfoUiModel?
+    ) {
         val draft = _draftSchedule.value ?: return
-        val finalSchedule = draft.copy(memo = memoInput)
+
+        //깡통 객체 처리
+        val finalSchedule = draft.copy(
+            memo = memoInput,
+            accessibilityInfo = accessibilityInfo ?: AccessibilityInfoUiModel()
+        )
 
         val currentCourse = _courseState.value
         val targetDayNum = currentAddingDayNumber.value
@@ -130,10 +140,9 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
                 dayPlan
             }
         }
+
         _courseState.value = currentCourse.copy(dayPlans = updatedDayPlans)
         _draftSchedule.value = null
-
-
     }
 
     fun clearDraftSchedule() {

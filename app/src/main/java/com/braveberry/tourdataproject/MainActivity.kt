@@ -68,7 +68,6 @@ class MainActivity : ComponentActivity() {
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
-                            android.util.Log.d("NavDebug", "🚨 엥? 진짜 날짜 선택 화면으로 강제 이동됨!")
 
                             DateSelectionRoute(
                                 sharedViewModel = sharedViewModel,
@@ -86,7 +85,6 @@ class MainActivity : ComponentActivity() {
                             MakeCourseRoute(
                                 sharedViewModel = sharedViewModel,
                                 onNavigateBack = { navController.popBackStack()
-                                    android.util.Log.d("NavDebug", "🚨 MakeCourseRoute에서 뒤로가기 명령 발동됨!")
                                                  },
                                 onNavigateToAddSchedule = {
                                     navController.navigate("add_location")
@@ -113,7 +111,7 @@ class MainActivity : ComponentActivity() {
                                 sharedViewModel = sharedViewModel,
                                 onBackClick = { navController.popBackStack() },
                                 onNavigateToNext = {
-                                    navController.navigate("add_schedule_detail") // (이동할 목적지 라우트 이름에 맞게 수정)
+                                    navController.navigate("add_schedule_detail")
                                 }
                             )
                         }

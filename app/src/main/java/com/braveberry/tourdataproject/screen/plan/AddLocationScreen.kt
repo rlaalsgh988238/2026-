@@ -39,7 +39,7 @@ import com.braveberry.tourdataproject.ui.theme.SearchPlaceGray
 @Composable
 fun AddLocationRoute(
     onNavigateBack: () -> Unit,
-    onNavigateToSearch: () -> Unit, // 검색창 클릭 시 실제 검색 화면으로 이동
+    onNavigateToSearch: () -> Unit,
 ) {
     AddLocationScreen(
         onBackClick = onNavigateBack,
@@ -47,7 +47,6 @@ fun AddLocationRoute(
     )
 }
 
-// Screen 컴포저블 (오직 기획안 UI 디자인에만 집중)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddLocationScreen(
@@ -66,7 +65,7 @@ fun AddLocationScreen(
                         .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    // 뒤로가기 버튼 (좌측)
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -82,7 +81,6 @@ fun AddLocationScreen(
                         }
                     }
 
-                    // 타이틀 (가운데)
                     Text(
                         text = "장소 추가",
                         fontSize = 18.sp,

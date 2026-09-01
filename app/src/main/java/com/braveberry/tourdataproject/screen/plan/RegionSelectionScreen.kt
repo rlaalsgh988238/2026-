@@ -28,6 +28,7 @@ import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.screen.pop.LoadingPopUp
 import com.tourdataproject.presentation.model.RegionUiModel
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
@@ -48,12 +49,10 @@ fun RegionSelectionRoute(
         effect.collect { currentEffect ->
             when (currentEffect) {
                 is RegionSelectionEffect.NavigateToDateSelection -> {
-                    // 🌟 1. 공유 뷰모델에 데이터 저장
                     state.selectedCity?.let { region ->
                         val regionName = region.city ?: region.province
                         sharedViewModel.updateRegion(regionName)
                     }
-                    // 2. 화면 이동
                     onNavigateToDateSelection()
                 }
                 is RegionSelectionEffect.NavigateBack -> onNavigateBack()
@@ -61,15 +60,19 @@ fun RegionSelectionRoute(
         }
     }
 
-    RegionSelectionScreen(state = state, onEvent = viewModel::setEvent)
+    RegionSelectionScreen(
+        state = state,
+        onEvent = viewModel::setEvent,
+        onSharedEvent = sharedViewModel::setEvent
+    )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegionSelectionScreen(
     state: RegionSelectionState,
-    onEvent: (RegionSelectionEvent) -> Unit
+    onEvent: (RegionSelectionEvent) -> Unit,
+    onSharedEvent: (PlanSharedEvent) -> Unit
 ) {
     if (state.isLoading) {
         LoadingPopUp(message = "도시 정보를 가져오고 있습니다")
@@ -97,10 +100,12 @@ fun RegionSelectionScreen(
             )
         },
         bottomBar = {
+            // 하단 버튼 영역이 시스템 네비게이션 바에 가려지지 않도록 수정
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
+                    .navigationBarsPadding() // 🌟 시스템 바 영역만큼 패딩 추가
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
                 // 선택된 도시 칩 표시 영역
@@ -118,7 +123,7 @@ fun RegionSelectionScreen(
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = state.selectedCity!!.shortName,
+                                text = state.selectedCity!!.shortName, // 🌟 shortName 유지
                                 color = PrimaryTeal,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -202,7 +207,8 @@ fun RegionSelectionScreen(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(state.popularCities) { region ->
                     val isSelected = state.selectedCity == region
@@ -216,13 +222,13 @@ fun RegionSelectionScreen(
                         color = Color.White,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(2f) // 가로가 더 긴 타원형 비율
+                            .aspectRatio(2f)
                             .clip(CircleShape)
                             .clickable { onEvent(RegionSelectionEvent.OnCitySelected(region)) }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = region.shortName,
+                                text = region.shortName, // 🌟 shortName 유지
                                 color = if (isSelected) PrimaryTeal else Color.Black,
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center
@@ -250,6 +256,7 @@ fun RegionSelectionScreenPreview() {
             popularCities = dummyCities,
             selectedCity = dummyCities[11] // 거제가 선택된 상태
         ),
-        onEvent = {}
+        onEvent = {},
+        onSharedEvent = {}
     )
 }

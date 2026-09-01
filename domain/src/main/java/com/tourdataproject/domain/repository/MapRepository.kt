@@ -18,4 +18,6 @@ interface MapRepository {
     fun getUserLocation(): Flow<DataResource<Location>>
 
     fun getPopularCity(): Flow<DataResource<List<Region>>>
+
+    fun getRegionPosition(regionName: String): Flow<DataResource<Location>>
 }

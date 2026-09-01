@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":map-data"))
     implementation(project(":course-data"))
     implementation(project(":data-resource"))
+    implementation(project(":system-data"))
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.gson)

@@ -1,11 +1,13 @@
 package com.braveberry.local.di
 
 import com.braveberry.local.impl.RegionDataSourceImpl
+import com.braveberry.local.impl.SystemDataSourceImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import com.braveberry.local.impl.ToiletDBDataSourceImpl
+import com.braveberry.system_data.dataSource.SystemDatasource
 import com.braveberry.toilet_data.dataSource.ToiletDataSource
 import com.tourdataproject.map_data.datasource.RegionLocalDataSource
 import javax.inject.Singleton
@@ -23,4 +25,10 @@ internal abstract class LocalDataSourceModule {
     abstract fun bindRegionLocalDataSource(
         source: RegionDataSourceImpl
     ): RegionLocalDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindSystemDataSource(
+        impl: SystemDataSourceImpl
+    ): SystemDatasource
 }

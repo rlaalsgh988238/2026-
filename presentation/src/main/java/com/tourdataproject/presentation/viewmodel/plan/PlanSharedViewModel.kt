@@ -54,6 +54,11 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
         }
     }
 
+    fun updateRegionPosition(longitude: Double, latitude: Double){
+        _courseState.update {
+            it.copy(destinationLatitude = latitude, destinationLongitude = longitude)
+        }
+    }
 
     //화면 저장 & 삭제 & 재배치 등을 SharedViewModel에서 들고있다가, 마지막에 "저장"버튼을 눌렀을 때, DB로 가게 하는거니까 여기가 맞는듯?
     fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemUiModel) {

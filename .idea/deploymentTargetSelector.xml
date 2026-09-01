@@ -13,11 +13,7 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="RegionSelectionScreenPreview">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DialogSelection />
-      </SelectionState>
-      <SelectionState runConfigName="AppDatabaseTest">
+      <SelectionState runConfigName="MakeCourseScreenPreview">
         <option name="selectionMode" value="DROPDOWN" />
         <DropdownSelection timestamp="2026-08-10T04:09:23.740393300Z">
           <Target type="DEFAULT_BOOT">
@@ -28,7 +24,7 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="ToiletDBDataSourceImplTest">
+      <SelectionState runConfigName="KakaoMapSearchScreenPreview">
         <option name="selectionMode" value="DROPDOWN" />
         <DropdownSelection timestamp="2026-08-10T04:09:23.740393300Z">
           <Target type="DEFAULT_BOOT">

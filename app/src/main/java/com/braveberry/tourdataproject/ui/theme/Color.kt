@@ -14,6 +14,7 @@ val Pink40 = Color(0xFF7D5260)
 val PrimaryTeal = Color(0xFF38B29C)
 val DisabledGray = Color(0xFFAAAAAA)
 val BackgroundGray = Color(0xFFF5F5F5)
+val TextMint = Color(0xFF17ADA0)
 
 val SearchPlaceGray = Color (0xFFE1E2E4)
 

@@ -16,6 +16,7 @@ sealed interface KakaoMapEvent {
     data class OnSearchClicked(val query: String) : KakaoMapEvent
 
     data class OnPlaceItemClicked(val place: KakaoMapUiModel) : KakaoMapEvent
+    data class OnInitLocation(val latitude: Double, val longitude: Double) : KakaoMapEvent
 }
 
 sealed interface KakaoMapEffect {

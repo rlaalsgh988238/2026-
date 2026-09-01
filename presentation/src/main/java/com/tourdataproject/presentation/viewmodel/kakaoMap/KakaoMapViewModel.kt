@@ -14,7 +14,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.orbitmvi.orbit.ContainerHost
@@ -23,7 +22,6 @@ import org.orbitmvi.orbit.syntax.simple.postSideEffect
 import org.orbitmvi.orbit.syntax.simple.reduce
 import org.orbitmvi.orbit.viewmodel.container
 import javax.inject.Inject
-import kotlin.collections.map
 import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
@@ -34,8 +32,7 @@ class KakaoMapViewModel @Inject constructor(
     override val container = container<KakaoMapState, KakaoMapEffect>(KakaoMapState())
 
     private val queryFlow = MutableStateFlow("")
-    val longitude = 126.9723 // 임시 경도 (서울역)
-    val latitude = 37.5546   // 임시 위도 (서울역)
+
     init {
         observeQueryForAutoComplete()
     }
@@ -45,8 +42,12 @@ class KakaoMapViewModel @Inject constructor(
         when (event) {
             is KakaoMapEvent.OnSearchQueryChanged -> updateSearchQuery(event.query)
             is KakaoMapEvent.OnSearchClicked -> searchPlaces(event.query)
-            // 🌟 event에서 place를 꺼내서 넘겨줌
             is KakaoMapEvent.OnPlaceItemClicked -> selectPlace(event.place)
+            is KakaoMapEvent.OnInitLocation -> intent {
+                reduce {
+                    state.copy(targetCoordinate = Pair(event.latitude, event.longitude))
+                }
+            }
         }
     }
 
@@ -70,20 +71,22 @@ class KakaoMapViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
     }
-
     private fun searchPlacesForAutoComplete(query: String) = intent {
+        // 🌟 1. 자동완성은 사용자가 타이핑할 때마다 호출되므로, 좌표가 없으면 토스트 없이 조용히 무시(return)합니다.
+        val coordinate = state.targetCoordinate ?: return@intent
+        val currentLat = coordinate.first
+        val currentLng = coordinate.second
+
         searchNearbyPlacesUseCase(
             query = query,
-            longitude = longitude,
-            latitude = latitude,
+            longitude = currentLng,
+            latitude = currentLat,
             radius = null,
             page = 1
         ).collect { resource ->
             if (resource is DataResource.Success) {
                 val uiModels = resource.data.map { it.toUiModel() }
-                reduce {
-                    state.copy(autoCompleteResults = uiModels)
-                }
+                reduce { state.copy(autoCompleteResults = uiModels) }
             }
         }
     }
@@ -94,16 +97,24 @@ class KakaoMapViewModel @Inject constructor(
             return@intent
         }
 
+        // 🌟 2. 매개변수로 안 넘어왔으면 state에서 꺼냄
+        val targetLng = longitude ?: state.targetCoordinate?.second
+        val targetLat = latitude ?: state.targetCoordinate?.first
+
+        // 🌟 3. 둘 다 없으면 강제 종료
+        if (targetLng == null || targetLat == null) {
+            postSideEffect(KakaoMapEffect.ShowToast("여행지 위치 정보가 없습니다. 이전 화면에서 다시 시도해주세요."))
+            return@intent
+        }
+
         android.util.Log.d("KakaoMapDebug", "1. searchPlaces 시작: query = $query")
         reduce { state.copy(isLoading = true, errorMessage = null) }
-
-        val targetLng = longitude ?: 126.9780
-        val targetLat = latitude ?: 37.5665
         val radius = 20000
 
         try {
             android.util.Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
 
+            // 🌟 4. 확실하게 null이 아님이 보장된(스마트 캐스팅) 좌표로 UseCase 호출
             searchNearbyPlacesUseCase(
                 query = query,
                 longitude = targetLng,
@@ -141,8 +152,6 @@ class KakaoMapViewModel @Inject constructor(
             postSideEffect(KakaoMapEffect.ShowToast("통신 중 예외가 발생했습니다."))
         }
     }
-
-
     private fun selectPlace(place: KakaoMapUiModel) = intent {
         postSideEffect(KakaoMapEffect.NavigateNextScreen(place))
     }

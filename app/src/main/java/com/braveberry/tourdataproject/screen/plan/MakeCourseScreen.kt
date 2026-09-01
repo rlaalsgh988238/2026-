@@ -46,15 +46,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.braveberry.tourdataproject.ui.theme.TextMint
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEvent
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
-// ====================================================================
-// 1. 화면 전용 데이터 모델
-// ====================================================================
+
 data class MakeCourseUiState(
     val isLoading: Boolean = true,
     val courseName: String = "",
@@ -66,10 +65,9 @@ data class MakeCourseDayPlanState(
     val dayLabel: String = "",
     val dateLabel: String = "",
     val dayNumber: Int = 0,
-    val schedules: List<MakeCourseScheduleState> = emptyList() // 🌟 해당 일차에 추가된 장소 리스트
+    val schedules: List<MakeCourseScheduleState> = emptyList()
 )
 
-// 화면에 그릴 장소/일정 정보만 쏙 빼온 모델
 data class MakeCourseScheduleState(
     val scheduleId: String,
     val placeName: String,
@@ -83,12 +81,9 @@ data class MakeCourseScheduleState(
 fun CourseState.toMakeCourseState(): MakeCourseUiState {
     try {
         val course = this.course
-
-        // 🌟 하드코딩된 "거제 여행", 날짜 데이터 제거 -> 없으면 빈 문자열("")
+        //TODO: 에러 처리 생각 해야함 이거
         val tempCourseName = course?.courseName ?: ""
         val tempDatePeriod = course?.datePeriod ?: ""
-
-        // 🌟 가짜 1~3일차 생성 로직 완전 제거 -> 뷰모델에 있는 진짜 dayPlans만 매핑
         val tempDayPlans = course?.dayPlans?.map { dayPlan ->
             MakeCourseDayPlanState(
                 dayLabel = dayPlan.dayLabel,
@@ -106,8 +101,6 @@ fun CourseState.toMakeCourseState(): MakeCourseUiState {
             )
         } ?: emptyList()
 
-        android.util.Log.d("CrashCatch", "1. 매퍼 성공! 실제 dayPlans 개수: ${tempDayPlans.size}")
-
         return MakeCourseUiState(
             isLoading = this.isLoading,
             courseName = tempCourseName,
@@ -116,7 +109,6 @@ fun CourseState.toMakeCourseState(): MakeCourseUiState {
         )
     } catch (e: Exception) {
         android.util.Log.e("CrashCatch", "🚨 매퍼에서 크래시 발생: ${e.message}", e)
-        // 에러가 났을 땐 빈 화면을 줘서 튕기지 않게 방어
         return MakeCourseUiState(isLoading = false)
     }
 }
@@ -133,9 +125,7 @@ fun MakeCourseRoute(
     val courseState by makeCourseViewModel.state.collectAsState()
     val uiState = courseState.toMakeCourseState()
 
-    // 공유 데이터가 변경될 때마다 화면 상태를 최신화
     LaunchedEffect(sharedCourseState) {
-        android.util.Log.d("NavDebug", "setInitial 실행! 전달된 dayPlans 개수: ${sharedCourseState.dayPlans.size}")
         makeCourseViewModel.setInitialCourse(sharedCourseState)
     }
 
@@ -143,8 +133,6 @@ fun MakeCourseRoute(
         makeCourseViewModel.effect.collect { effect ->
             when (effect) {
                 is CourseEffect.NavigateBack -> {
-                    // 🌟 로그를 먼저 찍고 화면을 이동해야 안전하게 출력됩니다.
-                    android.util.Log.d("NavDebug", "🚨 뷰모델 의도적 NavigateBack 실행")
                     onNavigateBack()
                 }
                 is CourseEffect.NavigateToAddSchedule -> onNavigateToAddSchedule()
@@ -157,7 +145,6 @@ fun MakeCourseRoute(
         }
     }
 
-    // 🌟 안전장치: courseName 조건에 너무 의존하지 않고, isLoading 자체만 바라보거나 방어 로직 추가
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Color(0xFF00B493))
@@ -201,7 +188,7 @@ fun MakeCourseScreen(
                 Button(
                     onClick = onFinalSaveClick,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF00B493) // 기획안의 청록색 포인트 컬러
+                        containerColor = TextMint // 기획안의 청록색 포인트 컬러
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -327,7 +314,7 @@ fun DayPlanItem(
                     text = dayPlan.dayLabel,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF00B493),
+                    color = TextMint,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 )
             }
@@ -441,7 +428,7 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Default.Person, // 🌟 material-icons-extended가 있다면 Icons.Default.Accessible 로 교체하세요!
+                            imageVector = Icons.Default.Person, //TODO : 아이콘 교체
                             contentDescription = "접근성 아이콘",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)

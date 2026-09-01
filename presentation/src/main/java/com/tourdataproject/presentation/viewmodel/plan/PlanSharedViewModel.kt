@@ -23,6 +23,7 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
     val courseState = _courseState.asStateFlow()
 
 
+    //TODO:좌표값도 받아오기
     fun updateRegion(regionName: String) {
         _courseState.update { currentState ->
             currentState.copy(
@@ -37,7 +38,7 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
         startDate: Long,
         endDate: Long
     ) {
-        //TODO: 기간 & 몇박며칠 계산
+        //TODO: 기간 & n박n일 계산
         _courseState.update { currentState ->
             currentState.copy(
                 rawStartDate = startDate,
@@ -126,14 +127,6 @@ class PlanSharedViewModel @Inject constructor() : ViewModel() {
         }
         _courseState.value = currentCourse.copy(dayPlans = updatedDayPlans)
         _draftSchedule.value = null
-
-
-        // 🌟 dayPlans로 들어가기 전에, 만들어진 단일 일정(Schedule) 데이터를 바로 까보기!
-        android.util.Log.d("PlanDebug", "=== [저장된 단일 일정 확인] ===")
-        android.util.Log.d("PlanDebug", "장소 이름: ${finalSchedule.scheduleName}") // 도메인 모델 변수명에 맞게!
-        android.util.Log.d("PlanDebug", "작성한 메모: ${finalSchedule.memo}")
-        android.util.Log.d("PlanDebug", "장소 ID(또는 주소): ${finalSchedule.scheduleId}")
-        android.util.Log.d("PlanDebug", "=================================")
 
 
     }

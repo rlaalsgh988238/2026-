@@ -1,6 +1,7 @@
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.map_data.datasource.KakaoMapRemoteDataSource
 import com.tourdataproject.map_data.datasource.LocationLocalDataSource
+import com.tourdataproject.map_data.datasource.RegionLocalDataSource
 import com.tourdataproject.map_data.impl.MapRepositoryImpl
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -23,15 +24,17 @@ class MapRepositoryImplTest {
     // 1. 가짜(Mock) 의존성 객체 선언
     private lateinit var remoteDataSource: KakaoMapRemoteDataSource
     private lateinit var locationLocalDataSource: LocationLocalDataSource
+    private lateinit var regionLocalDataSource: RegionLocalDataSource
     private lateinit var repository: MapRepositoryImpl
 
     @Before
     fun setUp() {
         remoteDataSource = mockk()
         locationLocalDataSource = mockk()
+        regionLocalDataSource = mockk() // 🌟 추가
 
-        // 2. 가짜 객체들을 주입하여 레포지토리 생성
-        repository = MapRepositoryImpl(remoteDataSource, locationLocalDataSource)
+        // 🌟 3개의 의존성 모두 주입하도록 수정
+        repository = MapRepositoryImpl(remoteDataSource, locationLocalDataSource, regionLocalDataSource)
     }
 
     @Test

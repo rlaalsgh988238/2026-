@@ -20,9 +20,11 @@ import javax.inject.Inject
 @HiltViewModel
 class DateSelectionViewModel @Inject constructor() : ViewModel() {
 
+    // 화면에 보여줄 상태 (State)
     private val _state = MutableStateFlow(DateSelectionState())
     val state: StateFlow<DateSelectionState> = _state.asStateFlow()
 
+    // 단발성 이벤트 (Effect - 화면 이동, 토스트 메시지 등)
     private val _effect = MutableSharedFlow<DateSelectionEffect>()
     val effect: SharedFlow<DateSelectionEffect> = _effect.asSharedFlow()
 

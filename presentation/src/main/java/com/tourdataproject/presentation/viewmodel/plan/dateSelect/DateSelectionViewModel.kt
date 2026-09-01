@@ -14,40 +14,80 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
 class DateSelectionViewModel @Inject constructor() : ViewModel() {
 
-    // 화면에 보여줄 상태 (State)
     private val _state = MutableStateFlow(DateSelectionState())
     val state: StateFlow<DateSelectionState> = _state.asStateFlow()
 
-    // 단발성 이벤트 (Effect - 화면 이동, 토스트 메시지 등)
     private val _effect = MutableSharedFlow<DateSelectionEffect>()
     val effect: SharedFlow<DateSelectionEffect> = _effect.asSharedFlow()
 
-    // UI에서 발생하는 이벤트를 처리하는 함수
+    // 한 번에 추가로 불러올 달 수
+    private val loadMoreCount = 12
+
     fun setEvent(event: DateSelectionEvent) {
         when (event) {
-            is DateSelectionEvent.OnDateSelected -> {
-                // 선택된 날짜 업데이트
-                _state.update { currentState ->
-                    currentState.copy(selectedDate = event.date)
-                }
-            }
+            is DateSelectionEvent.OnDateSelected -> selectByTap(event.date)
+            is DateSelectionEvent.OnDragStart -> startDrag(event.date)
+            is DateSelectionEvent.OnDragMove -> moveDrag(event.date)
+            is DateSelectionEvent.OnLoadMoreMonths -> loadMoreMonths()
             is DateSelectionEvent.OnNextButtonClicked -> {
-                // 다음 화면으로 이동하는 Effect 발생
-                viewModelScope.launch {
-                    _effect.emit(DateSelectionEffect.NavigateToNextScreen)
-                }
+                viewModelScope.launch { _effect.emit(DateSelectionEffect.NavigateToNextScreen) }
             }
             is DateSelectionEvent.OnBackButtonClicked -> {
-                // 뒤로 가기 Effect 발생
-                viewModelScope.launch {
-                    _effect.emit(DateSelectionEffect.NavigateBack)
-                }
+                viewModelScope.launch { _effect.emit(DateSelectionEffect.NavigateBack) }
             }
+        }
+    }
+
+    // 탭으로 시작/종료 선택
+    private fun selectByTap(clickedDate: LocalDate) {
+        _state.update { current ->
+            val start = current.startDate
+            val end = current.endDate
+            when {
+                start == null || (start != null && end != null) ->
+                    current.copy(startDate = clickedDate, endDate = null)
+
+                clickedDate.isBefore(start) ->
+                    current.copy(startDate = clickedDate, endDate = null)
+
+                clickedDate == start ->
+                    current.copy(startDate = null, endDate = null)
+
+                else ->
+                    current.copy(startDate = start, endDate = clickedDate)
+            }
+        }
+    }
+
+    // 드래그 시작: 시작일 지정
+    private fun startDrag(date: LocalDate) {
+        _state.update { it.copy(startDate = date, endDate = null) }
+    }
+
+    // 드래그 이동: 시작일 기준으로 범위 갱신 (역방향도 허용)
+    private fun moveDrag(date: LocalDate) {
+        _state.update { current ->
+            val start = current.startDate ?: return@update current.copy(startDate = date)
+            if (date.isBefore(start)) {
+                current.copy(startDate = date, endDate = start)
+            } else {
+                current.copy(startDate = start, endDate = date)
+            }
+        }
+    }
+
+    // 무한 스크롤: 마지막 달 뒤로 이어붙이기
+    private fun loadMoreMonths() {
+        _state.update { current ->
+            val last = current.targetMonths.lastOrNull() ?: return@update current
+            val more = (1..loadMoreCount).map { last.plusMonths(it.toLong()) }
+            current.copy(targetMonths = current.targetMonths + more)
         }
     }
 }

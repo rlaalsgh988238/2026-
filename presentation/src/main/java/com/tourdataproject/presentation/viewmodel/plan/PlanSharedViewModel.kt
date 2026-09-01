@@ -1,6 +1,7 @@
 package com.tourdataproject.presentation.viewmodel.plan
 
 import androidx.lifecycle.ViewModel
+import com.tourdataproject.domain.usecase.plan.GetRegionPositionUseCase
 import com.tourdataproject.presentation.model.RegionUiModel
 import com.tourdataproject.presentation.model.course.DayPlanUiModel
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
@@ -14,7 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlanSharedViewModel @Inject constructor(
-
+    private val getRegionPositionUseCase: GetRegionPositionUseCase
 ) : ViewModel() {
 
     private val _courseState = MutableStateFlow(

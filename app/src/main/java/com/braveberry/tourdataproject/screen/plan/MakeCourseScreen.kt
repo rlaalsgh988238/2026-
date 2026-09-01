@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.R
+import com.braveberry.tourdataproject.screen.pop.LoadingPopUp
 import com.braveberry.tourdataproject.ui.theme.Green
 import com.braveberry.tourdataproject.ui.theme.Mint100
 import com.braveberry.tourdataproject.ui.theme.Mint20
@@ -178,9 +179,7 @@ fun MakeCourseRoute(
             onNavigateBack()
         }
     } else if (uiState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Mint100)
-        }
+        LoadingPopUp(message = "일정 정보를 가져오고 있습니다")
     } else {
         MakeCourseScreen(
             state = uiState,

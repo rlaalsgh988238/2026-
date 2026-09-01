@@ -67,8 +67,7 @@ class AddScheduleDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
 
-            // 현재 State에 모인 모든 데이터(유저 입력 정보 + 미리 계산해둔 화장실 정보)를 묶어서 Effect로 방출
-            _effect.emit(
+           _effect.emit(
                 AddScheduleDetailEffect.SubmitSchedule(
                     placeName = currentState.placeName,
                     address = currentState.address,

@@ -49,11 +49,11 @@ import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 @Composable
 fun KakaoMapSearchRoute(
-    sharedViewModel: PlanSharedViewModel, // 🌟 공유 뷰모델 주입받음
+    sharedViewModel: PlanSharedViewModel,
     modifier: Modifier = Modifier,
     viewModel: KakaoMapViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    onNavigateToNext: () -> Unit // 🌟 x, y 대신 화면 이동 콜백으로 변경
+    onNavigateToNext: () -> Unit
 ) {
     val uiState by viewModel.container.stateFlow.collectAsState()
     val context = LocalContext.current
@@ -69,16 +69,13 @@ fun KakaoMapSearchRoute(
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
                 is KakaoMapEffect.NavigateNextScreen -> {
-                    // 🌟 1. 선택한 장소를 임시 저장소에 담기
                     sharedViewModel.setDraftSchedule(effect.place)
-                    // 🌟 2. 일정 상세(메모) 화면으로 이동
                     onNavigateToNext()
                 }
             }
         }
     }
 
-    // 🌟 뒤로가기 누를 때 임시 데이터 초기화 후 이전 화면으로 이동
     val handleBackClick = {
         sharedViewModel.clearDraftSchedule()
         onBackClick()
@@ -124,7 +121,7 @@ fun KakaoMapSearchScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
@@ -167,7 +164,7 @@ fun KakaoMapSearchScreen(
                         PlaceItem(
                             place = place,
                             onClick = {
-                                onPlaceClick(place) // 🌟 place 전체 넘김
+                                onPlaceClick(place)
                                 focusManager.clearFocus()
                             }
                         )
@@ -179,7 +176,7 @@ fun KakaoMapSearchScreen(
                         PlaceItem(
                             place = place,
                             onClick = {
-                                onPlaceClick(place) // 🌟 place 전체 넘김
+                                onPlaceClick(place)
                             }
                         )
                     }

@@ -31,19 +31,16 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
     fun setEvent(event: DateSelectionEvent) {
         when (event) {
             is DateSelectionEvent.OnDateSelected -> {
-                // 선택된 날짜 업데이트
                 _state.update { currentState ->
                     currentState.copy(selectedDate = event.date)
                 }
             }
             is DateSelectionEvent.OnNextButtonClicked -> {
-                // 다음 화면으로 이동하는 Effect 발생
                 viewModelScope.launch {
                     _effect.emit(DateSelectionEffect.NavigateToNextScreen)
                 }
             }
             is DateSelectionEvent.OnBackButtonClicked -> {
-                // 뒤로 가기 Effect 발생
                 viewModelScope.launch {
                     _effect.emit(DateSelectionEffect.NavigateBack)
                 }

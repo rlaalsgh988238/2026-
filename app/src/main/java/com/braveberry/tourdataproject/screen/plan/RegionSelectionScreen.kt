@@ -60,7 +60,11 @@ fun RegionSelectionRoute(
         }
     }
 
-    RegionSelectionScreen(state = state, onEvent = viewModel::setEvent, onSharedEvent = sharedViewModel::setEvent)
+    RegionSelectionScreen(
+        state = state,
+        onEvent = viewModel::setEvent,
+        onSharedEvent = sharedViewModel::setEvent
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

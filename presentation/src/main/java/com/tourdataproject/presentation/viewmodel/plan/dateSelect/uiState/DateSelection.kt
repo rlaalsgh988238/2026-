@@ -14,12 +14,8 @@ data class DateSelectionState(
 }
 
 sealed interface DateSelectionEvent {
-    // 탭으로 선택
+    // 탭으로 날짜 선택
     data class OnDateSelected(val date: LocalDate) : DateSelectionEvent
-    // 드래그(스와이프) 시작
-    data class OnDragStart(val date: LocalDate) : DateSelectionEvent
-    // 드래그(스와이프) 중 현재 손가락 위치의 날짜
-    data class OnDragMove(val date: LocalDate) : DateSelectionEvent
     // 무한 스크롤: 다음 달들 추가 로드
     object OnLoadMoreMonths : DateSelectionEvent
     object OnNextButtonClicked : DateSelectionEvent

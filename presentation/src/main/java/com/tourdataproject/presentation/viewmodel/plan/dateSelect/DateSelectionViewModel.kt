@@ -32,8 +32,6 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
     fun setEvent(event: DateSelectionEvent) {
         when (event) {
             is DateSelectionEvent.OnDateSelected -> selectByTap(event.date)
-            is DateSelectionEvent.OnDragStart -> startDrag(event.date)
-            is DateSelectionEvent.OnDragMove -> moveDrag(event.date)
             is DateSelectionEvent.OnLoadMoreMonths -> loadMoreMonths()
             is DateSelectionEvent.OnNextButtonClicked -> {
                 viewModelScope.launch { _effect.emit(DateSelectionEffect.NavigateToNextScreen) }
@@ -50,34 +48,21 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
             val start = current.startDate
             val end = current.endDate
             when {
+                // 처음 선택하거나 이미 범위가 완성된 상태 -> 새 시작일
                 start == null || (start != null && end != null) ->
                     current.copy(startDate = clickedDate, endDate = null)
 
+                // 시작일보다 이전 날짜 -> 시작일 변경
                 clickedDate.isBefore(start) ->
                     current.copy(startDate = clickedDate, endDate = null)
 
+                // 시작일을 다시 탭 -> 선택 취소
                 clickedDate == start ->
                     current.copy(startDate = null, endDate = null)
 
+                // 시작일 이후 날짜 -> 종료일 지정
                 else ->
                     current.copy(startDate = start, endDate = clickedDate)
-            }
-        }
-    }
-
-    // 드래그 시작: 시작일 지정
-    private fun startDrag(date: LocalDate) {
-        _state.update { it.copy(startDate = date, endDate = null) }
-    }
-
-    // 드래그 이동: 시작일 기준으로 범위 갱신 (역방향도 허용)
-    private fun moveDrag(date: LocalDate) {
-        _state.update { current ->
-            val start = current.startDate ?: return@update current.copy(startDate = date)
-            if (date.isBefore(start)) {
-                current.copy(startDate = date, endDate = start)
-            } else {
-                current.copy(startDate = start, endDate = date)
             }
         }
     }

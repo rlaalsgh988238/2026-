@@ -1,8 +1,7 @@
 package com.braveberry.tourdataproject.screen.plan
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,11 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,9 +30,6 @@ import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSe
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import java.time.LocalDate
 import java.time.YearMonth
-
-// 드래그 좌표 계산을 위한 고정 셀 높이
-private val CELL_HEIGHT = 48.dp
 
 @Composable
 fun DateSelectionRoute(
@@ -153,9 +145,7 @@ fun DateSelectionScreen(
                     yearMonth = yearMonth,
                     startDate = state.startDate,
                     endDate = state.endDate,
-                    onDateTap = { onEvent(DateSelectionEvent.OnDateSelected(it)) },
-                    onDragStart = { onEvent(DateSelectionEvent.OnDragStart(it)) },
-                    onDragMove = { onEvent(DateSelectionEvent.OnDragMove(it)) }
+                    onDateSelected = { onEvent(DateSelectionEvent.OnDateSelected(it)) }
                 )
                 Spacer(modifier = Modifier.height(40.dp))
             }
@@ -168,30 +158,12 @@ fun CalendarMonthView(
     yearMonth: YearMonth,
     startDate: LocalDate?,
     endDate: LocalDate?,
-    onDateTap: (LocalDate) -> Unit,
-    onDragStart: (LocalDate) -> Unit,
-    onDragMove: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit
 ) {
     val daysOfWeek = listOf("일", "월", "화", "수", "목", "금", "토")
     val firstDayOfMonth = yearMonth.atDay(1)
     val firstDayOffset = if (firstDayOfMonth.dayOfWeek.value == 7) 0 else firstDayOfMonth.dayOfWeek.value
     val daysInMonth = yearMonth.lengthOfMonth()
-
-    val totalCells = firstDayOffset + daysInMonth
-    val rows = (totalCells + 6) / 7
-
-    val density = LocalDensity.current
-    val cellHeightPx = with(density) { CELL_HEIGHT.toPx() }
-
-    // 드래그 좌표(offset)를 날짜로 변환
-    fun offsetToDate(offset: Offset, gridWidthPx: Float): LocalDate? {
-        if (gridWidthPx <= 0f) return null
-        val cellWidthPx = gridWidthPx / 7f
-        val col = (offset.x / cellWidthPx).toInt().coerceIn(0, 6)
-        val row = (offset.y / cellHeightPx).toInt().coerceIn(0, rows - 1)
-        val dayNumber = row * 7 + col - firstDayOffset + 1
-        return if (dayNumber in 1..daysInMonth) yearMonth.atDay(dayNumber) else null
-    }
 
     Column(
         modifier = Modifier
@@ -208,7 +180,6 @@ fun CalendarMonthView(
             textAlign = TextAlign.Center
         )
 
-        // 요일 헤더
         Row(modifier = Modifier.fillMaxWidth()) {
             daysOfWeek.forEachIndexed { index, day ->
                 Text(
@@ -227,57 +198,33 @@ fun CalendarMonthView(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 날짜 그리드 (여기에만 제스처 적용)
-        var gridWidthPx by remember { mutableStateOf(0f) }
+        val totalCells = firstDayOffset + daysInMonth
+        val rows = (totalCells + 6) / 7
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { gridWidthPx = it.width.toFloat() }
-                .pointerInput(yearMonth, firstDayOffset, daysInMonth) {
-                    detectTapGestures { pos ->
-                        offsetToDate(pos, gridWidthPx)?.let(onDateTap)
-                    }
-                }
-                .pointerInput(yearMonth, firstDayOffset, daysInMonth) {
-                    detectDragGestures(
-                        onDragStart = { pos ->
-                            offsetToDate(pos, gridWidthPx)?.let(onDragStart)
-                        },
-                        onDrag = { change, _ ->
-                            offsetToDate(change.position, gridWidthPx)?.let(onDragMove)
-                        }
-                    )
-                }
-        ) {
-            for (row in 0 until rows) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(CELL_HEIGHT)
-                ) {
-                    for (col in 0 until 7) {
-                        val cellIndex = row * 7 + col
-                        val dayNumber = cellIndex - firstDayOffset + 1
+        for (row in 0 until rows) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (col in 0 until 7) {
+                    val cellIndex = row * 7 + col
+                    val dayNumber = cellIndex - firstDayOffset + 1
 
-                        if (dayNumber in 1..daysInMonth) {
-                            val currentDate = yearMonth.atDay(dayNumber)
-                            val isStart = currentDate == startDate
-                            val isEnd = currentDate == endDate
-                            val isInRange = startDate != null && endDate != null &&
-                                    currentDate.isAfter(startDate) && currentDate.isBefore(endDate)
+                    if (dayNumber in 1..daysInMonth) {
+                        val currentDate = yearMonth.atDay(dayNumber)
+                        val isStart = currentDate == startDate
+                        val isEnd = currentDate == endDate
+                        val isInRange = startDate != null && endDate != null &&
+                                currentDate.isAfter(startDate) && currentDate.isBefore(endDate)
 
-                            DateCell(
-                                day = dayNumber,
-                                isStart = isStart,
-                                isEnd = isEnd,
-                                isInRange = isInRange,
-                                isWeekend = (col == 0 || col == 6),
-                                modifier = Modifier.weight(1f)
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                        DateCell(
+                            day = dayNumber,
+                            isStart = isStart,
+                            isEnd = isEnd,
+                            isInRange = isInRange,
+                            isWeekend = (col == 0 || col == 6),
+                            onClick = { onDateSelected(currentDate) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -292,10 +239,13 @@ fun DateCell(
     isEnd: Boolean,
     isInRange: Boolean,
     isWeekend: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier.fillMaxHeight(),
+        modifier = modifier
+            .aspectRatio(1.2f)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         if (isInRange || isStart || isEnd) {

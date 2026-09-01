@@ -12,8 +12,10 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
+import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
+import com.tourdataproject.presentation.viewmodel.splash.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -25,13 +27,26 @@ class MainActivity : ComponentActivity() {
             TourDataProjectTheme {
                 val navController = rememberNavController()
 
-                NavHost(navController = navController, startDestination = "plan_graph") {
+                NavHost(
+                    navController = navController,
+                    startDestination = "splash" // 시작점을 스플래시로 변경
+                ) {
+                    composable("splash") {
+                        val splashViewModel: SplashViewModel = hiltViewModel()
+                        SplashScreen(
+                            viewModel = splashViewModel,
+                            onInitComplete = {
+                                // 초기화 완료 시 메인 그래프로 이동 (백스택 제거)
+                                navController.navigate("plan_graph") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     // 여행 계획 중첩 그래프
                     navigation(startDestination = "region_selection", route = "plan_graph") {
-
-                        // [화면 1] 지역 선택
                         composable("region_selection") { entry ->
-                            // plan_graph 스코프의 공유 뷰모델 가져오기
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
@@ -45,7 +60,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // [화면 2] 날짜 선택
                         composable("date_selection") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
@@ -63,4 +77,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

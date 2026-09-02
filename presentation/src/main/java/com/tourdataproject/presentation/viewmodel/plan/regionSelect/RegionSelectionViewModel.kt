@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
-import com.tourdataproject.domain.usecase.plan.GetRegionByKeyword
+import com.tourdataproject.domain.usecase.plan.GetRegionByKeywordUseCase
 import com.tourdataproject.presentation.model.toUiModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
@@ -31,7 +31,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RegionSelectionViewModel @Inject constructor(
     private val getPopularCitiesUseCase: GetPopularCitiesUseCase,
-    private val getRegionByKeyword: GetRegionByKeyword
+    private val getRegionByKeywordUseCase: GetRegionByKeywordUseCase
 ) : ViewModel() {
 
     private val TAG = "RegionSelection"
@@ -42,7 +42,7 @@ class RegionSelectionViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<RegionSelectionEffect>()
     val effect: SharedFlow<RegionSelectionEffect> = _effect.asSharedFlow()
 
-    // 검색어 입력 전용 스트림 (디바운스 대상)
+    // 검색어 입력 전용 스트림 (디바운스)
     private val searchQueryFlow = MutableStateFlow("")
 
     init {
@@ -97,7 +97,7 @@ class RegionSelectionViewModel @Inject constructor(
                         flowOf(DataResource.Success(emptyList()))
                     } else {
                         _state.update { it.copy(isSearching = true) }
-                        getRegionByKeyword(query)
+                        getRegionByKeywordUseCase(query)
                     }
                 }
                 .collect { resource ->

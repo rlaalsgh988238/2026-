@@ -335,7 +335,7 @@ fun MakeCourseTopBar(
                         tint = Color.Gray
                     )
                 }
-                Text(text = datePeriod, fontSize = 12.sp, color = Color.Gray)
+                Text(text = datePeriod, fontSize = 15.sp, color = Color.Gray)
             }
         }
         HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)

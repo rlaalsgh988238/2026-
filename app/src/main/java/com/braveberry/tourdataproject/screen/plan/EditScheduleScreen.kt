@@ -331,7 +331,7 @@ fun ScheduleListSection(
                         if (isAccommodation) {
                             Text(
                                 text = "숙소",
-                                fontSize = 10.sp,
+                                fontSize = 15.sp,
                                 color = Color.Gray,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )

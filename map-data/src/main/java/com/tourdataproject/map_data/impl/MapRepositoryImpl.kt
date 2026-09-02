@@ -64,4 +64,12 @@ class MapRepositoryImpl @Inject constructor(
         remoteDataSource.getQueryPosition(regionName).mapDataResource {
             it.toDomain()
         }
+
+    override fun getRegionByKeyword(keyword: String): Flow<DataResource<List<Region>>> = flow {
+        emit(DataResource.loading())
+        val result = regionLocalDataSource.getRegionByKeyword(keyword)
+        emit(DataResource.Success(result.toDomain()))
+    }.catch { e ->
+        emit(DataResource.Error(e))
+    }
 }

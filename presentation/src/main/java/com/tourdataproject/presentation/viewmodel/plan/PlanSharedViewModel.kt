@@ -33,32 +33,15 @@ class PlanSharedViewModel @Inject constructor(
 
     private val TAG = "PlanSharedViewModel"
 
-    private val _courseState = MutableStateFlow(
-        TravelCourseUiModel()
-    )
+    private val _courseState = MutableStateFlow(TravelCourseUiModel())
     val courseState = _courseState.asStateFlow()
+
+    // ================= 이벤트 진입점 =================
 
     fun setEvent(event: PlanSharedEvent) {
         when (event) {
-            is PlanSharedEvent.OnCitySelected -> {
-                Log.d(TAG, "Event: OnCitySelected - cityName: ${event.cityName}")
-                updateRegion(event.cityName)
-                viewModelScope.launch {
-                    getRegionPositionUseCase(event.cityName).collectDataResource(
-                        onSuccess = { location ->
-                            Log.d(TAG, "Success: $location")
-                            updateRegionPosition(location.longitude, location.latitude)
-                        },
-                        onError = { error ->
-                            Log.e(TAG, "Error: ${error.message}")
-                        },
-                        onLoading = {
-                            Log.d(TAG, "Loading...")
-                        }
-                    )
-                }
-            }
-
+            is PlanSharedEvent.OnCitySelected -> handleCitySelected(event.cityName)
+            is PlanSharedEvent.OnDateSelected -> handleDateSelected(event.startDate, event.endDate)
             is PlanSharedEvent.OnDateSelected -> {
                 Log.d(
                     TAG,
@@ -103,11 +86,41 @@ class PlanSharedViewModel @Inject constructor(
         }
     }
 
-    //TODO:좌표값도 받아오기
-    fun updateRegion(regionName: String) {
-        Log.d(TAG, "updateRegion: $regionName")
-        _courseState.update { currentState ->
-            currentState.copy(
+    // 지역명 저장 + 좌표 조회를 한 번에 처리
+    private fun handleCitySelected(cityName: String) {
+        Log.d(TAG, "OnCitySelected: $cityName")
+        updateRegion(cityName)
+
+        viewModelScope.launch {
+            getRegionPositionUseCase(cityName).collectDataResource(
+                onSuccess = { location ->
+                    Log.d(TAG, "position success: $location")
+                    updateRegionPosition(location.longitude, location.latitude)
+                },
+                onError = { error ->
+                    Log.e(TAG, "position error: ${error.message}")
+                },
+                onLoading = {
+                    Log.d(TAG, "position loading...")
+                }
+            )
+        }
+    }
+
+
+    private fun handleDateSelected(startDate: LocalDate, endDate: LocalDate) {
+        Log.d(TAG, "OnDateSelected: $startDate ~ $endDate")
+        val zone = ZoneId.systemDefault()
+        val startMillis = startDate.atStartOfDay(zone).toInstant().toEpochMilli()
+        val endMillis = endDate.atStartOfDay(zone).toInstant().toEpochMilli()
+        updateDates(startMillis, endMillis)
+    }
+
+    // ================= 상태 갱신 (내부 전용) =================
+
+    private fun updateRegion(regionName: String) {
+        _courseState.update { current ->
+            current.copy(
                 destination = regionName,
                 courseName = "${regionName} 여행"
             )
@@ -155,19 +168,13 @@ class PlanSharedViewModel @Inject constructor(
         }
     }
 
+    // ================= 코스 이름 수정 =================
 
-
-    fun updateRegionPosition(longitude: Double, latitude: Double) {
-        Log.d(TAG, "updateRegionPosition: lat=$latitude, lng=$longitude")
+    private fun updateRegionPosition(longitude: Double, latitude: Double) {
         _courseState.update {
             it.copy(destinationLatitude = latitude, destinationLongitude = longitude)
         }
     }
-
-    val currentAddingDayNumber = MutableStateFlow(1)
-
-    private val _draftSchedule = MutableStateFlow<ScheduleItemUiModel?>(null)
-    val draftSchedule = _draftSchedule.asStateFlow()
 
     private fun updateCourseName(newName: String) {
         Log.d(TAG, "updateCourseName: $newName")
@@ -185,7 +192,7 @@ class PlanSharedViewModel @Inject constructor(
         }
     }
 
-    private fun deleteSchedule(targetDay: Int, scheduleIdToRemove: String) {
+    fun deleteSchedule(targetDay: Int, scheduleIdToRemove: String) {
         _courseState.update { currentState ->
             val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
                 if (dayPlan.rawDayNumber == targetDay) {
@@ -196,7 +203,7 @@ class PlanSharedViewModel @Inject constructor(
         }
     }
 
-    private fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemUiModel>) {
+    fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemUiModel>) {
         _courseState.update { currentState ->
             val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
                 if (dayPlan.rawDayNumber == targetDay) {
@@ -206,8 +213,13 @@ class PlanSharedViewModel @Inject constructor(
             currentState.copy(dayPlans = updatedDayPlans)
         }
     }
+    // ================= 스케줄 임시 저장(Draft) =================
 
-    private fun setDraftSchedule(place: KakaoMapUiModel) {
+    val currentAddingDayNumber = MutableStateFlow(1)
+    private val _draftSchedule = MutableStateFlow<ScheduleItemUiModel?>(null)
+    val draftSchedule = _draftSchedule.asStateFlow()
+
+    fun setDraftSchedule(place: KakaoMapUiModel) {
         _draftSchedule.value = ScheduleItemUiModel(
             scheduleId = UUID.randomUUID().toString(),
             scheduleName = place.placeName,
@@ -226,7 +238,6 @@ class PlanSharedViewModel @Inject constructor(
     ) {
         val draft = _draftSchedule.value ?: return
 
-        //깡통 객체 처리
         val finalSchedule = draft.copy(
             memo = memoInput,
             accessibilityInfo = accessibilityInfo ?: AccessibilityInfoUiModel()
@@ -240,9 +251,7 @@ class PlanSharedViewModel @Inject constructor(
                 dayPlan.copy(
                     schedules = dayPlan.schedules + finalSchedule.copy(order = dayPlan.schedules.size + 1)
                 )
-            } else {
-                dayPlan
-            }
+            } else dayPlan
         }
 
         _courseState.value = currentCourse.copy(dayPlans = updatedDayPlans)
@@ -252,6 +261,7 @@ class PlanSharedViewModel @Inject constructor(
     private fun clearDraftSchedule() {
         _draftSchedule.value = null
     }
+
 }
 
 
@@ -263,9 +273,6 @@ data class PlanSharedState(
 )
 
 sealed interface PlanSharedEvent {
-
-    data class OnCitySelected(val cityName: String) : PlanSharedEvent
-    data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedEvent
     data class OnCourseNameChanged(val newName: String) : PlanSharedEvent
     data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) :
         PlanSharedEvent
@@ -284,6 +291,9 @@ sealed interface PlanSharedEvent {
         val memoInput: String,
         val accessibilityInfo: AccessibilityInfoUiModel?
     ) : PlanSharedEvent
+
+    data class OnCitySelected(val cityName: String) : PlanSharedEvent
+    data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedEvent
 
     object OnClearDraftSchedule : PlanSharedEvent
 }

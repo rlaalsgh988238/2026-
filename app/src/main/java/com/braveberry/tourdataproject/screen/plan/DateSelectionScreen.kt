@@ -1,6 +1,5 @@
 package com.braveberry.tourdataproject.screen.plan
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,7 +32,6 @@ import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSe
 import java.time.LocalDate
 import java.time.YearMonth
 
-// 2. Route 컴포저블 (ViewModel 연결용 뼈대)
 @Composable
 fun DateSelectionRoute(
     sharedViewModel: PlanSharedViewModel,
@@ -42,17 +40,18 @@ fun DateSelectionRoute(
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val effect = viewModel.effect
 
-    LaunchedEffect(effect) {
-        effect.collect { currentEffect ->
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { currentEffect ->
             when (currentEffect) {
                 is DateSelectionEffect.NavigateToNextScreen -> {
-                    state.startDate?.let { start ->
-                        state.endDate?.let { end ->
-                            // sharedViewModel.setPlanDate(start, end)
-                            sharedViewModel.setEvent(PlanSharedEvent.OnDateSelected(start, end))
-                        }
+                    // 시작일/종료일이 모두 있을 때만 SharedViewModel에 전달
+                    val start = state.startDate
+                    val end = state.endDate
+                    if (start != null && end != null) {
+                        sharedViewModel.setEvent(
+                            PlanSharedEvent.OnDateSelected(start, end)
+                        )
                     }
                     onNavigateToNext()
                 }
@@ -64,8 +63,6 @@ fun DateSelectionRoute(
     DateSelectionScreen(state = state, onEvent = viewModel::setEvent)
 }
 
-
-// UI 화면 컴포저블
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateSelectionScreen(
@@ -159,7 +156,6 @@ fun DateSelectionScreen(
     }
 }
 
-// 4. 달력 월별 뷰 컴포저블
 @Composable
 fun CalendarMonthView(
     yearMonth: YearMonth,
@@ -169,7 +165,6 @@ fun CalendarMonthView(
 ) {
     val daysOfWeek = listOf("일", "월", "화", "수", "목", "금", "토")
     val firstDayOfMonth = yearMonth.atDay(1)
-    // java.time의 DayOfWeek는 월(1)~일(7) 기준이므로, 일(0)~토(6)으로 변환
     val firstDayOffset = if (firstDayOfMonth.dayOfWeek.value == 7) 0 else firstDayOfMonth.dayOfWeek.value
     val daysInMonth = yearMonth.lengthOfMonth()
 
@@ -188,12 +183,8 @@ fun CalendarMonthView(
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 요일 헤더
         Row(modifier = Modifier.fillMaxWidth()) {
             daysOfWeek.forEachIndexed { index, day ->
-                val textColor = if (index == 0 || index == 6) WeekendBlue else Color.Gray
                 Text(
                     text = day,
                     fontSize = 12.sp,
@@ -210,7 +201,6 @@ fun CalendarMonthView(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 날짜 그리드
         val totalCells = firstDayOffset + daysInMonth
         val rows = (totalCells + 6) / 7
 
@@ -299,7 +289,6 @@ fun DateSelectionScreenPreview() {
         startDate = LocalDate.now(),
         endDate = LocalDate.now().plusDays(3)
     )
-
     DateSelectionScreen(
         state = mockState,
         onEvent = {}

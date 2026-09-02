@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
@@ -20,7 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +46,7 @@ import com.tourdataproject.presentation.KakaoMapEffect
 import com.tourdataproject.presentation.KakaoMapEvent
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent // 🌟 이벤트 임포트
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 @Composable
@@ -60,6 +62,18 @@ fun KakaoMapSearchRoute(
 
     LaunchedEffect(Unit) {
         viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(""))
+
+        // 🌟 SharedViewModel에서 저장해둔 목적지 좌표를 꺼내서 카카오맵 뷰모델로 주입!
+        val courseState = sharedViewModel.courseState.value
+        val lat = courseState.destinationLatitude
+        val lng = courseState.destinationLongitude
+
+        // 🌟 좌표가 정상적으로 있다면 카카오맵 뷰모델 초기화 이벤트 발송
+        if (lat != 0.0 && lng != 0.0) {
+            viewModel.onEvent(KakaoMapEvent.OnInitLocation(lat, lng))
+        } else {
+            // (선택 사항) 만약 좌표가 0.0이면 에러 처리 로직 추가 가능
+        }
     }
 
     LaunchedEffect(viewModel) {
@@ -69,7 +83,7 @@ fun KakaoMapSearchRoute(
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
                 is KakaoMapEffect.NavigateNextScreen -> {
-                    sharedViewModel.setDraftSchedule(effect.place)
+                    sharedViewModel.setEvent(PlanSharedEvent.OnSetDraftSchedule(effect.place))
                     onNavigateToNext()
                 }
             }
@@ -77,7 +91,7 @@ fun KakaoMapSearchRoute(
     }
 
     val handleBackClick = {
-        sharedViewModel.clearDraftSchedule()
+        sharedViewModel.setEvent(PlanSharedEvent.OnClearDraftSchedule)
         onBackClick()
     }
 
@@ -103,7 +117,7 @@ fun KakaoMapSearchScreen(
     autoCompleteResults: List<KakaoMapUiModel>,
     onQueryChanged: (String) -> Unit,
     onSearch: (String) -> Unit,
-    onPlaceClick: (KakaoMapUiModel) -> Unit, // 🌟 파라미터 타입 변경
+    onPlaceClick: (KakaoMapUiModel) -> Unit,
     onBackClick: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
@@ -114,8 +128,9 @@ fun KakaoMapSearchScreen(
 
     Column(
         modifier = modifier
+            .statusBarsPadding()
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color.White)
     ) {
         // 1. 상단 검색바 영역
         Row(
@@ -203,7 +218,7 @@ fun PlaceItem(place: KakaoMapUiModel, onClick: () -> Unit) {
             Text(text = place.distanceText, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
         }
     }
-    Divider(color = Color.LightGray, thickness = 0.5.dp)
+    HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
@@ -227,7 +242,7 @@ fun KakaoMapSearchScreenPreview() {
         autoCompleteResults = emptyList(),
         onQueryChanged = {},
         onSearch = {},
-        onPlaceClick = { _ -> }, // 🌟 람다 파라미터 수정
+        onPlaceClick = { _ -> },
         onBackClick = {}
     )
 }

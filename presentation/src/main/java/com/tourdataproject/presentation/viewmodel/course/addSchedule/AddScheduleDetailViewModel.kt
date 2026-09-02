@@ -1,5 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.course.addSchedule
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.domain.usecase.calculateAceesibility.CalculateAccessibilityUseCase
@@ -18,8 +19,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
-
 @HiltViewModel
 class AddScheduleDetailViewModel @Inject constructor(
     private val calculateAccessibilityUseCase: CalculateAccessibilityUseCase
@@ -31,16 +30,21 @@ class AddScheduleDetailViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<AddScheduleDetailEffect>()
     val effect: SharedFlow<AddScheduleDetailEffect> = _effect.asSharedFlow()
 
-
     fun setInitialPlace(name: String, address: String, lat: Double, lng: Double) {
+        Log.d("ToiletDebug", "1. 장소 초기화 됨: name=$name, lat=$lat, lng=$lng")
+
         _state.update {
             it.copy(placeName = name, address = address, latitude = lat, longitude = lng)
         }
 
         viewModelScope.launch {
             try {
-                //화장실 위험도 계산
+                Log.d("ToiletDebug", "2. 화장실 UseCase 호출 시작!")
                 val domainResult = calculateAccessibilityUseCase(lat, lng)
+
+                // 🌟 핵심 로그: UseCase가 도대체 무슨 값을 뱉어내는지 확인
+                Log.d("ToiletDebug", "3. UseCase 계산 완료 -> status: ${domainResult.status}, score: ${domainResult.safetyScore}")
+
                 val uiAccessibility = AccessibilityInfoUiModel(
                     status = AccessibilityStatusUiModel.valueOf(domainResult.status.name),
                     safetyScore = domainResult.safetyScore,
@@ -48,10 +52,13 @@ class AddScheduleDetailViewModel @Inject constructor(
                     planBToiletId = domainResult.planBToiletId
                 )
 
-
                 _state.update { it.copy(accessibilityInfo = uiAccessibility) }
+                Log.d("ToiletDebug", "4. 뷰모델 State 업데이트 완료: $uiAccessibility")
+
             } catch (e: Exception) {
-                android.util.Log.e("CalculateError", "화장실 정보 계산 실패", e)
+                val errorMsg = e.message ?: "화장실 정보 계산 실패"
+                android.util.Log.e("ToiletError", errorMsg, e)
+                Log.e("ToiletDebug", "🚨 화장실 정보 계산 실패", e)
             }
         }
     }
@@ -60,14 +67,16 @@ class AddScheduleDetailViewModel @Inject constructor(
         _state.update { it.copy(memo = memo) }
     }
 
-    // 3. '저장' 버튼 클릭 시
     fun onSaveClicked() {
         val currentState = _state.value
+
+        // 🌟 저장 직전 로그: SharedViewModel로 넘기기 직전의 상태 확인
+        Log.d("ToiletDebug", "5. 저장 버튼 눌림! 넘기는 화장실 데이터: ${currentState.accessibilityInfo}")
 
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
 
-           _effect.emit(
+            _effect.emit(
                 AddScheduleDetailEffect.SubmitSchedule(
                     placeName = currentState.placeName,
                     address = currentState.address,

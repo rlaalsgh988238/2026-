@@ -58,6 +58,12 @@ class ScheduleEditViewModel @Inject constructor(
         Log.d("ScheduleEditVM", "일정 이동 요청: fromIndex=$fromIndex, toIndex=$toIndex")
         _state.update { currentState ->
             val mutableSchedules = currentState.schedules.toMutableList()
+
+            // 숙소(마지막 아이템)는 이동 불가, 다른 아이템이 숙소 자리로 가는 것도 불가
+            if (fromIndex == mutableSchedules.lastIndex || toIndex == mutableSchedules.lastIndex) {
+                return@update currentState
+            }
+
             if (fromIndex in mutableSchedules.indices && toIndex in mutableSchedules.indices) {
                 val item = mutableSchedules.removeAt(fromIndex)
                 mutableSchedules.add(toIndex, item)
@@ -101,7 +107,9 @@ class ScheduleEditViewModel @Inject constructor(
         val dummySchedules = listOf(
             ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
             ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 3, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
+            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
+            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
+            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
         )
 
         _state.value = ScheduleEditState(

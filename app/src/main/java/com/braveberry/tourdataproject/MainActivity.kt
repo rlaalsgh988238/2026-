@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.braveberry.tourdataproject.screen.MockStartScreen
 import com.braveberry.tourdataproject.screen.kakaoMap.KakaoMapSearchRoute
 import com.braveberry.tourdataproject.screen.plan.AddLocationRoute
 import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
@@ -35,6 +36,9 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     startDestination = "splash" // 시작점을 스플래시로 변경
                 ) {
+
+
+
                     composable("splash") {
                         val splashViewModel: SplashViewModel = hiltViewModel()
                         SplashScreen(
@@ -50,6 +54,18 @@ class MainActivity : ComponentActivity() {
 
                     // 여행 계획 중첩 그래프
                     navigation(startDestination = "region_selection", route = "plan_graph") {
+
+                        composable("mock_start") {entry ->
+                            val sharedViewModel: PlanSharedViewModel = hiltViewModel(
+                                remember(entry) { navController.getBackStackEntry("plan_graph") }
+                            )
+                            MockStartScreen(
+                                sharedViewModel = sharedViewModel,
+                                onNavigateToMakeCourse = {
+                                    navController.navigate("make_course")
+                                }
+                            )
+                        }
                         composable("region_selection") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }

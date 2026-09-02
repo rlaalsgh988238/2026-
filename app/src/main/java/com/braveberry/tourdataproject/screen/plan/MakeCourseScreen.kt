@@ -1,5 +1,6 @@
 package com.braveberry.tourdataproject.screen.plan
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,8 +12,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,10 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -61,8 +63,8 @@ import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEvent
 import com.tourdataproject.presentation.viewmodel.course.uiState.CourseState
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
-
 
 data class MakeCourseUiState(
     val isLoading: Boolean = true,
@@ -88,8 +90,6 @@ data class MakeCourseScheduleState(
     val category: String?,
     val accessibilityInfo: AccessibilityInfoUiModel? = null
 )
-
-
 
 fun CourseState.toMakeCourseState(): MakeCourseUiState {
     try {
@@ -141,7 +141,6 @@ fun CourseState.toMakeCourseState(): MakeCourseUiState {
         )
     }
 }
-
 @Composable
 fun MakeCourseRoute(
     sharedViewModel: PlanSharedViewModel,
@@ -154,17 +153,27 @@ fun MakeCourseRoute(
     val courseState by makeCourseViewModel.state.collectAsState()
     val uiState = courseState.toMakeCourseState()
 
+    LaunchedEffect(uiState) {
+        Log.d("MakeCourseDebug", "uiState 변경됨 -> isError: ${uiState.isError}, isLoading: ${uiState.isLoading}, message: ${uiState.errorMessage}")
+    }
+
     LaunchedEffect(sharedCourseState) {
+        Log.d("MakeCourseDebug", "sharedCourseState 업데이트 됨! 뷰모델에 주입 시도")
         makeCourseViewModel.setInitialCourse(sharedCourseState)
     }
 
     LaunchedEffect(makeCourseViewModel.effect) {
         makeCourseViewModel.effect.collect { effect ->
+            Log.d("MakeCourseDebug", "뷰모델 이펙트 발생: $effect") // 🌟 로그 2: 어떤 이펙트가 터졌는지 확인
             when (effect) {
                 is CourseEffect.NavigateBack -> {
+                    Log.d("MakeCourseDebug", "🚨 CourseEffect.NavigateBack 때문에 뒤로 튕깁니다!")
                     onNavigateBack()
                 }
-                is CourseEffect.NavigateToAddSchedule -> onNavigateToAddSchedule()
+                is CourseEffect.NavigateToAddSchedule ->{
+                    sharedViewModel.setEvent(PlanSharedEvent.OnSetAddingDayNumber(effect.dayNumber))
+                    onNavigateToAddSchedule()
+                }
                 is CourseEffect.ShowToast -> onShowToast(effect.message)
                 is CourseEffect.NavigateToCourseInfo -> { /* TODO */ }
                 is CourseEffect.ShareCourse -> { /* TODO */ }
@@ -173,8 +182,10 @@ fun MakeCourseRoute(
             }
         }
     }
+
     if (uiState.isError) {
         LaunchedEffect(uiState.errorMessage) {
+            Log.e("MakeCourseDebug", "🚨 매퍼 에러 발생으로 뒤로 튕깁니다! 원인: ${uiState.errorMessage}")
             onShowToast(uiState.errorMessage ?: "오류가 발생했습니다.")
             onNavigateBack()
         }
@@ -185,12 +196,12 @@ fun MakeCourseRoute(
             state = uiState,
             onEvent = makeCourseViewModel::onEvent,
             onFinalSaveClick = {
+                Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
                 makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState))
             }
         )
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,6 +211,10 @@ fun MakeCourseScreen(
     onFinalSaveClick: () -> Unit
 ) {
     Scaffold(
+        modifier = Modifier
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding(),
         containerColor = Color.White,
         topBar = {
             MakeCourseTopBar(
@@ -333,7 +348,6 @@ fun DayPlanItem(
     onAddScheduleClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // 1. N일차 날짜 헤더
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 color = Mint20,
@@ -357,7 +371,6 @@ fun DayPlanItem(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
 
         dayPlan.schedules.forEach { schedule ->
             ScheduleItemView(schedule = schedule)
@@ -383,7 +396,6 @@ fun DayPlanItem(
             )
         }
     }
-
 }
 
 @Composable
@@ -391,10 +403,9 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp), // 아이템 간 상하 여백
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. 좌측 순서 번호 동그라미
         Surface(
             shape = CircleShape,
             color = Mint100,
@@ -413,7 +424,7 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
         Spacer(modifier = Modifier.width(12.dp))
 
         Surface(
-            modifier = Modifier.weight(1f), // 남은 가로 영역 꽉 채우기
+            modifier = Modifier.weight(1f),
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, Mint100),
             color = Color.White
@@ -425,7 +436,6 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // 장소 이름 및 메모
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = schedule.placeName,
@@ -445,8 +455,7 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-
-                // TODO: 화장실 usecase 적용
+                // 🌟 화장실 Usecase 접근성 상태별 컬러 맵핑 완료
                 val iconColor = when (schedule.accessibilityInfo?.status) {
                     AccessibilityStatusUiModel.GOOD -> Green
                     AccessibilityStatusUiModel.WARNING -> Yellow
@@ -472,7 +481,6 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
     }
 }
 
-
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun MakeCourseScreenPreview() {
@@ -492,6 +500,6 @@ fun MakeCourseScreenPreview() {
     MakeCourseScreen(
         state = mockState,
         onEvent = {},
-        onFinalSaveClick = {} // 프리뷰용 빈 람다 추가
+        onFinalSaveClick = {}
     )
 }

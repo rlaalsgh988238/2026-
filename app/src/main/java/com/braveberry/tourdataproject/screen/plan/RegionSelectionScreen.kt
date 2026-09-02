@@ -51,7 +51,7 @@ fun RegionSelectionRoute(
                 is RegionSelectionEffect.NavigateToDateSelection -> {
                     state.selectedCity?.let { region ->
                         val regionName = region.city ?: region.province
-                        sharedViewModel.updateRegion(regionName)
+                        sharedViewModel.setEvent(PlanSharedEvent.OnCitySelected(regionName))
                     }
                     onNavigateToDateSelection()
                 }

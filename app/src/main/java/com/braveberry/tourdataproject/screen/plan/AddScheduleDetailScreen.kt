@@ -22,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.AddScheduleDetailViewModel
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.AddScheduleDetailEffect
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent // 🌟 이벤트 임포트 추가
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 
@@ -46,6 +47,7 @@ fun ScheduleItemUiModel?.toInitModel(): AddScheduleInitModel {
         )
     }
 }
+
 @Composable
 fun AddScheduleDetailRoute(
     sharedViewModel: PlanSharedViewModel,
@@ -59,7 +61,6 @@ fun AddScheduleDetailRoute(
 
     val uiState by viewModel.state.collectAsState()
 
-
     LaunchedEffect(initModel) {
         if (initModel.isValid) {
             if (uiState.placeName.isBlank()) {
@@ -70,9 +71,6 @@ fun AddScheduleDetailRoute(
                     lng = initModel.longitude
                 )
             }
-        } else {
-            // 유효하지 않은 데이터(null)면 바로 튕겨냄
-            onNavigateBack()
         }
     }
 
@@ -80,14 +78,16 @@ fun AddScheduleDetailRoute(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is AddScheduleDetailEffect.SubmitSchedule -> {
-                    sharedViewModel.confirmAndAddSchedule(
-                        memoInput = effect.memo,
-                        accessibilityInfo = effect.accessibilityInfo
+                    sharedViewModel.setEvent(
+                        PlanSharedEvent.OnConfirmAndAddSchedule(
+                            memoInput = effect.memo,
+                            accessibilityInfo = effect.accessibilityInfo
+                        )
                     )
                     onNavigateToCourse()
                 }
                 is AddScheduleDetailEffect.NavigateBack -> {
-                    sharedViewModel.clearDraftSchedule()
+                    sharedViewModel.setEvent(PlanSharedEvent.OnClearDraftSchedule)
                     onNavigateBack()
                 }
             }
@@ -109,6 +109,7 @@ fun AddScheduleDetailRoute(
         )
     }
 }
+
 @Composable
 fun AddScheduleDetailScreen(
     placeName: String,
@@ -119,6 +120,10 @@ fun AddScheduleDetailScreen(
     onSaveClick: () -> Unit
 ) {
     Scaffold(
+        modifier = Modifier
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding(),
         topBar = {
             Column {
                 Row(
@@ -140,7 +145,7 @@ fun AddScheduleDetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
+                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
             }
         },
         bottomBar = {
@@ -226,6 +231,7 @@ fun AddScheduleDetailScreen(
         }
     }
 }
+
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun AddScheduleDetailScreenPreview() {

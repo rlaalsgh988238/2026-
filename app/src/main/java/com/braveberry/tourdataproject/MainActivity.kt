@@ -1,6 +1,7 @@
 package com.braveberry.tourdataproject
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,6 +17,7 @@ import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
+import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -48,8 +50,33 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // 여행 계획 중첩 그래프
-                    navigation(startDestination = "region_selection", route = "plan_graph") {
+                    // 🌟 테스트를 위해 startDestination을 "schedule_edit_test"로 변경합니다.
+                    navigation(startDestination = "schedule_edit_test", route = "plan_graph") {
+
+                        // ==========================================
+                        // 임시 테스트용 일정 편집 화면 라우트
+                        // ==========================================
+                        composable("schedule_edit_test") {
+                            ScheduleEditRoute(
+                                onNavigateBack = { navController.popBackStack() },
+                                onShowToast = { message ->
+                                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+
+                        // 나중에 실제 연동할 때 사용할 진짜 라우트
+                        composable("schedule_edit/{dayNumber}") { backStackEntry ->
+                            val dayNumber = backStackEntry.arguments?.getString("dayNumber")?.toIntOrNull() ?: 1
+                            ScheduleEditRoute(
+                                onNavigateBack = { navController.popBackStack() },
+                                onShowToast = { message ->
+                                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+
+
                         composable("region_selection") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
@@ -71,11 +98,10 @@ class MainActivity : ComponentActivity() {
 
                             DateSelectionRoute(
                                 sharedViewModel = sharedViewModel,
-                                onNavigateToNext = {navController.navigate("make_course") },
+                                onNavigateToNext = { navController.navigate("make_course") },
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
-
 
                         composable("make_course") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
@@ -84,16 +110,16 @@ class MainActivity : ComponentActivity() {
 
                             MakeCourseRoute(
                                 sharedViewModel = sharedViewModel,
-                                onNavigateBack = { navController.popBackStack()
-                                                 },
+                                onNavigateBack = { navController.popBackStack() },
                                 onNavigateToAddSchedule = {
                                     navController.navigate("add_location")
                                 },
                                 onShowToast = { message ->
-                                    // 토스트 처리
+                                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
+
                         composable("add_location") {
                             AddLocationRoute(
                                 onNavigateBack = { navController.popBackStack() },
@@ -102,6 +128,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+
                         composable("kakao_map_search") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
@@ -115,6 +142,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+
                         composable("add_schedule_detail") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
@@ -126,18 +154,13 @@ class MainActivity : ComponentActivity() {
                                     navController.popBackStack()
                                 },
                                 onNavigateToCourse = {
-
                                     val currentBackStack = navController.backQueue.map { it.destination.route }
                                     android.util.Log.d("NavDebug", "2. popBackStack 직전 백스택: $currentBackStack")
                                     navController.popBackStack(route = "make_course", inclusive = false)
                                 }
                             )
                         }
-
-
-
-
-                        }
+                    }
                 }
             }
         }

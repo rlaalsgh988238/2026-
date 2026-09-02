@@ -4,12 +4,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,16 +47,14 @@ fun RegionSelectionRoute(
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val effect = viewModel.effect
 
-    LaunchedEffect(effect) {
-        effect.collect { currentEffect ->
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { currentEffect ->
             when (currentEffect) {
                 is RegionSelectionEffect.NavigateToDateSelection -> {
-                    state.selectedCity?.let { region ->
-                        val regionName = region.city ?: region.province
-                        sharedViewModel.updateRegion(regionName)
-                    }
+                    sharedViewModel.setEvent(
+                        PlanSharedEvent.OnCitySelected(currentEffect.regionName)
+                    )
                     onNavigateToDateSelection()
                 }
                 is RegionSelectionEffect.NavigateBack -> onNavigateBack()
@@ -62,8 +64,7 @@ fun RegionSelectionRoute(
 
     RegionSelectionScreen(
         state = state,
-        onEvent = viewModel::setEvent,
-        onSharedEvent = sharedViewModel::setEvent
+        onEvent = viewModel::setEvent
     )
 }
 
@@ -71,9 +72,11 @@ fun RegionSelectionRoute(
 @Composable
 fun RegionSelectionScreen(
     state: RegionSelectionState,
-    onEvent: (RegionSelectionEvent) -> Unit,
-    onSharedEvent: (PlanSharedEvent) -> Unit
+    onEvent: (RegionSelectionEvent) -> Unit
 ) {
+    // 키보드 컨트롤러 가져오기
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     if (state.isLoading) {
         LoadingPopUp(message = "도시 정보를 가져오고 있습니다")
     }
@@ -90,7 +93,10 @@ fun RegionSelectionScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(RegionSelectionEvent.OnBackButtonClicked) }) {
+                    IconButton(onClick = {
+                        keyboardController?.hide() // 뒤로가기 시 키보드 닫기
+                        onEvent(RegionSelectionEvent.OnBackButtonClicked)
+                    }) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
@@ -100,15 +106,13 @@ fun RegionSelectionScreen(
             )
         },
         bottomBar = {
-            // 하단 버튼 영역이 시스템 네비게이션 바에 가려지지 않도록 수정
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
-                    .navigationBarsPadding() // 🌟 시스템 바 영역만큼 패딩 추가
+                    .navigationBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                // 선택된 도시 칩 표시 영역
                 if (state.selectedCity != null) {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
@@ -123,7 +127,7 @@ fun RegionSelectionScreen(
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = state.selectedCity!!.shortName, // 🌟 shortName 유지
+                                text = state.selectedCity!!.shortName,
                                 color = PrimaryTeal,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -139,9 +143,11 @@ fun RegionSelectionScreen(
                     }
                 }
 
-                // 다음 버튼
                 Button(
-                    onClick = { onEvent(RegionSelectionEvent.OnNextButtonClicked) },
+                    onClick = {
+                        keyboardController?.hide() // 다음 단계 이동 시 키보드 닫기
+                        onEvent(RegionSelectionEvent.OnNextButtonClicked)
+                    },
                     enabled = state.isNextButtonEnabled,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryTeal,
@@ -179,7 +185,6 @@ fun RegionSelectionScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 검색 바
             TextField(
                 value = state.searchQuery,
                 onValueChange = { onEvent(RegionSelectionEvent.OnSearchQueryChanged(it)) },
@@ -187,7 +192,16 @@ fun RegionSelectionScreen(
                     Text("도시 이름을 입력해주세요", color = Color.Gray, fontSize = 14.sp)
                 },
                 trailingIcon = {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = "검색", tint = Color.Gray)
+                    if (state.searchQuery.isNotBlank()) {
+                        IconButton(onClick = {
+                            keyboardController?.hide() // 검색어 지울 때 키보드 닫기
+                            onEvent(RegionSelectionEvent.OnSearchQueryChanged(""))
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "지우기", tint = Color.Gray)
+                        }
+                    } else {
+                        Icon(Icons.Default.Search, contentDescription = "검색", tint = Color.Gray)
+                    }
                 },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = BackgroundGray,
@@ -201,40 +215,124 @@ fun RegionSelectionScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 도시 선택 그리드
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(state.popularCities) { region ->
-                    val isSelected = state.selectedCity == region
+            // 검색어 유무에 따라 화면 분기
+            if (state.isSearchMode) {
+                SearchResultList(
+                    results = state.searchResults,
+                    isSearching = state.isSearching,
+                    onCityClick = {
+                        keyboardController?.hide() // 검색 결과에서 도시 선택 시 키보드 닫기
+                        onEvent(RegionSelectionEvent.OnCitySelected(it))
+                    }
+                )
+            } else {
+                PopularCityGrid(
+                    cities = state.popularCities,
+                    selectedCity = state.selectedCity,
+                    onCityClick = {
+                        keyboardController?.hide() // 인기 도시 선택 시 키보드 닫기
+                        onEvent(RegionSelectionEvent.OnCitySelected(it))
+                    }
+                )
+            }
+        }
+    }
+}
 
-                    Surface(
-                        shape = CircleShape,
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = if (isSelected) PrimaryTeal else Color(0xFFE0E0E0)
-                        ),
-                        color = Color.White,
+@Composable
+private fun SearchResultList(
+    results: List<RegionUiModel>,
+    isSearching: Boolean,
+    onCityClick: (RegionUiModel) -> Unit
+) {
+    when {
+        isSearching && results.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = PrimaryTeal, modifier = Modifier.size(28.dp))
+            }
+        }
+        results.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                Text("검색 결과가 없습니다", color = Color.Gray, fontSize = 14.sp)
+            }
+        }
+        else -> {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(results) { region ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(2f)
-                            .clip(CircleShape)
-                            .clickable { onEvent(RegionSelectionEvent.OnCitySelected(region)) }
+                            .clickable { onCityClick(region) }
+                            .padding(vertical = 14.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = PrimaryTeal,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
                             Text(
-                                text = region.shortName, // 🌟 shortName 유지
-                                color = if (isSelected) PrimaryTeal else Color.Black,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center
+                                text = region.shortName,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Black
                             )
+                            if (region.city != null && region.province.isNotBlank()) {
+                                Text(
+                                    text = region.province,
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
                         }
                     }
+                    Divider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PopularCityGrid(
+    cities: List<RegionUiModel>,
+    selectedCity: RegionUiModel?,
+    onCityClick: (RegionUiModel) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(4),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(cities) { region ->
+            val isSelected = selectedCity == region
+
+            Surface(
+                shape = CircleShape,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (isSelected) PrimaryTeal else Color(0xFFE0E0E0)
+                ),
+                color = Color.White,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(2f)
+                    .clip(CircleShape)
+                    .clickable { onCityClick(region) }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = region.shortName,
+                        color = if (isSelected) PrimaryTeal else Color.Black,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -254,9 +352,8 @@ fun RegionSelectionScreenPreview() {
     RegionSelectionScreen(
         state = RegionSelectionState(
             popularCities = dummyCities,
-            selectedCity = dummyCities[11] // 거제가 선택된 상태
+            selectedCity = dummyCities[11]
         ),
-        onEvent = {},
-        onSharedEvent = {}
+        onEvent = {}
     )
 }

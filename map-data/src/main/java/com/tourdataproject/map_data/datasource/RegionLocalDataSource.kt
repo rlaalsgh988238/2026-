@@ -5,4 +5,5 @@ import com.tourdataproject.map_data.model.RegionDataModel
 
 interface RegionLocalDataSource {
     suspend fun getPopularRegion(): List<RegionDataModel>
+    suspend fun getRegionByKeyword(query: String): List<RegionDataModel>
 }

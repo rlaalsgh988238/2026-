@@ -235,4 +235,37 @@ class AppDatabaseTest {
         assertTrue("검색 결과에 읍/면/동 단위가 포함되어서는 안 됩니다.", searchResults.all { it.town == null && it.village == null })
         assertTrue("검색 결과에 거제시가 포함되어야 합니다.", searchResults.any { it.city == "거제시" })
     }
+    @Test
+    fun 화장실_데이터_샘플_출력_테스트() = runBlocking {
+        // Given: 실제 CSV 데이터를 파싱하여 DB에 삽입
+        val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+        initToiletTableFromCsv(targetContext, toiletDao)
+
+        // When: 전체 데이터를 가져와서 셔플 후 50개 추출
+        val allData = toiletDao.getAllToiletData()
+        val sampleData = allData.shuffled().take(50)
+
+        // Then: 로그 출력
+        println("==== 화장실 데이터 샘플 50개 출력 시작 (총 개수: ${allData.size}) ====")
+        sampleData.forEachIndexed { index, toilet ->
+            val logMessage = """
+                [샘플 ${index + 1}]
+                ID: ${toilet.id}
+                이름: ${toilet.toiletName}
+                주소(도로명): ${toilet.roadAddress}
+                주소(지번): ${toilet.lotAddress}
+                좌표: 위도(${toilet.latitude}), 경도(${toilet.longitude})
+                남성용(대/소): ${toilet.maleToiletBowlCount} / ${toilet.maleUrinalCount}
+                여성용(대): ${toilet.femaleToiletBowlCount}
+                안전시설: 비상벨(${if (toilet.emergencyBellExists) "Y" else "N"}), CCTV(${if (toilet.cctvExists) "Y" else "N"})
+                ------------------------------------------------------------
+            """.trimIndent()
+
+            // 테스트 결과창(System.out)과 Logcat 모두에서 확인 가능하도록 함
+            println(logMessage)
+            android.util.Log.d("ToiletSample", logMessage)
+        }
+
+        assertTrue("데이터가 최소 50개 이상은 있어야 샘플링이 의미가 있습니다.", allData.size >= 50)
+    }
 }

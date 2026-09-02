@@ -12,4 +12,8 @@ internal class RegionDataSourceImpl @Inject constructor(
 ): RegionLocalDataSource{
     override suspend fun getPopularRegion(): List<RegionDataModel> =
         regionDataDao.getPopularRegions().toData()
+
+    override suspend fun getRegionByKeyword(query: String): List<RegionDataModel> =
+        regionDataDao.searchRegions(query).toData()
+
 }

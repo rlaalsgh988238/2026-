@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
@@ -39,16 +40,18 @@ fun DateSelectionRoute(
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val effect = viewModel.effect
 
-    LaunchedEffect(effect) {
-        effect.collect { currentEffect ->
+    LaunchedEffect(Unit) {
+        viewModel.effect.collect { currentEffect ->
             when (currentEffect) {
                 is DateSelectionEffect.NavigateToNextScreen -> {
-                    state.startDate?.let { start ->
-                        state.endDate?.let { end ->
-                            // sharedViewModel.setPlanDate(start, end)
-                        }
+                    // 시작일/종료일이 모두 있을 때만 SharedViewModel에 전달
+                    val start = state.startDate
+                    val end = state.endDate
+                    if (start != null && end != null) {
+                        sharedViewModel.setEvent(
+                            PlanSharedEvent.OnDateSelected(start, end)
+                        )
                     }
                     onNavigateToNext()
                 }

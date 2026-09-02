@@ -5,12 +5,17 @@ import com.tourdataproject.presentation.model.RegionUiModel
 data class RegionSelectionState(
     val searchQuery: String = "",
     val popularCities: List<RegionUiModel> = emptyList(),
+    val searchResults: List<RegionUiModel> = emptyList(),
     val selectedCity: RegionUiModel? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val isSearching: Boolean = false
 ) {
-    // 선택된 도시가 있을 때만 다음 버튼 활성화
     val isNextButtonEnabled: Boolean
         get() = selectedCity != null
+
+    // 검색어가 있으면 검색 모드로 간주
+    val isSearchMode: Boolean
+        get() = searchQuery.isNotBlank()
 }
 
 sealed class RegionSelectionEvent {
@@ -22,6 +27,6 @@ sealed class RegionSelectionEvent {
 }
 
 sealed class RegionSelectionEffect {
-    data class NavigateToDateSelection(val selectedCityId: String) : RegionSelectionEffect()
+    data class NavigateToDateSelection(val regionName: String) : RegionSelectionEffect()
     object NavigateBack : RegionSelectionEffect()
 }

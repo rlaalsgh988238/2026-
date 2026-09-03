@@ -10,8 +10,10 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,9 +35,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.core.content.ContextCompat
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.R
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
@@ -139,6 +140,9 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
     var mapInstance by remember { mutableStateOf<KakaoMap?>(null) }
     val context = LocalContext.current
 
+    // 🌟 비트맵 캐싱을 위한 Map 추가 (성능 개선)
+    val bitmapCache = remember { mutableMapOf<String, Bitmap>() }
+
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
@@ -176,7 +180,11 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
 
             val isAccommodation = index == focusedSchedules.lastIndex
 
-            val bitmap = createCustomMarkerBitmap(context, "${index + 1}", isAccommodation)
+            // 🌟 캐시된 비트맵 사용
+            val cacheKey = if (isAccommodation) "accommodation" else "${index + 1}"
+            val bitmap = bitmapCache.getOrPut(cacheKey) {
+                createCustomMarkerBitmap(context, "${index + 1}", isAccommodation)
+            }
 
             val style = LabelStyles.from(
                 LabelStyle.from(bitmap).setAnchorPoint(0.5f, 0.5f)
@@ -203,40 +211,35 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
 
 private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
     val density = context.resources.displayMetrics.density
-    val size = (24 * density).toInt() // 마커 크기
+    val size = (24 * density).toInt()
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    // 1. 배경 원 그리기
-    paint.color = if (isAccommodation) android.graphics.Color.parseColor("#FFC107") // 노란색
-    else android.graphics.Color.parseColor("#14B8A6") // 민트색
+    paint.color = if (isAccommodation) android.graphics.Color.parseColor("#FFC107")
+    else android.graphics.Color.parseColor("#14B8A6")
     paint.style = Paint.Style.FILL
     canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
 
-    // 2. 내부 콘텐츠 그리기
     if (isAccommodation) {
         val drawable = ContextCompat.getDrawable(context, R.drawable.home)
         if (drawable != null) {
-            // 아이콘 크기 원 크기에 맞게
             val iconSize = (14 * density).toInt()
             val left = (size - iconSize) / 2
             val top = (size - iconSize) / 2
 
             drawable.setBounds(left, top, left + iconSize, top + iconSize)
-            drawable.setTint(android.graphics.Color.WHITE) // 아이콘 색상을 흰색으로 변경
+            drawable.setTint(android.graphics.Color.WHITE)
             drawable.draw(canvas)
         }
     } else {
         paint.color = android.graphics.Color.WHITE
-        // 숫자 그리기
         paint.textSize = 13 * density
         paint.textAlign = Paint.Align.CENTER
         paint.typeface = Typeface.DEFAULT_BOLD
 
         val textBounds = Rect()
         paint.getTextBounds(text, 0, text.length, textBounds)
-        // 텍스트 수직 중앙 정렬 보정
         val y = (size / 2f) + (textBounds.height() / 2f) - (0.5f * density)
 
         canvas.drawText(text, size / 2f, y, paint)
@@ -252,14 +255,16 @@ fun ScheduleListSection(
     onEvent: (ScheduleEditEvent) -> Unit
 ) {
     val listState = rememberLazyListState()
-
-    var draggedId by remember { mutableStateOf<String?>(null) }
-    var dragOffsetY by remember { mutableStateOf(0f) }
-
     val currentSchedules by rememberUpdatedState(state.schedules)
 
+    // 🌟 복잡한 로직을 전담하는 상태 홀더 적용
+    val dragDropState = rememberScheduleDragDropState(
+        listState = listState,
+        onMoveRequest = { from, to -> onEvent(ScheduleEditEvent.OnScheduleMoved(from, to)) }
+    )
+
     LazyColumn(
-        state = listState,
+        state = dragDropState.listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
@@ -295,8 +300,8 @@ fun ScheduleListSection(
 
         itemsIndexed(items = state.schedules, key = { _, schedule -> schedule.scheduleId }) { index, schedule ->
             val isAccommodation = index == state.schedules.lastIndex
-            val isDragging = draggedId == schedule.scheduleId
-            val translation = if (isDragging) dragOffsetY else 0f
+            val isDragging = dragDropState.draggedId == schedule.scheduleId
+            val translation = if (isDragging) dragDropState.dragOffsetY else 0f
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -357,70 +362,94 @@ fun ScheduleListSection(
                             .padding(4.dp)
                             .pointerInput(schedule.scheduleId) {
                                 detectDragGestures(
-                                    onDragStart = {
-                                        draggedId = schedule.scheduleId
-                                        dragOffsetY = 0f
-                                    },
+                                    onDragStart = { dragDropState.onDragStart(schedule.scheduleId) },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
-                                        dragOffsetY += dragAmount.y
-
-                                        val currentIndex = currentSchedules.indexOfFirst { it.scheduleId == schedule.scheduleId }
-                                        val currentItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == schedule.scheduleId }
-
-                                        if (currentItemInfo != null && currentIndex != -1) {
-                                            if (currentItemInfo.index != currentIndex + 1) {
-                                                return@detectDragGestures
-                                            }
-
-                                            val visualCenterY = currentItemInfo.offset + (currentItemInfo.size / 2) + dragOffsetY
-
-                                            val targetItemInfo = listState.layoutInfo.visibleItemsInfo.find {
-                                                it.key != schedule.scheduleId &&
-                                                        it.key != "header" &&
-                                                        visualCenterY >= it.offset && visualCenterY <= (it.offset + it.size)
-                                            }
-
-                                            if (targetItemInfo != null) {
-                                                val targetIndex = currentSchedules.indexOfFirst { it.scheduleId == targetItemInfo.key }
-
-                                                if (targetIndex != -1 && currentIndex != targetIndex && targetIndex < currentSchedules.lastIndex) {
-                                                    val direction = if (targetIndex > currentIndex) 1 else -1
-
-                                                    val itemsToShift = currentSchedules.slice(
-                                                        if (direction == 1) (currentIndex + 1)..targetIndex
-                                                        else targetIndex until currentIndex
-                                                    )
-
-                                                    var totalShiftPx = 0
-                                                    itemsToShift.forEach { shiftItem ->
-                                                        val info = listState.layoutInfo.visibleItemsInfo.find { it.key == shiftItem.scheduleId }
-                                                        totalShiftPx += info?.size ?: currentItemInfo.size
-                                                    }
-
-                                                    if (totalShiftPx > 0) {
-                                                        onEvent(ScheduleEditEvent.OnScheduleMoved(currentIndex, targetIndex))
-                                                        dragOffsetY -= (totalShiftPx * direction)
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        dragDropState.onDrag(dragAmount.y, currentSchedules)
                                     },
                                     onDragEnd = {
-                                        draggedId = null
-                                        dragOffsetY = 0f
+                                        dragDropState.onDragInterrupted()
                                         onEvent(ScheduleEditEvent.OnScheduleMoveFinished)
                                     },
-                                    onDragCancel = {
-                                        draggedId = null
-                                        dragOffsetY = 0f
-                                    }
+                                    onDragCancel = { dragDropState.onDragInterrupted() }
                                 )
                             }
                     )
                 }
             }
         }
+    }
+}
+
+class ScheduleDragDropState(
+    val listState: LazyListState,
+    private val onMoveRequest: (Int, Int) -> Unit
+) {
+    var draggedId by mutableStateOf<String?>(null)
+        private set
+    var dragOffsetY by mutableStateOf(0f)
+        private set
+
+    fun onDragStart(id: String) {
+        draggedId = id
+        dragOffsetY = 0f
+    }
+
+    fun onDrag(dragAmountY: Float, currentSchedules: List<ScheduleItemUiModel>) {
+        dragOffsetY += dragAmountY
+        val currentDraggedId = draggedId ?: return
+
+        val currentIndex = currentSchedules.indexOfFirst { it.scheduleId == currentDraggedId }
+        val currentItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == currentDraggedId }
+
+        if (currentItemInfo != null && currentIndex != -1) {
+            val visualCenterY = currentItemInfo.offset + (currentItemInfo.size / 2) + dragOffsetY
+
+            val targetItemInfo = listState.layoutInfo.visibleItemsInfo.find {
+                it.key != currentDraggedId &&
+                        it.key != "header" &&
+                        visualCenterY >= it.offset && visualCenterY <= (it.offset + it.size)
+            }
+
+            if (targetItemInfo != null) {
+                val targetIndex = currentSchedules.indexOfFirst { it.scheduleId == targetItemInfo.key }
+
+                if (targetIndex != -1 && currentIndex != targetIndex && targetIndex < currentSchedules.lastIndex) {
+                    val direction = if (targetIndex > currentIndex) 1 else -1
+
+                    val itemsToShift = currentSchedules.slice(
+                        if (direction == 1) (currentIndex + 1)..targetIndex
+                        else targetIndex until currentIndex
+                    )
+
+                    var totalShiftPx = 0
+                    itemsToShift.forEach { shiftItem ->
+                        val info = listState.layoutInfo.visibleItemsInfo.find { it.key == shiftItem.scheduleId }
+                        totalShiftPx += info?.size ?: currentItemInfo.size
+                    }
+
+                    if (totalShiftPx > 0) {
+                        onMoveRequest(currentIndex, targetIndex)
+                        dragOffsetY -= (totalShiftPx * direction)
+                    }
+                }
+            }
+        }
+    }
+
+    fun onDragInterrupted() {
+        draggedId = null
+        dragOffsetY = 0f
+    }
+}
+
+@Composable
+fun rememberScheduleDragDropState(
+    listState: LazyListState = rememberLazyListState(),
+    onMoveRequest: (Int, Int) -> Unit
+): ScheduleDragDropState {
+    return remember(listState) {
+        ScheduleDragDropState(listState, onMoveRequest)
     }
 }
 

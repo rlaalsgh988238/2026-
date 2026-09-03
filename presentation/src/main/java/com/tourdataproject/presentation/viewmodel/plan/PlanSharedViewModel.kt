@@ -32,7 +32,7 @@ class PlanSharedViewModel @Inject constructor(
 ) : ViewModel() {
     private val TAG = "PlanSharedViewModel"
 
-    private val _courseState = MutableStateFlow(TravelCourseUiModel())
+    private val _courseState = MutableStateFlow(PlanSharedState())
     val courseState = _courseState.asStateFlow()
 
     // ================= 이벤트 진입점 =================
@@ -119,8 +119,10 @@ class PlanSharedViewModel @Inject constructor(
     private fun updateRegion(regionName: String) {
         _courseState.update { current ->
             current.copy(
-                destination = regionName,
-                courseName = "${regionName} 여행"
+                course = current.course.copy(
+                    destination = regionName,
+                    courseName = "${regionName} 여행"
+                )
             )
         }
     }
@@ -158,10 +160,12 @@ class PlanSharedViewModel @Inject constructor(
         // 5. State 업데이트
         _courseState.update { currentState ->
             currentState.copy(
-                rawStartDate = startDate,
-                rawEndDate = endDate,
-                datePeriod = datePeriodString,
-                dayPlans = generatedDayPlans
+                course = currentState.course.copy(
+                    rawStartDate = startDate,
+                    rawEndDate = endDate,
+                    datePeriod = datePeriodString,
+                    dayPlans = generatedDayPlans
+                )
             )
         }
     }
@@ -170,45 +174,50 @@ class PlanSharedViewModel @Inject constructor(
 
     private fun updateRegionPosition(longitude: Double, latitude: Double) {
         _courseState.update {
-            it.copy(destinationLatitude = latitude, destinationLongitude = longitude)
+            it.copy(
+                course = it.course.copy(
+                    destinationLatitude = latitude,
+                    destinationLongitude = longitude
+                )
+            )
         }
     }
 
     private fun updateCourseName(newName: String) {
         Log.d(TAG, "updateCourseName: $newName")
-        _courseState.update { it.copy(courseName = newName) }
+        _courseState.update { it.copy(it.course.copy(courseName = newName)) }
     }
 
     private fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemUiModel) {
         _courseState.update { currentState ->
-            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
+            val updatedDayPlans = currentState.course.dayPlans.map { dayPlan ->
                 if (dayPlan.rawDayNumber == targetDay) {
                     dayPlan.copy(schedules = dayPlan.schedules + newPlace)
                 } else dayPlan
             }
-            currentState.copy(dayPlans = updatedDayPlans)
+            currentState.copy(currentState.course.copy(dayPlans = updatedDayPlans))
         }
     }
 
     fun deleteSchedule(targetDay: Int, scheduleIdToRemove: String) {
         _courseState.update { currentState ->
-            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
+            val updatedDayPlans = currentState.course.dayPlans.map { dayPlan ->
                 if (dayPlan.rawDayNumber == targetDay) {
                     dayPlan.copy(schedules = dayPlan.schedules.filterNot { it.scheduleId == scheduleIdToRemove })
                 } else dayPlan
             }
-            currentState.copy(dayPlans = updatedDayPlans)
+            currentState.copy(currentState.course.copy(dayPlans = updatedDayPlans))
         }
     }
 
     fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemUiModel>) {
         _courseState.update { currentState ->
-            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
+            val updatedDayPlans = currentState.course.dayPlans.map { dayPlan ->
                 if (dayPlan.rawDayNumber == targetDay) {
                     dayPlan.copy(schedules = reorderedSchedules)
                 } else dayPlan
             }
-            currentState.copy(dayPlans = updatedDayPlans)
+            currentState.copy(currentState.course.copy(dayPlans = updatedDayPlans))
         }
     }
     // ================= 스케줄 임시 저장(Draft) =================
@@ -244,7 +253,7 @@ class PlanSharedViewModel @Inject constructor(
         val currentCourse = _courseState.value
         val targetDayNum = currentAddingDayNumber.value
 
-        val updatedDayPlans = currentCourse.dayPlans.map { dayPlan ->
+        val updatedDayPlans = currentCourse.course.dayPlans.map { dayPlan ->
             if (dayPlan.rawDayNumber == targetDayNum) {
                 dayPlan.copy(
                     schedules = dayPlan.schedules + finalSchedule.copy(order = dayPlan.schedules.size + 1)
@@ -252,7 +261,7 @@ class PlanSharedViewModel @Inject constructor(
             } else dayPlan
         }
 
-        _courseState.value = currentCourse.copy(dayPlans = updatedDayPlans)
+        _courseState.value = currentCourse.copy(currentCourse.course.copy(dayPlans = updatedDayPlans))
         _draftSchedule.value = null
     }
 

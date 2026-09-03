@@ -162,7 +162,7 @@ fun MakeCourseRoute(
 
     LaunchedEffect(sharedCourseState) {
         Log.d("MakeCourseDebug", "sharedCourseState 업데이트 됨! 뷰모델에 주입 시도")
-        makeCourseViewModel.setInitialCourse(sharedCourseState)
+        makeCourseViewModel.setInitialCourse(sharedCourseState.course)
     }
 
     LaunchedEffect(makeCourseViewModel.effect) {
@@ -201,7 +201,7 @@ fun MakeCourseRoute(
             onEvent = makeCourseViewModel::onEvent,
             onFinalSaveClick = {
                 Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
-                makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState))
+                makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState.course))
             }
         )
     }
@@ -260,33 +260,6 @@ fun MakeCourseScreen(
                 .padding(paddingValues)
                 .background(Color.White)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                Surface(
-                    onClick = { /* TODO: 숙소 추가 로직 필요 시 Event 추가 */ },
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Mint100),
-                    color = Color.White
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "숙소 추가",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.DarkGray
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "숙소", fontSize = 13.sp, color = Color.DarkGray)
-                    }
-                }
-            }
-
             HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
 
             LazyColumn(

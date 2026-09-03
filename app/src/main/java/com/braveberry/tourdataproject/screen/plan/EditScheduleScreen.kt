@@ -56,15 +56,12 @@ import com.kakao.vectormap.route.RouteLineSegment
 import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
-import com.tourdataproject.presentation.model.course.DayPlanUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEvent
-import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditState
 
 @Composable
 fun ScheduleEditRoute(
@@ -91,15 +88,17 @@ fun ScheduleEditRoute(
                 is ScheduleEditEffect.NavigateBack -> onNavigateBack()
                 is ScheduleEditEffect.ShowToast -> onShowToast(effect.message)
                 is ScheduleEditEffect.SaveToShared -> {
-                    // 저장 로직이 완료되었을 때만 공유 뷰모델 업데이트
                     sharedViewModel.setEvent(PlanSharedEvent.OnReorderSchedules(effect.dayNumber, effect.schedules))
                 }
             }
         }
     }
 
+    // 프레젠테이션 모델을 스크린 모델로 매핑하여 하위 컴포저블에 전달
     ScheduleEditScreen(
-        state = state,
+        dayLabel = state.dayLabel,
+        dateLabel = state.dateLabel,
+        schedules = state.schedules.map { it.toScreen() },
         onEvent = viewModel::setEvent
     )
 }
@@ -107,7 +106,9 @@ fun ScheduleEditRoute(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleEditScreen(
-    state: ScheduleEditState,
+    dayLabel: String,
+    dateLabel: String,
+    schedules: List<ScheduleItemScreenModel>,
     onEvent: (ScheduleEditEvent) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -146,7 +147,7 @@ fun ScheduleEditScreen(
                     .weight(1f)
             ) {
                 KakaoMapSection(
-                    focusedSchedules = state.schedules,
+                    focusedSchedules = schedules,
                     draggedId = dragDropState.draggedId
                 )
             }
@@ -158,7 +159,9 @@ fun ScheduleEditScreen(
                     .background(Color(0xFFFDFDFD))
             ) {
                 ScheduleListSection(
-                    state = state,
+                    dayLabel = dayLabel,
+                    dateLabel = dateLabel,
+                    schedules = schedules,
                     dragDropState = dragDropState,
                     onEvent = onEvent
                 )
@@ -169,7 +172,7 @@ fun ScheduleEditScreen(
 
 @Composable
 fun KakaoMapSection(
-    focusedSchedules: List<ScheduleItemUiModel>,
+    focusedSchedules: List<ScheduleItemScreenModel>,
     draggedId: String? = null
 ) {
     var mapInstance by remember { mutableStateOf<KakaoMap?>(null) }
@@ -196,6 +199,7 @@ fun KakaoMapSection(
         }
     )
 
+    // 일정 변경 시 마커 및 라인 업데이트
     LaunchedEffect(focusedSchedules, mapInstance, context) {
         val map = mapInstance ?: return@LaunchedEffect
         if (focusedSchedules.isEmpty()) return@LaunchedEffect
@@ -232,6 +236,7 @@ fun KakaoMapSection(
             routeLineManager?.layer?.addRouteLine(options)
         }
 
+        // 초기 진입 시에만 기본 줌(10)으로 이동
         if (!isInitialFocusDone) {
             val firstSchedule = focusedSchedules.first()
             val cameraUpdate = CameraUpdateFactory.newCenterPosition(
@@ -242,13 +247,18 @@ fun KakaoMapSection(
         }
     }
 
+    // 드래그 중인 아이템으로 카메라 이동 시 줌 레벨 유지
     LaunchedEffect(draggedId, mapInstance) {
         val map = mapInstance ?: return@LaunchedEffect
         if (draggedId != null) {
             val targetSchedule = focusedSchedules.find { it.scheduleId == draggedId }
             if (targetSchedule != null) {
+                // 현재 지도의 줌 레벨을 가져옵니다.
+                val currentZoom = map.cameraPosition?.zoomLevel ?: 10
+
                 val cameraUpdate = CameraUpdateFactory.newCenterPosition(
-                    LatLng.from(targetSchedule.latitude, targetSchedule.longitude), 10
+                    LatLng.from(targetSchedule.latitude, targetSchedule.longitude),
+                    currentZoom // 현재 줌 레벨 유지
                 )
                 map.moveCamera(cameraUpdate)
             }
@@ -256,14 +266,17 @@ fun KakaoMapSection(
     }
 }
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScheduleListSection(
-    state: ScheduleEditState,
+    dayLabel: String,
+    dateLabel: String,
+    schedules: List<ScheduleItemScreenModel>,
     dragDropState: ScheduleDragDropState,
     onEvent: (ScheduleEditEvent) -> Unit
 ) {
-    val currentSchedules by rememberUpdatedState(state.schedules)
+    val currentSchedules by rememberUpdatedState(schedules)
 
     LazyColumn(
         state = dragDropState.listState,
@@ -273,11 +286,11 @@ fun ScheduleListSection(
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
         item(key = "header") {
-            ScheduleListHeader(dayLabel = state.dayLabel, dateLabel = state.dateLabel)
+            ScheduleListHeader(dayLabel = dayLabel, dateLabel = dateLabel)
         }
 
-        itemsIndexed(items = state.schedules, key = { _, schedule -> schedule.scheduleId }) { index, schedule ->
-            val isAccommodation = index == state.schedules.lastIndex
+        itemsIndexed(items = schedules, key = { _, schedule -> schedule.scheduleId }) { index, schedule ->
+            val isAccommodation = index == schedules.lastIndex
             val isDragging = dragDropState.draggedId == schedule.scheduleId
             val translation = if (isDragging) dragDropState.dragOffsetY else 0f
 
@@ -334,7 +347,7 @@ private fun ScheduleListHeader(dayLabel: String, dateLabel: String) {
 
 @Composable
 private fun ScheduleListItem(
-    schedule: ScheduleItemUiModel,
+    schedule: ScheduleItemScreenModel,
     isAccommodation: Boolean,
     isDragging: Boolean,
     translationY: Float,
@@ -470,7 +483,7 @@ class ScheduleDragDropState(
         dragOffsetY = 0f
     }
 
-    fun onDrag(dragAmountY: Float, currentSchedules: List<ScheduleItemUiModel>) {
+    fun onDrag(dragAmountY: Float, currentSchedules: List<ScheduleItemScreenModel>) {
         dragOffsetY += dragAmountY
         val currentDraggedId = draggedId ?: return
 
@@ -532,21 +545,49 @@ fun rememberScheduleDragDropState(
 @Composable
 fun ScheduleEditScreenPreview() {
     val scheduleList = listOf(
-        ScheduleItemUiModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
-        ScheduleItemUiModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-        ScheduleItemUiModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
-        ScheduleItemUiModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
-        ScheduleItemUiModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
-    )
-
-    val dummyState = ScheduleEditState(
-        dayNumber = 1,
-        dateLabel = "8/30 (일)",
-        schedules = scheduleList
+        ScheduleItemScreenModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
+        ScheduleItemScreenModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
+        ScheduleItemScreenModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
+        ScheduleItemScreenModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
+        ScheduleItemScreenModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
     )
 
     ScheduleEditScreen(
-        state = dummyState,
+        dayLabel = "1일차",
+        dateLabel = "8/30 (일)",
+        schedules = scheduleList,
         onEvent = {}
+    )
+}
+
+// ---------------------------------------------------------------------------
+// 스크린 전용 모델 및 매퍼 영역
+// ---------------------------------------------------------------------------
+
+data class ScheduleItemScreenModel(
+    val scheduleId: String = "",
+    val order: Int = 0,
+    val scheduleName: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
+)
+
+fun ScheduleItemUiModel.toScreen(): ScheduleItemScreenModel {
+    return ScheduleItemScreenModel(
+        scheduleId = this.scheduleId,
+        order = this.order,
+        scheduleName = this.scheduleName,
+        latitude = this.latitude,
+        longitude = this.longitude
+    )
+}
+
+fun ScheduleItemScreenModel.toPresentation(): ScheduleItemUiModel {
+    return ScheduleItemUiModel(
+        scheduleId = this.scheduleId,
+        order = this.order,
+        scheduleName = this.scheduleName,
+        latitude = this.latitude,
+        longitude = this.longitude
     )
 }

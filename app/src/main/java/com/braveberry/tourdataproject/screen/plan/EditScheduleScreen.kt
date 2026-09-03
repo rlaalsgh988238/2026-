@@ -54,6 +54,7 @@ import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEvent
@@ -61,6 +62,7 @@ import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.Sche
 
 @Composable
 fun ScheduleEditRoute(
+    sharedViewModel: PlanSharedViewModel,
     viewModel: ScheduleEditViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onShowToast: (String) -> Unit
@@ -427,7 +429,6 @@ fun ScheduleListSection(
 fun ScheduleEditScreenPreview() {
     val dummyState = ScheduleEditState(
         dayNumber = 1,
-        dayLabel = "Day 1",
         dateLabel = "8/30 (일)",
         schedules = listOf(
             ScheduleItemUiModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),

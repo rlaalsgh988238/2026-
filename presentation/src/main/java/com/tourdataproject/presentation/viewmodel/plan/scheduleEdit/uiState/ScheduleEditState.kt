@@ -4,11 +4,12 @@ import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 
 data class ScheduleEditState(
     val dayNumber: Int = 1,
-    val dayLabel: String = "Day 1",
     val dateLabel: String = "",
     val schedules: List<ScheduleItemUiModel> = emptyList(),
     val isLoading: Boolean = false
-)
+){
+    val dayLabel: String = "Day $dayNumber"
+}
 
 sealed class ScheduleEditEvent {
     data class OnScheduleDeleted(val scheduleId: String) : ScheduleEditEvent()

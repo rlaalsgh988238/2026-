@@ -20,6 +20,9 @@ sealed interface CourseEvent {
     //저장 버튼
     data class OnSaveButtonClicked(val finalCourse: TravelCourseUiModel) : CourseEvent
 
+    //편집 버튼
+    data class OnEditButtonClicked(val dayNumber: Int): CourseEvent
+
     data class OnAddScheduleClicked(val dayNumber: Int) : CourseEvent
     data class OnScheduleItemClicked(val scheduleId: String) : CourseEvent
 }
@@ -30,6 +33,7 @@ sealed interface CourseEffect {
     object NavigateToCourseInfo : CourseEffect
     object ShareCourse : CourseEffect          // 공유 버튼 눌렀을 때
 
+    data class NavigateToEditSchedule(val dayNumber: Int): CourseEffect // 편집버튼 눌렀을 때
     data class NavigateToAddSchedule(val courseId: String, val dayNumber: Int) : CourseEffect
 
     object NavigateToMapScreen : CourseEffect

@@ -3,6 +3,7 @@ package com.braveberry.tourdataproject.screen.plan
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -133,7 +135,7 @@ fun CourseState.toMakeCourseState(): MakeCourseUiState {
             dayPlans = tempDayPlans
         )
     } catch (e: Exception) {
-        android.util.Log.e("CrashCatch", "🚨 매퍼에서 크래시 발생: ${e.message}", e)
+        Log.e("CrashCatch", "🚨 매퍼에서 크래시 발생: ${e.message}", e)
         return MakeCourseUiState(
             isLoading = false,
             isError = true,
@@ -147,6 +149,7 @@ fun MakeCourseRoute(
     makeCourseViewModel: MakeCourseViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToAddSchedule: () -> Unit,
+    onNavigateToEditSchedule: () -> Unit,
     onShowToast: (String) -> Unit
 ) {
     val sharedCourseState by sharedViewModel.courseState.collectAsState()
@@ -179,6 +182,7 @@ fun MakeCourseRoute(
                 is CourseEffect.ShareCourse -> { /* TODO */ }
                 is CourseEffect.NavigateToMapScreen -> { /* TODO */ }
                 is CourseEffect.NavigateToHomeScreen -> { /* TODO */ }
+                is CourseEffect.NavigateToEditSchedule -> {onNavigateToEditSchedule()}
             }
         }
     }
@@ -293,7 +297,8 @@ fun MakeCourseScreen(
                 items(state.dayPlans) { dayPlan ->
                     DayPlanItem(
                         dayPlan = dayPlan,
-                        onAddScheduleClick = { onEvent(CourseEvent.OnAddScheduleClicked(dayPlan.dayNumber)) }
+                        onAddScheduleClick = { onEvent(CourseEvent.OnAddScheduleClicked(dayPlan.dayNumber)) },
+                        onEditClick = {onEvent(CourseEvent.OnEditButtonClicked(dayPlan.dayNumber))}
                     )
                 }
             }
@@ -345,10 +350,14 @@ fun MakeCourseTopBar(
 @Composable
 fun DayPlanItem(
     dayPlan: MakeCourseDayPlanState,
-    onAddScheduleClick: () -> Unit
+    onAddScheduleClick: () -> Unit,
+    onEditClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Surface(
                 color = Mint20,
                 shape = RoundedCornerShape(12.dp),
@@ -367,6 +376,18 @@ fun DayPlanItem(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = "편집",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                textDecoration = TextDecoration.Underline, // 밑줄 추가
+                modifier = Modifier
+                    .clickable(onClick = onEditClick)
+                    .padding(4.dp) // 터치 영역 확보를 위한 패딩
             )
         }
 

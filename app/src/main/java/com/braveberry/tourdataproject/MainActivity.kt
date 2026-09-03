@@ -17,6 +17,7 @@ import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
+import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -105,11 +106,30 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToAddSchedule = {
                                     navController.navigate("add_location")
                                 },
+                                onNavigateToEditSchedule = {
+                                    navController.navigate("editSchedule")
+                                },
                                 onShowToast = { message ->
                                     // 토스트 처리
                                 }
                             )
                         }
+
+                        composable("editSchedule") { entry ->
+                            val sharedViewModel: PlanSharedViewModel = hiltViewModel(
+                                remember(entry) { navController.getBackStackEntry("plan_graph") }
+                            )
+
+                            ScheduleEditRoute(
+                                sharedViewModel = sharedViewModel,
+                                viewModel = hiltViewModel(),
+                                onNavigateBack = { navController.popBackStack() },
+                                onShowToast = { message ->
+                                    // 토스트 처리
+                                }
+                            )
+                        }
+
                         composable("add_location") {
                             AddLocationRoute(
                                 onNavigateBack = { navController.popBackStack() },
@@ -149,11 +169,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-
-
-
-
-                        }
+                    }
                 }
             }
         }

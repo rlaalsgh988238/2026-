@@ -114,7 +114,6 @@ class ScheduleEditViewModel @Inject constructor(
 
         _state.value = ScheduleEditState(
             dayNumber = 1,
-            dayLabel = "Day 1",
             dateLabel = "8/30 (일)",
             schedules = dummySchedules
         )

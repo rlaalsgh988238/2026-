@@ -30,7 +30,6 @@ import kotlin.collections.List
 class PlanSharedViewModel @Inject constructor(
     private val getRegionPositionUseCase: GetRegionPositionUseCase
 ) : ViewModel() {
-
     private val TAG = "PlanSharedViewModel"
 
     private val _courseState = MutableStateFlow(TravelCourseUiModel())
@@ -82,7 +81,7 @@ class PlanSharedViewModel @Inject constructor(
                 event.accessibilityInfo
             )
 
-            PlanSharedEvent.OnClearDraftSchedule -> clearDraftSchedule()
+            is PlanSharedEvent.OnClearDraftSchedule -> clearDraftSchedule()
         }
     }
 
@@ -116,7 +115,6 @@ class PlanSharedViewModel @Inject constructor(
         updateDates(startMillis, endMillis)
     }
 
-    // ================= 상태 갱신 (내부 전용) =================
 
     private fun updateRegion(regionName: String) {
         _courseState.update { current ->
@@ -264,7 +262,7 @@ class PlanSharedViewModel @Inject constructor(
 
 }
 
-
+// TODO 왜 이걸로 안쓰는거...??
 data class PlanSharedState(
     val course: TravelCourseUiModel = TravelCourseUiModel(),
     val currentAddingDayNumber: Int = 1,
@@ -274,17 +272,12 @@ data class PlanSharedState(
 
 sealed interface PlanSharedEvent {
     data class OnCourseNameChanged(val newName: String) : PlanSharedEvent
-    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) :
-        PlanSharedEvent
-
-    data class OnDeleteSchedule(val targetDay: Int, val scheduleIdToRemove: String) :
-        PlanSharedEvent
-
+    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) : PlanSharedEvent
+    data class OnDeleteSchedule(val targetDay: Int, val scheduleIdToRemove: String) : PlanSharedEvent
     data class OnReorderSchedules(
         val targetDay: Int,
         val reorderedSchedules: List<ScheduleItemUiModel>
     ) : PlanSharedEvent
-
     data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedEvent
     data class OnSetDraftSchedule(val place: KakaoMapUiModel) : PlanSharedEvent
     data class OnConfirmAndAddSchedule(

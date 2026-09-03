@@ -58,6 +58,7 @@ class MakeCourseViewModel @Inject constructor(
             is CourseEvent.OnScheduleItemClicked -> {
                 emitEffect(CourseEffect.ShowToast("장소 클릭됨: ${event.scheduleId}"))
             }
+            is CourseEvent.OnEditButtonClicked -> {emitEffect(CourseEffect.NavigateToEditSchedule(event.dayNumber))}
             is CourseEvent.OnMapButtonClicked -> emitEffect(CourseEffect.NavigateToMapScreen)
             is CourseEvent.OnSaveButtonClicked -> saveFinalCourseToDB(event.finalCourse)
             is CourseEvent.OnNextButtonClicked -> emitEffect(CourseEffect.NavigateToHomeScreen)

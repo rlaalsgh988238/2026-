@@ -91,6 +91,12 @@ fun ScheduleEditScreen(
     state: ScheduleEditState,
     onEvent: (ScheduleEditEvent) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val dragDropState = rememberScheduleDragDropState(
+        listState = listState,
+        onMoveRequest = { from, to -> onEvent(ScheduleEditEvent.OnScheduleMoved(from, to)) }
+    )
+
     Scaffold(
         containerColor = Color.White,
         topBar = {
@@ -120,7 +126,10 @@ fun ScheduleEditScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                KakaoMapSection(focusedSchedules = state.schedules)
+                KakaoMapSection(
+                    focusedSchedules = state.schedules,
+                    draggedId = dragDropState.draggedId
+                )
             }
 
             Box(
@@ -129,19 +138,26 @@ fun ScheduleEditScreen(
                     .weight(1.2f)
                     .background(Color(0xFFFDFDFD))
             ) {
-                ScheduleListSection(state = state, onEvent = onEvent)
+                ScheduleListSection(
+                    state = state,
+                    dragDropState = dragDropState,
+                    onEvent = onEvent
+                )
             }
         }
     }
 }
 
 @Composable
-fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
+fun KakaoMapSection(
+    focusedSchedules: List<ScheduleItemUiModel>,
+    draggedId: String? = null
+) {
     var mapInstance by remember { mutableStateOf<KakaoMap?>(null) }
     val context = LocalContext.current
-
-    // 🌟 비트맵 캐싱을 위한 Map 추가 (성능 개선)
     val bitmapCache = remember { mutableMapOf<String, Bitmap>() }
+
+    var isInitialFocusDone by remember { mutableStateOf(false) }
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
@@ -162,6 +178,7 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
         }
     )
 
+    // 1. 마커와 선을 그리는 메인 로직 (리스트 순서가 바뀔 때만 실행)
     LaunchedEffect(focusedSchedules, mapInstance, context) {
         val map = mapInstance ?: return@LaunchedEffect
         if (focusedSchedules.isEmpty()) return@LaunchedEffect
@@ -179,24 +196,18 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
             points.add(latLng)
 
             val isAccommodation = index == focusedSchedules.lastIndex
-
-            // 🌟 캐시된 비트맵 사용
             val cacheKey = if (isAccommodation) "accommodation" else "${index + 1}"
             val bitmap = bitmapCache.getOrPut(cacheKey) {
                 createCustomMarkerBitmap(context, "${index + 1}", isAccommodation)
             }
 
-            val style = LabelStyles.from(
-                LabelStyle.from(bitmap).setAnchorPoint(0.5f, 0.5f)
-            )
-
+            val style = LabelStyles.from(LabelStyle.from(bitmap).setAnchorPoint(0.5f, 0.5f))
             val options = LabelOptions.from(latLng).setStyles(style)
             labelManager?.layer?.addLabel(options)
         }
 
         if (points.size > 1) {
             points.add(points.first())
-
             val routeStyle = RouteLineStyle.from(4f, android.graphics.Color.parseColor("#888888"))
             val routeStylesSet = RouteLineStylesSet.from("route", RouteLineStyles.from(routeStyle))
             val segment = RouteLineSegment.from(points).setStyles(routeStylesSet.getStyles(0))
@@ -204,10 +215,31 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
             routeLineManager?.layer?.addRouteLine(options)
         }
 
-        val cameraUpdate = CameraUpdateFactory.newCenterPosition(points.first(), 10)
-        map.moveCamera(cameraUpdate)
+        if (!isInitialFocusDone) {
+            val firstSchedule = focusedSchedules.first()
+            val cameraUpdate = CameraUpdateFactory.newCenterPosition(
+                LatLng.from(firstSchedule.latitude, firstSchedule.longitude), 10
+            )
+            map.moveCamera(cameraUpdate)
+            isInitialFocusDone = true // 이후부터는 이 블록이 실행되지 않음
+        }
+    }
+
+    // 카메라 이동
+    LaunchedEffect(draggedId, mapInstance) {
+        val map = mapInstance ?: return@LaunchedEffect
+        if (draggedId != null) {
+            val targetSchedule = focusedSchedules.find { it.scheduleId == draggedId }
+            if (targetSchedule != null) {
+                val cameraUpdate = CameraUpdateFactory.newCenterPosition(
+                    LatLng.from(targetSchedule.latitude, targetSchedule.longitude), 10
+                )
+                map.moveCamera(cameraUpdate)
+            }
+        }
     }
 }
+
 
 private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
     val density = context.resources.displayMetrics.density
@@ -252,16 +284,10 @@ private fun createCustomMarkerBitmap(context: Context, text: String, isAccommoda
 @Composable
 fun ScheduleListSection(
     state: ScheduleEditState,
+    dragDropState: ScheduleDragDropState,
     onEvent: (ScheduleEditEvent) -> Unit
 ) {
-    val listState = rememberLazyListState()
     val currentSchedules by rememberUpdatedState(state.schedules)
-
-    // 🌟 복잡한 로직을 전담하는 상태 홀더 적용
-    val dragDropState = rememberScheduleDragDropState(
-        listState = listState,
-        onMoveRequest = { from, to -> onEvent(ScheduleEditEvent.OnScheduleMoved(from, to)) }
-    )
 
     LazyColumn(
         state = dragDropState.listState,

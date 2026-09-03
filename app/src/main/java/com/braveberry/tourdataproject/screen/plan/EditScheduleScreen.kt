@@ -26,8 +26,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +71,7 @@ fun ScheduleEditRoute(
     onShowToast: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val sharedState by sharedViewModel.sharedState.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -156,7 +159,6 @@ fun KakaoMapSection(
     var mapInstance by remember { mutableStateOf<KakaoMap?>(null) }
     val context = LocalContext.current
     val bitmapCache = remember { mutableMapOf<String, Bitmap>() }
-
     var isInitialFocusDone by remember { mutableStateOf(false) }
 
     AndroidView(
@@ -178,7 +180,6 @@ fun KakaoMapSection(
         }
     )
 
-    // 1. 마커와 선을 그리는 메인 로직 (리스트 순서가 바뀔 때만 실행)
     LaunchedEffect(focusedSchedules, mapInstance, context) {
         val map = mapInstance ?: return@LaunchedEffect
         if (focusedSchedules.isEmpty()) return@LaunchedEffect
@@ -221,11 +222,10 @@ fun KakaoMapSection(
                 LatLng.from(firstSchedule.latitude, firstSchedule.longitude), 10
             )
             map.moveCamera(cameraUpdate)
-            isInitialFocusDone = true // 이후부터는 이 블록이 실행되지 않음
+            isInitialFocusDone = true
         }
     }
 
-    // 카메라 이동
     LaunchedEffect(draggedId, mapInstance) {
         val map = mapInstance ?: return@LaunchedEffect
         if (draggedId != null) {
@@ -238,46 +238,6 @@ fun KakaoMapSection(
             }
         }
     }
-}
-
-
-private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
-    val density = context.resources.displayMetrics.density
-    val size = (24 * density).toInt()
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-
-    paint.color = if (isAccommodation) android.graphics.Color.parseColor("#FFC107")
-    else android.graphics.Color.parseColor("#14B8A6")
-    paint.style = Paint.Style.FILL
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-
-    if (isAccommodation) {
-        val drawable = ContextCompat.getDrawable(context, R.drawable.home)
-        if (drawable != null) {
-            val iconSize = (14 * density).toInt()
-            val left = (size - iconSize) / 2
-            val top = (size - iconSize) / 2
-
-            drawable.setBounds(left, top, left + iconSize, top + iconSize)
-            drawable.setTint(android.graphics.Color.WHITE)
-            drawable.draw(canvas)
-        }
-    } else {
-        paint.color = android.graphics.Color.WHITE
-        paint.textSize = 13 * density
-        paint.textAlign = Paint.Align.CENTER
-        paint.typeface = Typeface.DEFAULT_BOLD
-
-        val textBounds = Rect()
-        paint.getTextBounds(text, 0, text.length, textBounds)
-        val y = (size / 2f) + (textBounds.height() / 2f) - (0.5f * density)
-
-        canvas.drawText(text, size / 2f, y, paint)
-    }
-
-    return bitmap
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -297,31 +257,7 @@ fun ScheduleListSection(
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
         item(key = "header") {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-            ) {
-                Surface(
-                    color = PrimaryTeal.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = state.dayLabel,
-                        color = PrimaryTeal,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = state.dateLabel,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color.Black
-                )
-            }
+            ScheduleListHeader(dayLabel = state.dayLabel, dateLabel = state.dateLabel)
         }
 
         itemsIndexed(items = state.schedules, key = { _, schedule -> schedule.scheduleId }) { index, schedule ->
@@ -329,82 +265,179 @@ fun ScheduleListSection(
             val isDragging = dragDropState.draggedId == schedule.scheduleId
             val translation = if (isDragging) dragDropState.dragOffsetY else 0f
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .zIndex(if (isDragging) 1f else 0f)
-                    .graphicsLayer { translationY = translation }
-                    .let { if (isDragging) it else it.animateItem() }
-            ) {
-                IconButton(
-                    onClick = { onEvent(ScheduleEditEvent.OnScheduleDeleted(schedule.scheduleId)) },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.size(22.dp).background(Color.Red, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(modifier = Modifier.width(10.dp).height(2.dp).background(Color.White))
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .border(1.dp, PrimaryTeal, RoundedCornerShape(8.dp))
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isDragging) Color.LightGray.copy(alpha = 0.8f) else Color.White)
-                        .padding(horizontal = 16.dp, vertical = if (isAccommodation) 8.dp else 14.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.Center) {
-                        if (isAccommodation) {
-                            Text(
-                                text = "숙소",
-                                fontSize = 15.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(bottom = 2.dp)
-                            )
-                        }
-                        Text(
-                            text = schedule.scheduleName,
-                            fontSize = 15.sp,
-                            color = Color.Black
-                        )
-                    }
-                }
-
-                if (!isAccommodation) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "순서 변경",
-                        tint = Color.Gray,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .padding(4.dp)
-                            .pointerInput(schedule.scheduleId) {
-                                detectDragGestures(
-                                    onDragStart = { dragDropState.onDragStart(schedule.scheduleId) },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        dragDropState.onDrag(dragAmount.y, currentSchedules)
-                                    },
-                                    onDragEnd = {
-                                        dragDropState.onDragInterrupted()
-                                        onEvent(ScheduleEditEvent.OnScheduleMoveFinished)
-                                    },
-                                    onDragCancel = { dragDropState.onDragInterrupted() }
-                                )
-                            }
-                    )
-                }
-            }
+            ScheduleListItem(
+                schedule = schedule,
+                isAccommodation = isAccommodation,
+                isDragging = isDragging,
+                translationY = translation,
+                modifier = Modifier.animateItem(),
+                onDelete = { onEvent(ScheduleEditEvent.OnScheduleDeleted(schedule.scheduleId)) },
+                onDragStart = { dragDropState.onDragStart(schedule.scheduleId) },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    dragDropState.onDrag(dragAmount.y, currentSchedules)
+                },
+                onDragEnd = {
+                    dragDropState.onDragInterrupted()
+                    onEvent(ScheduleEditEvent.OnScheduleMoveFinished)
+                },
+                onDragCancel = { dragDropState.onDragInterrupted() }
+            )
         }
     }
+}
+
+@Composable
+private fun ScheduleListHeader(dayLabel: String, dateLabel: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+    ) {
+        Surface(
+            color = PrimaryTeal.copy(alpha = 0.2f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = dayLabel,
+                color = PrimaryTeal,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = dateLabel,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = Color.Black
+        )
+    }
+}
+
+@Composable
+private fun ScheduleListItem(
+    schedule: ScheduleItemUiModel,
+    isAccommodation: Boolean,
+    isDragging: Boolean,
+    translationY: Float,
+    modifier: Modifier = Modifier,
+    onDelete: () -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (PointerInputChange, Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .zIndex(if (isDragging) 1f else 0f)
+            .graphicsLayer { this.translationY = translationY }
+            .then(if (isDragging) Modifier else modifier)
+    ) {
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(22.dp).background(Color.Red, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(modifier = Modifier.width(10.dp).height(2.dp).background(Color.White))
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .border(1.dp, PrimaryTeal, RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isDragging) Color.LightGray.copy(alpha = 0.8f) else Color.White)
+                .padding(horizontal = 16.dp, vertical = if (isAccommodation) 8.dp else 14.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.Center) {
+                if (isAccommodation) {
+                    Text(
+                        text = "숙소",
+                        fontSize = 15.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
+                Text(
+                    text = schedule.scheduleName,
+                    fontSize = 15.sp,
+                    color = Color.Black
+                )
+            }
+        }
+
+        if (!isAccommodation) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = "순서 변경",
+                tint = Color.Gray,
+                modifier = Modifier
+                    .size(32.dp)
+                    .padding(4.dp)
+                    .pointerInput(schedule.scheduleId) {
+                        detectDragGestures(
+                            onDragStart = { onDragStart() },
+                            onDrag = { change, dragAmount -> onDrag(change, dragAmount) },
+                            onDragEnd = { onDragEnd() },
+                            onDragCancel = { onDragCancel() }
+                        )
+                    }
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 유틸리티 및 상태 관리 클래스 영역
+// ---------------------------------------------------------------------------
+
+private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
+    val density = context.resources.displayMetrics.density
+    val size = (24 * density).toInt()
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    paint.color = if (isAccommodation) android.graphics.Color.parseColor("#FFC107")
+    else android.graphics.Color.parseColor("#14B8A6")
+    paint.style = Paint.Style.FILL
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+
+    if (isAccommodation) {
+        val drawable = ContextCompat.getDrawable(context, R.drawable.home)
+        if (drawable != null) {
+            val iconSize = (14 * density).toInt()
+            val left = (size - iconSize) / 2
+            val top = (size - iconSize) / 2
+            drawable.setBounds(left, top, left + iconSize, top + iconSize)
+            drawable.setTint(android.graphics.Color.WHITE)
+            drawable.draw(canvas)
+        }
+    } else {
+        paint.color = android.graphics.Color.WHITE
+        paint.textSize = 13 * density
+        paint.textAlign = Paint.Align.CENTER
+        paint.typeface = Typeface.DEFAULT_BOLD
+
+        val textBounds = Rect()
+        paint.getTextBounds(text, 0, text.length, textBounds)
+        val y = (size / 2f) + (textBounds.height() / 2f) - (0.5f * density)
+        canvas.drawText(text, size / 2f, y, paint)
+    }
+
+    return bitmap
 }
 
 class ScheduleDragDropState(

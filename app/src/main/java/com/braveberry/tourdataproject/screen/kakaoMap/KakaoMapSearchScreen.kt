@@ -64,7 +64,7 @@ fun KakaoMapSearchRoute(
         viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(""))
 
         // 🌟 SharedViewModel에서 저장해둔 목적지 좌표를 꺼내서 카카오맵 뷰모델로 주입!
-        val courseState = sharedViewModel.courseState.value
+        val courseState = sharedViewModel.sharedState.value
         val lat = courseState.course.destinationLatitude
         val lng = courseState.course.destinationLongitude
 

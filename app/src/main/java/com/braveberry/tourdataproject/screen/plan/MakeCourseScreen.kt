@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -152,7 +151,7 @@ fun MakeCourseRoute(
     onNavigateToEditSchedule: () -> Unit,
     onShowToast: (String) -> Unit
 ) {
-    val sharedCourseState by sharedViewModel.courseState.collectAsState()
+    val sharedCourseState by sharedViewModel.sharedState.collectAsState()
     val courseState by makeCourseViewModel.state.collectAsState()
     val uiState = courseState.toMakeCourseState()
 

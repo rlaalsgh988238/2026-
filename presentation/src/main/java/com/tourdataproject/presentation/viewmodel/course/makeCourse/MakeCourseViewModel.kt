@@ -2,12 +2,11 @@ package com.tourdataproject.presentation.viewmodel.course
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tourdataproject.domain.usecase.calculateAceesibility.CalculateAccessibilityUseCase
 import com.tourdataproject.domain.usecase.course.SaveCourseUseCase
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEffect
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEvent
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseState
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEvent
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,11 +57,10 @@ class MakeCourseViewModel @Inject constructor(
             is CourseEvent.OnScheduleItemClicked -> {
                 emitEffect(CourseEffect.ShowToast("장소 클릭됨: ${event.scheduleId}"))
             }
-            is CourseEvent.OnEditButtonClicked -> {emitEffect(CourseEffect.NavigateToEditSchedule(event.dayNumber))}
             is CourseEvent.OnMapButtonClicked -> emitEffect(CourseEffect.NavigateToMapScreen)
             is CourseEvent.OnSaveButtonClicked -> saveFinalCourseToDB(event.finalCourse)
             is CourseEvent.OnNextButtonClicked -> emitEffect(CourseEffect.NavigateToHomeScreen)
-
+            is CourseEvent.OnEditScheduleButtonClicked -> emitEffect(CourseEffect.NavigateToEditSchedule(event.dayNumber))
         }
     }
 

@@ -61,9 +61,9 @@ import com.braveberry.tourdataproject.ui.theme.Yellow
 import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEffect
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEvent
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseState
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEvent
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
@@ -148,7 +148,7 @@ fun MakeCourseRoute(
     makeCourseViewModel: MakeCourseViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToAddSchedule: () -> Unit,
-    onNavigateToEditSchedule: () -> Unit,
+    onNavigateToEditSchedule: (Int) -> Unit,
     onShowToast: (String) -> Unit
 ) {
     val sharedCourseState by sharedViewModel.sharedState.collectAsState()
@@ -181,7 +181,9 @@ fun MakeCourseRoute(
                 is CourseEffect.ShareCourse -> { /* TODO */ }
                 is CourseEffect.NavigateToMapScreen -> { /* TODO */ }
                 is CourseEffect.NavigateToHomeScreen -> { /* TODO */ }
-                is CourseEffect.NavigateToEditSchedule -> {onNavigateToEditSchedule()}
+                is CourseEffect.NavigateToEditSchedule -> {
+                    onNavigateToEditSchedule(effect.dayNumber)
+                }
             }
         }
     }
@@ -198,6 +200,7 @@ fun MakeCourseRoute(
         MakeCourseScreen(
             state = uiState,
             onEvent = makeCourseViewModel::onEvent,
+            onSharedEvent = sharedViewModel::setEvent,
             onFinalSaveClick = {
                 Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
                 makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState.course))
@@ -211,6 +214,7 @@ fun MakeCourseRoute(
 fun MakeCourseScreen(
     state: MakeCourseUiState,
     onEvent: (CourseEvent) -> Unit,
+    onSharedEvent: (PlanSharedEvent) -> Unit,
     onFinalSaveClick: () -> Unit
 ) {
     Scaffold(
@@ -270,7 +274,7 @@ fun MakeCourseScreen(
                     DayPlanItem(
                         dayPlan = dayPlan,
                         onAddScheduleClick = { onEvent(CourseEvent.OnAddScheduleClicked(dayPlan.dayNumber)) },
-                        onEditClick = {onEvent(CourseEvent.OnEditButtonClicked(dayPlan.dayNumber))}
+                        onEditClick = {onEvent(CourseEvent.OnEditScheduleButtonClicked(dayPlan.dayNumber))}
                     )
                 }
             }
@@ -493,6 +497,7 @@ fun MakeCourseScreenPreview() {
     MakeCourseScreen(
         state = mockState,
         onEvent = {},
+        onSharedEvent = {},
         onFinalSaveClick = {}
     )
 }

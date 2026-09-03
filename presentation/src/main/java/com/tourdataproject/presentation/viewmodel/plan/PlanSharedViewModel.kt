@@ -40,12 +40,12 @@ class PlanSharedViewModel @Inject constructor(
     fun setEvent(event: PlanSharedEvent) {
         when (event) {
             is PlanSharedEvent.OnCitySelected -> handleCitySelected(event.cityName)
-            is PlanSharedEvent.OnDateSelected -> handleDateSelected(event.startDate, event.endDate)
             is PlanSharedEvent.OnDateSelected -> {
                 Log.d(
                     TAG,
                     "Event: OnDateSelected - startDate: ${event.startDate}, endDate: ${event.endDate}"
                 )
+                handleDateSelected(event.startDate, event.endDate)
 
                 // LocalDate를 Long(Epoch Milliseconds)으로 변환하여 업데이트
                 val startMillis =
@@ -80,7 +80,6 @@ class PlanSharedViewModel @Inject constructor(
                 event.memoInput,
                 event.accessibilityInfo
             )
-
             is PlanSharedEvent.OnClearDraftSchedule -> clearDraftSchedule()
         }
     }
@@ -276,6 +275,7 @@ data class PlanSharedState(
     val course: TravelCourseUiModel = TravelCourseUiModel(),
     val currentAddingDayNumber: Int = 1,
     val draftSchedule: ScheduleItemUiModel? = null,
+    val editingNum: Int? = null,
     val isLoading: Boolean = false
 )
 

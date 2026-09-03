@@ -56,7 +56,10 @@ import com.kakao.vectormap.route.RouteLineSegment
 import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
+import com.tourdataproject.presentation.model.course.DayPlanUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
@@ -71,13 +74,26 @@ fun ScheduleEditRoute(
     onShowToast: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val sharedState by sharedViewModel.sharedState.collectAsState()
 
+    // 화면 진입 시 초기 데이터 로드 (Event 전달)
+    LaunchedEffect(Unit) {
+        val sharedState = sharedViewModel.sharedState.value
+        val dayPlan = sharedState.course.dayPlans.find { it.rawDayNumber == viewModel.dayNum }
+        if (dayPlan != null) {
+            viewModel.setEvent(ScheduleEditEvent.OnInit(dayPlan.dateLabel, dayPlan.schedules))
+        }
+    }
+
+    // Effect 관찰
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is ScheduleEditEffect.NavigateBack -> onNavigateBack()
                 is ScheduleEditEffect.ShowToast -> onShowToast(effect.message)
+                is ScheduleEditEffect.SaveToShared -> {
+                    // 저장 로직이 완료되었을 때만 공유 뷰모델 업데이트
+                    sharedViewModel.setEvent(PlanSharedEvent.OnReorderSchedules(effect.dayNumber, effect.schedules))
+                }
             }
         }
     }
@@ -515,16 +531,18 @@ fun rememberScheduleDragDropState(
 @Preview(showBackground = true)
 @Composable
 fun ScheduleEditScreenPreview() {
+    val scheduleList = listOf(
+        ScheduleItemUiModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
+        ScheduleItemUiModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
+        ScheduleItemUiModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
+        ScheduleItemUiModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
+        ScheduleItemUiModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
+    )
+
     val dummyState = ScheduleEditState(
         dayNumber = 1,
         dateLabel = "8/30 (일)",
-        schedules = listOf(
-            ScheduleItemUiModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
-            ScheduleItemUiModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-            ScheduleItemUiModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
-            ScheduleItemUiModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
-            ScheduleItemUiModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
-        )
+        schedules = scheduleList
     )
 
     ScheduleEditScreen(

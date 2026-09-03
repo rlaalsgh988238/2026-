@@ -12,6 +12,7 @@ data class ScheduleEditState(
 }
 
 sealed class ScheduleEditEvent {
+    data class OnInit(val dateLabel: String, val schedules: List<ScheduleItemUiModel>) : ScheduleEditEvent()
     data class OnScheduleDeleted(val scheduleId: String) : ScheduleEditEvent()
     data class OnScheduleMoved(val fromIndex: Int, val toIndex: Int) : ScheduleEditEvent()
     object OnScheduleMoveFinished : ScheduleEditEvent()
@@ -22,4 +23,5 @@ sealed class ScheduleEditEvent {
 sealed class ScheduleEditEffect {
     object NavigateBack : ScheduleEditEffect()
     data class ShowToast(val message: String) : ScheduleEditEffect()
+    data class SaveToShared(val dayNumber: Int, val schedules: List<ScheduleItemUiModel>) : ScheduleEditEffect()
 }

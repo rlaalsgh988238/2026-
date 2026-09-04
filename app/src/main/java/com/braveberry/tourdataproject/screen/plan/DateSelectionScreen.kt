@@ -26,11 +26,11 @@ import com.braveberry.tourdataproject.ui.theme.WeekendBlue
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthUiModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEvent
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import java.time.LocalDate
-import java.time.YearMonth
 
 @Composable
 fun DateSelectionRoute(
@@ -45,7 +45,6 @@ fun DateSelectionRoute(
         viewModel.effect.collect { currentEffect ->
             when (currentEffect) {
                 is DateSelectionEffect.NavigateToNextScreen -> {
-                    // 시작일/종료일이 모두 있을 때만 SharedViewModel에 전달
                     val start = state.startDate
                     val end = state.endDate
                     if (start != null && end != null) {
@@ -71,7 +70,6 @@ fun DateSelectionScreen(
 ) {
     val listState = rememberLazyListState()
 
-    // 무한 스크롤: 마지막에서 3번째 아이템이 보이면 더 불러오기
     val shouldLoadMore by remember {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -143,11 +141,9 @@ fun DateSelectionScreen(
                 )
             }
 
-            items(state.targetMonths) { yearMonth ->
+            items(state.calendarMonths) { monthModel ->
                 CalendarMonthView(
-                    yearMonth = yearMonth,
-                    startDate = state.startDate,
-                    endDate = state.endDate,
+                    month = monthModel,
                     onDateSelected = { onEvent(DateSelectionEvent.OnDateSelected(it)) }
                 )
                 Spacer(modifier = Modifier.height(40.dp))
@@ -158,15 +154,10 @@ fun DateSelectionScreen(
 
 @Composable
 fun CalendarMonthView(
-    yearMonth: YearMonth,
-    startDate: LocalDate?,
-    endDate: LocalDate?,
+    month: CalendarMonthUiModel,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val daysOfWeek = listOf("일", "월", "화", "수", "목", "금", "토")
-    val firstDayOfMonth = yearMonth.atDay(1)
-    val firstDayOffset = if (firstDayOfMonth.dayOfWeek.value == 7) 0 else firstDayOfMonth.dayOfWeek.value
-    val daysInMonth = yearMonth.lengthOfMonth()
 
     Column(
         modifier = Modifier
@@ -174,7 +165,7 @@ fun CalendarMonthView(
             .padding(horizontal = 16.dp)
     ) {
         Text(
-            text = "${yearMonth.year}년 ${yearMonth.monthValue}월",
+            text = month.title,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
@@ -201,29 +192,22 @@ fun CalendarMonthView(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        val totalCells = firstDayOffset + daysInMonth
-        val rows = (totalCells + 6) / 7
-
-        for (row in 0 until rows) {
+        month.weeks.forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
-                for (col in 0 until 7) {
-                    val cellIndex = row * 7 + col
-                    val dayNumber = cellIndex - firstDayOffset + 1
-
-                    if (dayNumber in 1..daysInMonth) {
-                        val currentDate = yearMonth.atDay(dayNumber)
-                        val isStart = currentDate == startDate
-                        val isEnd = currentDate == endDate
-                        val isInRange = startDate != null && endDate != null &&
-                                currentDate.isAfter(startDate) && currentDate.isBefore(endDate)
-
+                week.forEach { dayModel ->
+                    // 🌟 널 체크를 명시적인 변수로 빼서 컴파일 오류(스마트 캐스트 실패) 해결
+                    val date = dayModel.date
+                    if (date != null) {
                         DateCell(
-                            day = dayNumber,
-                            isStart = isStart,
-                            isEnd = isEnd,
-                            isInRange = isInRange,
-                            isWeekend = (col == 0 || col == 6),
-                            onClick = { onDateSelected(currentDate) },
+                            day = dayModel.dayNumber,
+                            isStart = dayModel.isStart,
+                            isEnd = dayModel.isEnd,
+                            isInRange = dayModel.isInRange,
+                            isWeekend = dayModel.isWeekend,
+                            isPast = dayModel.isPast,
+                            onClick = {
+                                if (!dayModel.isPast) onDateSelected(date)
+                            },
                             modifier = Modifier.weight(1f)
                         )
                     } else {
@@ -242,13 +226,15 @@ fun DateCell(
     isEnd: Boolean,
     isInRange: Boolean,
     isWeekend: Boolean,
+    isPast: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .aspectRatio(1.2f)
-            .clickable(onClick = onClick),
+            // 🌟 과거 날짜면 클릭 이벤트를 막음
+            .then(if (!isPast) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
         if (isInRange || isStart || isEnd) {
@@ -275,6 +261,7 @@ fun DateCell(
             fontWeight = if (isStart || isEnd) FontWeight.Bold else FontWeight.Normal,
             color = when {
                 isStart || isEnd -> Color.White
+                isPast -> Color.LightGray // 🌟 과거 날짜는 회색으로 표시
                 isWeekend -> WeekendBlue
                 else -> Color.Black
             }
@@ -285,12 +272,8 @@ fun DateCell(
 @Preview(showBackground = true)
 @Composable
 fun DateSelectionScreenPreview() {
-    val mockState = DateSelectionState(
-        startDate = LocalDate.now(),
-        endDate = LocalDate.now().plusDays(3)
-    )
     DateSelectionScreen(
-        state = mockState,
+        state = DateSelectionState(),
         onEvent = {}
     )
 }

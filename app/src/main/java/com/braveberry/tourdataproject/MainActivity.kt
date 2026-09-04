@@ -10,11 +10,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.braveberry.tourdataproject.screen.MockStartScreen
 import com.braveberry.tourdataproject.screen.kakaoMap.KakaoMapSearchRoute
 import com.braveberry.tourdataproject.screen.plan.AddLocationRoute
 import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
+import com.braveberry.tourdataproject.screen.plan.ListRoute
 import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
@@ -53,19 +53,26 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // 여행 계획 중첩 그래프
-                    navigation(startDestination = "region_selection", route = "plan_graph") {
+                    navigation(startDestination = "course_list", route = "plan_graph") {
 
-                        composable("mock_start") {entry ->
+
+                        composable("course_list") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
-                            MockStartScreen(
+
+                            ListRoute(
                                 sharedViewModel = sharedViewModel,
-                                onNavigateToMakeCourse = {
-                                    navController.navigate("make_course")
+                                onNavigateToCreateNewCourse = {
+                                    navController.navigate("region_selection")
+                                },
+                                onNavigateToCourseDetail = {
+                                     navController.navigate("make_course")
                                 }
                             )
+
                         }
+
                         composable("region_selection") { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
@@ -106,7 +113,10 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("add_location")
                                 },
                                 onShowToast = { message ->
-                                    // 토스트 처리
+
+                                },
+                                onNavigateToHome = {
+                                    navController.navigate("course_list")
                                 }
                             )
                         }

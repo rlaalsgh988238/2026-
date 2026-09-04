@@ -4,7 +4,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
+import com.tourdataproject.domain.usecase.course.GetAllCoursesUseCase
+import com.tourdataproject.domain.usecase.course.GetCourseByIdUseCase
 import com.tourdataproject.domain.usecase.plan.GetRegionPositionUseCase
+import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.DayPlanUiModel
@@ -28,7 +31,8 @@ import kotlin.collections.List
 
 @HiltViewModel
 class PlanSharedViewModel @Inject constructor(
-    private val getRegionPositionUseCase: GetRegionPositionUseCase
+    private val getRegionPositionUseCase: GetRegionPositionUseCase,
+    private val getCourseByIdUseCase: GetCourseByIdUseCase
 ) : ViewModel() {
 
     private val TAG = "PlanSharedViewModel"
@@ -36,7 +40,6 @@ class PlanSharedViewModel @Inject constructor(
     private val _courseState = MutableStateFlow(TravelCourseUiModel())
     val courseState = _courseState.asStateFlow()
 
-    // ================= 이벤트 진입점 =================
 
     fun setEvent(event: PlanSharedEvent) {
         when (event) {
@@ -82,6 +85,8 @@ class PlanSharedViewModel @Inject constructor(
                 event.accessibilityInfo
             )
 
+            is PlanSharedEvent.OnLoadCourseById -> loadCourseById(event.courseId)
+
             PlanSharedEvent.OnClearDraftSchedule -> clearDraftSchedule()
         }
     }
@@ -121,6 +126,7 @@ class PlanSharedViewModel @Inject constructor(
     private fun updateRegion(regionName: String) {
         _courseState.update { current ->
             current.copy(
+                courseId = UUID.randomUUID().toString(),
                 destination = regionName,
                 courseName = "${regionName} 여행"
             )
@@ -135,12 +141,15 @@ class PlanSharedViewModel @Inject constructor(
         Log.d(TAG, "updateDates: startDate=$startDate, endDate=$endDate")
 
         // 1. Long(밀리초) 타임스탬프를 LocalDate로 변환
-        val startLocalDate = Instant.ofEpochMilli(startDate).atZone(ZoneId.systemDefault()).toLocalDate()
-        val endLocalDate = Instant.ofEpochMilli(endDate).atZone(ZoneId.systemDefault()).toLocalDate()
+        val startLocalDate =
+            Instant.ofEpochMilli(startDate).atZone(ZoneId.systemDefault()).toLocalDate()
+        val endLocalDate =
+            Instant.ofEpochMilli(endDate).atZone(ZoneId.systemDefault()).toLocalDate()
 
         // 2. datePeriod 포맷팅 ("yyyy.MM.dd ~ yyyy.MM.dd")
         val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
-        val datePeriodString = "${startLocalDate.format(periodFormatter)} ~ ${endLocalDate.format(periodFormatter)}"
+        val datePeriodString =
+            "${startLocalDate.format(periodFormatter)} ~ ${endLocalDate.format(periodFormatter)}"
 
         // 3. 총 여행 일수 계산 (예: 시작일과 종료일이 같으면 1일차 하나만, 차이가 2일이면 총 3일)
         val totalDays = ChronoUnit.DAYS.between(startLocalDate, endLocalDate).toInt() + 1
@@ -262,6 +271,28 @@ class PlanSharedViewModel @Inject constructor(
         _draftSchedule.value = null
     }
 
+    private fun loadCourseById(courseId: String) {
+        viewModelScope.launch {
+            getCourseByIdUseCase(courseId).collectDataResource(
+                onSuccess = { domainCourse ->
+                    if (domainCourse != null) {
+                        Log.d(TAG, "코스 불러오기 성공: ${domainCourse.courseName}")
+                        // 도메인 모델을 UI 모델로 변환해서 중앙 상태 업데이트!
+                        _courseState.update { domainCourse.toUiModel() }
+                    } else {
+                        Log.e(TAG, "해당 ID의 코스가 없습니다.")
+                    }
+                },
+                onError = { error ->
+                    Log.e(TAG, "코스 불러오기 에러: ${error.message}")
+                },
+                onLoading = {
+                    Log.d(TAG, "코스 상세 데이터 불러오는 중...")
+                }
+            )
+        }
+
+    }
 }
 
 
@@ -294,6 +325,7 @@ sealed interface PlanSharedEvent {
 
     data class OnCitySelected(val cityName: String) : PlanSharedEvent
     data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedEvent
+    data class OnLoadCourseById(val courseId: String) : PlanSharedEvent
 
     object OnClearDraftSchedule : PlanSharedEvent
 }

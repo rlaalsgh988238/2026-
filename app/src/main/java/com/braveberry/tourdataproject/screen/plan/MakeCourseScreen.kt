@@ -147,6 +147,7 @@ fun MakeCourseRoute(
     makeCourseViewModel: MakeCourseViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToAddSchedule: () -> Unit,
+    onNavigateToHome: () -> Unit,
     onShowToast: (String) -> Unit
 ) {
     val sharedCourseState by sharedViewModel.courseState.collectAsState()
@@ -178,7 +179,8 @@ fun MakeCourseRoute(
                 is CourseEffect.NavigateToCourseInfo -> { /* TODO */ }
                 is CourseEffect.ShareCourse -> { /* TODO */ }
                 is CourseEffect.NavigateToMapScreen -> { /* TODO */ }
-                is CourseEffect.NavigateToHomeScreen -> { /* TODO */ }
+
+                is CourseEffect.NavigateToHomeScreen -> { onNavigateToHome() }
             }
         }
     }
@@ -198,6 +200,7 @@ fun MakeCourseRoute(
             onFinalSaveClick = {
                 Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
                 makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState))
+                onNavigateToHome()
             }
         )
     }

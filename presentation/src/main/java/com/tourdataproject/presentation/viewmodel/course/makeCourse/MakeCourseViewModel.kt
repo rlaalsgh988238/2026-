@@ -1,5 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.course
 
+import android.util.Log.e
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.domain.usecase.calculateAceesibility.CalculateAccessibilityUseCase
@@ -70,6 +71,7 @@ class MakeCourseViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
             try {
+                android.util.Log.d("SaveCOurse", "🚨 코스저장 성공")
                 saveCourseUseCase(finalCourse.toDomain())
                 _state.update { it.copy(isSaving = false) }
                 emitEffect(CourseEffect.NavigateToHomeScreen)

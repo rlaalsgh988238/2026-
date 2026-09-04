@@ -91,25 +91,56 @@ class PlanSharedViewModel @Inject constructor(
         }
     }
 
-    // 지역명 저장 + 좌표 조회를 한 번에 처리
-    private fun handleCitySelected(cityName: String) {
-        Log.d(TAG, "OnCitySelected: $cityName")
-        updateRegion(cityName)
 
+    private fun loadCourseById(courseId: String) {
         viewModelScope.launch {
-            getRegionPositionUseCase(cityName).collectDataResource(
-                onSuccess = { location ->
-                    Log.d(TAG, "position success: $location")
-                    updateRegionPosition(location.longitude, location.latitude)
+            getCourseByIdUseCase(courseId).collectDataResource(
+                onSuccess = { domainCourse ->
+                    if (domainCourse != null) {
+                        Log.d(TAG, "코스 불러오기 성공: ${domainCourse.courseName}")
+
+
+                        val uiModel = domainCourse.toUiModel()
+                        _courseState.update { uiModel }
+
+                        if (uiModel.destination.isNotEmpty()) {
+                            fetchRegionPosition(uiModel.destination)
+                        }
+                    } else {
+                        Log.e(TAG, "해당 ID의 코스가 없습니다.")
+                    }
                 },
                 onError = { error ->
-                    Log.e(TAG, "position error: ${error.message}")
+                    Log.e(TAG, "코스 불러오기 에러: ${error.message}")
                 },
                 onLoading = {
-                    Log.d(TAG, "position loading...")
+                    Log.d(TAG, "코스 상세 데이터 불러오는 중...")
                 }
             )
         }
+    }
+
+    private fun fetchRegionPosition(cityName: String) {
+        viewModelScope.launch {
+            getRegionPositionUseCase(cityName).collectDataResource(
+                onSuccess = { location ->
+                    Log.d(TAG, "좌표 복구(position) success: $location")
+                    updateRegionPosition(location.longitude, location.latitude)
+                },
+                onError = { error ->
+                    Log.e(TAG, "좌표 복구(position) error: ${error.message}")
+                },
+                onLoading = {
+                    Log.d(TAG, "좌표 복구(position) loading...")
+                }
+            )
+        }
+    }
+
+    private fun handleCitySelected(cityName: String) {
+        Log.d(TAG, "OnCitySelected: $cityName")
+        updateRegion(cityName)
+        fetchRegionPosition(cityName) // 분리한 함수 호출
     }
 
 
@@ -271,28 +302,7 @@ class PlanSharedViewModel @Inject constructor(
         _draftSchedule.value = null
     }
 
-    private fun loadCourseById(courseId: String) {
-        viewModelScope.launch {
-            getCourseByIdUseCase(courseId).collectDataResource(
-                onSuccess = { domainCourse ->
-                    if (domainCourse != null) {
-                        Log.d(TAG, "코스 불러오기 성공: ${domainCourse.courseName}")
-                        // 도메인 모델을 UI 모델로 변환해서 중앙 상태 업데이트!
-                        _courseState.update { domainCourse.toUiModel() }
-                    } else {
-                        Log.e(TAG, "해당 ID의 코스가 없습니다.")
-                    }
-                },
-                onError = { error ->
-                    Log.e(TAG, "코스 불러오기 에러: ${error.message}")
-                },
-                onLoading = {
-                    Log.d(TAG, "코스 상세 데이터 불러오는 중...")
-                }
-            )
-        }
 
-    }
 }
 
 

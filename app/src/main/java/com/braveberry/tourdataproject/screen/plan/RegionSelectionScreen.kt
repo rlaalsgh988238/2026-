@@ -83,6 +83,7 @@ fun RegionSelectionScreen(
 
     Scaffold(
         containerColor = Color.White,
+        contentWindowInsets = WindowInsets.ime,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -110,6 +111,8 @@ fun RegionSelectionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .imePadding()
                     .navigationBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
@@ -217,25 +220,26 @@ fun RegionSelectionScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 검색어 유무에 따라 화면 분기
-            if (state.isSearchMode) {
-                SearchResultList(
-                    results = state.searchResults,
-                    isSearching = state.isSearching,
-                    onCityClick = {
-                        keyboardController?.hide() // 검색 결과에서 도시 선택 시 키보드 닫기
-                        onEvent(RegionSelectionEvent.OnCitySelected(it))
-                    }
-                )
-            } else {
-                PopularCityGrid(
-                    cities = state.popularCities,
-                    selectedCity = state.selectedCity,
-                    onCityClick = {
-                        keyboardController?.hide() // 인기 도시 선택 시 키보드 닫기
-                        onEvent(RegionSelectionEvent.OnCitySelected(it))
-                    }
-                )
+            Box(modifier = Modifier.weight(1f)) {
+                if (state.isSearchMode) {
+                    SearchResultList(
+                        results = state.searchResults,
+                        isSearching = state.isSearching,
+                        onCityClick = {
+                            keyboardController?.hide()
+                            onEvent(RegionSelectionEvent.OnCitySelected(it))
+                        }
+                    )
+                } else {
+                    PopularCityGrid(
+                        cities = state.popularCities,
+                        selectedCity = state.selectedCity,
+                        onCityClick = {
+                            keyboardController?.hide()
+                            onEvent(RegionSelectionEvent.OnCitySelected(it))
+                        }
+                    )
+                }
             }
         }
     }

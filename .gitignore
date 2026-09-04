@@ -41,3 +41,5 @@ google-services.json
 *.hprof
 # OpenAI 등 테스트 키 파일 및 폴더 무시
 /TestKey.txt
+
+*.aab

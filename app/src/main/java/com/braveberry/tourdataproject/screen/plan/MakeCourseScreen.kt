@@ -3,6 +3,7 @@ package com.braveberry.tourdataproject.screen.plan
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,9 +61,9 @@ import com.braveberry.tourdataproject.ui.theme.Yellow
 import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEffect
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseEvent
-import com.tourdataproject.presentation.viewmodel.course.uiState.CourseState
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEvent
+import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
@@ -133,7 +134,7 @@ fun CourseState.toMakeCourseState(): MakeCourseUiState {
             dayPlans = tempDayPlans
         )
     } catch (e: Exception) {
-        android.util.Log.e("CrashCatch", "🚨 매퍼에서 크래시 발생: ${e.message}", e)
+        Log.e("CrashCatch", "🚨 매퍼에서 크래시 발생: ${e.message}", e)
         return MakeCourseUiState(
             isLoading = false,
             isError = true,
@@ -148,9 +149,10 @@ fun MakeCourseRoute(
     onNavigateBack: () -> Unit,
     onNavigateToAddSchedule: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToEditSchedule: (Int) -> Unit,
     onShowToast: (String) -> Unit
 ) {
-    val sharedCourseState by sharedViewModel.courseState.collectAsState()
+    val sharedCourseState by sharedViewModel.sharedState.collectAsState()
     val courseState by makeCourseViewModel.state.collectAsState()
     val uiState = courseState.toMakeCourseState()
 
@@ -160,7 +162,7 @@ fun MakeCourseRoute(
 
     LaunchedEffect(sharedCourseState) {
         Log.d("MakeCourseDebug", "sharedCourseState 업데이트 됨! 뷰모델에 주입 시도")
-        makeCourseViewModel.setInitialCourse(sharedCourseState)
+        makeCourseViewModel.setInitialCourse(sharedCourseState.course)
     }
 
     LaunchedEffect(makeCourseViewModel.effect) {
@@ -181,6 +183,10 @@ fun MakeCourseRoute(
                 is CourseEffect.NavigateToMapScreen -> { /* TODO */ }
 
                 is CourseEffect.NavigateToHomeScreen -> { onNavigateToHome() }
+                is CourseEffect.NavigateToHomeScreen -> { /* TODO */ }
+                is CourseEffect.NavigateToEditSchedule -> {
+                    onNavigateToEditSchedule(effect.dayNumber)
+                }
             }
         }
     }
@@ -197,6 +203,7 @@ fun MakeCourseRoute(
         MakeCourseScreen(
             state = uiState,
             onEvent = makeCourseViewModel::onEvent,
+            onSharedEvent = sharedViewModel::setEvent,
             onFinalSaveClick = {
                 Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
                 makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState))
@@ -211,6 +218,7 @@ fun MakeCourseRoute(
 fun MakeCourseScreen(
     state: MakeCourseUiState,
     onEvent: (CourseEvent) -> Unit,
+    onSharedEvent: (PlanSharedEvent) -> Unit,
     onFinalSaveClick: () -> Unit
 ) {
     Scaffold(
@@ -259,33 +267,6 @@ fun MakeCourseScreen(
                 .padding(paddingValues)
                 .background(Color.White)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                Surface(
-                    onClick = { /* TODO: 숙소 추가 로직 필요 시 Event 추가 */ },
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Mint100),
-                    color = Color.White
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "숙소 추가",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.DarkGray
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "숙소", fontSize = 13.sp, color = Color.DarkGray)
-                    }
-                }
-            }
-
             HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
 
             LazyColumn(
@@ -296,7 +277,8 @@ fun MakeCourseScreen(
                 items(state.dayPlans) { dayPlan ->
                     DayPlanItem(
                         dayPlan = dayPlan,
-                        onAddScheduleClick = { onEvent(CourseEvent.OnAddScheduleClicked(dayPlan.dayNumber)) }
+                        onAddScheduleClick = { onEvent(CourseEvent.OnAddScheduleClicked(dayPlan.dayNumber)) },
+                        onEditClick = {onEvent(CourseEvent.OnEditScheduleButtonClicked(dayPlan.dayNumber))}
                     )
                 }
             }
@@ -338,7 +320,7 @@ fun MakeCourseTopBar(
                         tint = Color.Gray
                     )
                 }
-                Text(text = datePeriod, fontSize = 12.sp, color = Color.Gray)
+                Text(text = datePeriod, fontSize = 15.sp, color = Color.Gray)
             }
         }
         HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
@@ -348,10 +330,14 @@ fun MakeCourseTopBar(
 @Composable
 fun DayPlanItem(
     dayPlan: MakeCourseDayPlanState,
-    onAddScheduleClick: () -> Unit
+    onAddScheduleClick: () -> Unit,
+    onEditClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Surface(
                 color = Mint20,
                 shape = RoundedCornerShape(12.dp),
@@ -370,6 +356,18 @@ fun DayPlanItem(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = "편집",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                textDecoration = TextDecoration.Underline, // 밑줄 추가
+                modifier = Modifier
+                    .clickable(onClick = onEditClick)
+                    .padding(4.dp) // 터치 영역 확보를 위한 패딩
             )
         }
 
@@ -503,6 +501,7 @@ fun MakeCourseScreenPreview() {
     MakeCourseScreen(
         state = mockState,
         onEvent = {},
+        onSharedEvent = {},
         onFinalSaveClick = {}
     )
 }

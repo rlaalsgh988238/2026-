@@ -15,14 +15,16 @@ android {
 
     defaultConfig {
         applicationId = "com.braveberry.tourdataproject"
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "vp1.0.1"
         buildConfigField("String", "KAKAO_MAP_KEY", "\"$kakaoMapKey\"")
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

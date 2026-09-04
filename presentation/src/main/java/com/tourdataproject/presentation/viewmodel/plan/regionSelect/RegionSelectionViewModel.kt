@@ -66,6 +66,7 @@ class RegionSelectionViewModel @Inject constructor(
                         isSearching = false
                     )
                 }
+                Log.d(TAG, event.city.shortName)
                 searchQueryFlow.value = ""
             }
             is RegionSelectionEvent.OnCityDeselected -> {

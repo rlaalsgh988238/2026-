@@ -12,27 +12,41 @@ data class RegionUiModel(
 ) {
     val shortName: String
         get() {
-            // city가 있으면 city를 쓰고, 없으면 province를 기준 삼음
-            val target = city ?: province
+            // 1. 우선순위: town(읍면동) -> city(시군구) -> province(도)
+            val target = town ?: city ?: province
 
-            // 1. 텍스트 끝에 붙은 행정구역 단위 제거 (시, 군, 구, 특별시 등)
-            // "청주시상당구" -> "청주시상당" -> "청주상당" 순으로 끝자리 단위를 안전하게 제거합니다.
-            val regex = "(특별시|광역시|특별자치시|특별자치도|통합|시|군|구)$".toRegex()
-
-            var result = target.replace(regex, "").trim()
-
-            // 2. 만약 "청주시상당구"가 "청주시상당"을 거쳐 "청주상당"이 되었을 때,
-            // 중간에 남아있을 수 있는 "시"나 "군"을 한 번 더 정리해 줍니다.
-            // 예: "청주시상당" -> "청주 상당" (가독성을 위해 한 칸 띄어줌)
-            if (result.contains("시")) {
-                result = result.replace("시", " ").trim()
-            } else if (result.contains("군")) {
-                result = result.replace("군", " ").trim()
+            // 2. 광주·전남 특수 케이스 처리 (이미지상의 '특별' 문제 해결)
+            // "전남광주통합특별시" 같은 긴 명칭이 들어오면 무조건 "광주"로 반환
+            if (target.contains("광주") && target.contains("전남")) {
+                return "광주"
             }
 
-            return result
+            // 3. 불필요한 수식어 제거 (통합 등)
+            var result = target.replace("통합", "").trim()
+
+            // 4. 행정구역 단위 제거 (긴 것부터)
+            // 결과가 최소 2글자는 남아야 함 (시흥, 고흥, 경기 보호)
+            val units = listOf("특별자치도", "특별자치시", "특별시", "광역시", "시", "군", "구", "도")
+
+            for (unit in units) {
+                if (result.endsWith(unit) && result.length > unit.length + 1) {
+                    result = result.removeSuffix(unit)
+                    break
+                }
+            }
+
+            // 5. 시/군/구가 붙어있는 경우 처리 (예: 용인시기흥 -> 기흥)
+            // 단, 결과가 2글자 이상일 때만 자름
+            val cityIndex = result.indexOf("시")
+            if (cityIndex != -1 && result.length > cityIndex + 1) {
+                val sub = result.substring(cityIndex + 1)
+                if (sub.length >= 2) result = sub
+            }
+
+            return result.trim()
         }
 }
+
 
 
 

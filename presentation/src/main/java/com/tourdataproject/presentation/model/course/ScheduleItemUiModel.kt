@@ -16,7 +16,6 @@ data class ScheduleItemUiModel(
     val category: String? = null,
     val accessibilityInfo: AccessibilityInfoUiModel = AccessibilityInfoUiModel() // UI 모델 연결
 ) : UiMapper<ScheduleItem> {
-
     override fun toDomain(): ScheduleItem {
         return ScheduleItem(
             scheduleId = this.scheduleId,

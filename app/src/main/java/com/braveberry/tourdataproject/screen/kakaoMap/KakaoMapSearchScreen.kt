@@ -31,8 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -48,6 +51,8 @@ import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent // 🌟 이벤트 임포트
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun KakaoMapSearchRoute(
@@ -121,7 +126,12 @@ fun KakaoMapSearchScreen(
     onBackClick: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
-
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        // 화면이 완전히 그려지기 전에 포커스를 요청하면 무시될 수 있어 아주 짧은 딜레이를 줍니다.
+        delay(100.milliseconds)
+        focusRequester.requestFocus()
+    }
     BackHandler {
         onBackClick()
     }
@@ -148,7 +158,8 @@ fun KakaoMapSearchScreen(
                 onValueChange = onQueryChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(end = 8.dp),
+                    .padding(end = 8.dp)
+                    .focusRequester(focusRequester),
                 placeholder = { Text("장소를 검색하세요") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),

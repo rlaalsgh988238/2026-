@@ -13,28 +13,6 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="LoadingPreview (1)">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-31T22:10:34.031755Z">
-          <Target type="DEFAULT_BOOT">
-            <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/minhokim/.android/avd/Medium_Phone_API_35.avd" />
-            </handle>
-          </Target>
-        </DropdownSelection>
-        <DialogSelection />
-      </SelectionState>
-      <SelectionState runConfigName="AppDatabaseTest">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-31T22:10:34.031755Z">
-          <Target type="DEFAULT_BOOT">
-            <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/minhokim/.android/avd/Medium_Phone_API_35.avd" />
-            </handle>
-          </Target>
-        </DropdownSelection>
-        <DialogSelection />
-      </SelectionState>
     </selectionStates>
   </component>
 </project>

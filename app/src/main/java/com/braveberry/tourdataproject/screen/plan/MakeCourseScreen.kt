@@ -148,6 +148,7 @@ fun MakeCourseRoute(
     makeCourseViewModel: MakeCourseViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToAddSchedule: () -> Unit,
+    onNavigateToHome: () -> Unit,
     onNavigateToEditSchedule: (Int) -> Unit,
     onShowToast: (String) -> Unit
 ) {
@@ -180,6 +181,8 @@ fun MakeCourseRoute(
                 is CourseEffect.NavigateToCourseInfo -> { /* TODO */ }
                 is CourseEffect.ShareCourse -> { /* TODO */ }
                 is CourseEffect.NavigateToMapScreen -> { /* TODO */ }
+
+                is CourseEffect.NavigateToHomeScreen -> { onNavigateToHome() }
                 is CourseEffect.NavigateToHomeScreen -> { /* TODO */ }
                 is CourseEffect.NavigateToEditSchedule -> {
                     onNavigateToEditSchedule(effect.dayNumber)
@@ -203,7 +206,8 @@ fun MakeCourseRoute(
             onSharedEvent = sharedViewModel::setEvent,
             onFinalSaveClick = {
                 Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
-                makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState.course))
+                makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState))
+                onNavigateToHome()
             }
         )
     }

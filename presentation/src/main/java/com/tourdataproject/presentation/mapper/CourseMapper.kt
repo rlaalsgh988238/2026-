@@ -11,6 +11,9 @@ import com.tourdataproject.presentation.model.course.DayPlanUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
@@ -40,15 +43,36 @@ fun DayPlan.toUiModel(): DayPlanUiModel {
 }
 //TODO: 기획에 맞게 수정
 fun TravelCourse.toUiModel(): TravelCourseUiModel {
-    val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
+    // 1. 전체 시작일과 종료일을 꺼냅니다.
+    val startLocalDate = Instant.ofEpochMilli(this.startDate).atZone(ZoneId.systemDefault()).toLocalDate()
+    val endLocalDate = Instant.ofEpochMilli(this.endDate).atZone(ZoneId.systemDefault()).toLocalDate()
+
+    val dateLabelFormatter = DateTimeFormatter.ofPattern("M/dd")
+
+    // 🌟 2. 상단 바에 보여줄 datePeriod ("yyyy.MM.dd ~ yyyy.MM.dd")를 다시 만듭니다!
+    val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+    val generatedDatePeriod = "${startLocalDate.format(periodFormatter)} ~ ${endLocalDate.format(periodFormatter)}"
+
     return TravelCourseUiModel(
         courseId = this.courseId,
         destination = this.destination,
         courseName = this.courseName,
-        datePeriod = "${dateFormat.format(Date(this.startDate))} ~ ${dateFormat.format(Date(this.endDate))}",
         rawStartDate = this.startDate,
         rawEndDate = this.endDate,
-        dayPlans = this.dayPlans.map { it.toUiModel() }
+
+        datePeriod = generatedDatePeriod,
+
+        dayPlans = this.dayPlans.map { domainDayPlan ->
+            val currentDayDate = startLocalDate.plusDays((domainDayPlan.dayNumber - 1).toLong())
+
+            DayPlanUiModel(
+                dayLabel = "${domainDayPlan.dayNumber}일차",
+                dateLabel = currentDayDate.format(dateLabelFormatter),
+                rawDayNumber = domainDayPlan.dayNumber,
+                rawDate = currentDayDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                schedules = domainDayPlan.schedules.map { it.toUiModel() }
+            )
+        }
     )
 }
 

@@ -1,6 +1,7 @@
 package com.tourdataproject.presentation.viewmodel.plan.scheduleEdit
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
@@ -16,13 +17,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class ScheduleEditViewModel @Inject constructor(
-    // TODO: UseCase 주입 필요
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    private val TAG = "ScheduleEditViewModel"
 
     private val _state = MutableStateFlow(ScheduleEditState())
     val state: StateFlow<ScheduleEditState> = _state.asStateFlow()
@@ -30,12 +31,18 @@ class ScheduleEditViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<ScheduleEditEffect>()
     val effect: SharedFlow<ScheduleEditEffect> = _effect.asSharedFlow()
 
+    val dayNum: Int = checkNotNull(savedStateHandle["dayNum"])
+
     init {
-        loadDummyData()
+        Log.d(TAG, "편집 중인 날짜 번호: $dayNum")
+        setDayNum(dayNum)
     }
 
     fun setEvent(event: ScheduleEditEvent) {
         when (event) {
+            is ScheduleEditEvent.OnInit -> {
+                _state.update { it.copy(dateLabel = event.dateLabel, schedules = event.schedules) }
+            }
             is ScheduleEditEvent.OnBackClicked -> {
                 viewModelScope.launch { _effect.emit(ScheduleEditEffect.NavigateBack) }
             }
@@ -54,12 +61,17 @@ class ScheduleEditViewModel @Inject constructor(
         }
     }
 
+    private fun setDayNum(dayNum: Int){
+        _state.update { currentState ->
+            currentState.copy(dayNumber = dayNum)
+        }
+    }
+
     private fun moveSchedule(fromIndex: Int, toIndex: Int) {
         Log.d("ScheduleEditVM", "일정 이동 요청: fromIndex=$fromIndex, toIndex=$toIndex")
         _state.update { currentState ->
             val mutableSchedules = currentState.schedules.toMutableList()
 
-            // 숙소(마지막 아이템)는 이동 불가, 다른 아이템이 숙소 자리로 가는 것도 불가
             if (fromIndex == mutableSchedules.lastIndex || toIndex == mutableSchedules.lastIndex) {
                 return@update currentState
             }
@@ -95,28 +107,13 @@ class ScheduleEditViewModel @Inject constructor(
     private fun saveCourse() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            // TODO: SharedViewModel 또는 DB에 저장 로직 추가
+
+            // UI에 공유 뷰모델 업데이트를 위임하는 Effect 발생
+            _effect.emit(ScheduleEditEffect.SaveToShared(_state.value.dayNumber, _state.value.schedules))
 
             _state.update { it.copy(isLoading = false) }
             _effect.emit(ScheduleEditEffect.ShowToast("일정이 저장되었습니다."))
             _effect.emit(ScheduleEditEffect.NavigateBack)
         }
-    }
-
-    private fun loadDummyData() {
-        val dummySchedules = listOf(
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
-        )
-
-        _state.value = ScheduleEditState(
-            dayNumber = 1,
-            dayLabel = "Day 1",
-            dateLabel = "8/30 (일)",
-            schedules = dummySchedules
-        )
     }
 }

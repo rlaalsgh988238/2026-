@@ -6,10 +6,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.braveberry.tourdataproject.screen.MockStartScreen
 import com.braveberry.tourdataproject.screen.kakaoMap.KakaoMapSearchRoute
 import com.braveberry.tourdataproject.screen.plan.AddLocationRoute
@@ -17,6 +19,7 @@ import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
+import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -105,11 +108,34 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToAddSchedule = {
                                     navController.navigate("add_location")
                                 },
+                                onNavigateToEditSchedule = { dayNum -> // Int 인자를 받도록 수정
+                                    navController.navigate("editSchedule/$dayNum")
+                                },
                                 onShowToast = { message ->
                                     // 토스트 처리
                                 }
                             )
                         }
+
+                        composable(
+                            route = "editSchedule/{dayNum}",
+                            arguments = listOf(navArgument("dayNum") { type = NavType.IntType })
+                        ) { entry ->
+                            // 부모 그래프의 공유 뷰모델 가져오기
+                            val sharedViewModel: PlanSharedViewModel = hiltViewModel(
+                                remember(entry) { navController.getBackStackEntry("plan_graph") }
+                            )
+
+                            // ScheduleEditRoute 호출
+                            ScheduleEditRoute(
+                                sharedViewModel = sharedViewModel,
+                                // 여기서 hiltViewModel()이 내부적으로 SavedStateHandle을 통해 dayNum을 가져갑니다.
+                                viewModel = hiltViewModel(),
+                                onNavigateBack = { navController.popBackStack() },
+                                onShowToast = { /* 토스트 처리 */ }
+                            )
+                        }
+
                         composable("add_location") {
                             AddLocationRoute(
                                 onNavigateBack = { navController.popBackStack() },
@@ -149,11 +175,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-
-
-
-
-                        }
+                    }
                 }
             }
         }

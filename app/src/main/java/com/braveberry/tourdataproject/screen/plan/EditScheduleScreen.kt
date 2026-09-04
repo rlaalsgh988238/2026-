@@ -10,8 +10,10 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -24,8 +26,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -33,9 +37,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.core.content.ContextCompat
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.R
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
@@ -54,30 +57,48 @@ import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEvent
-import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditState
 
 @Composable
 fun ScheduleEditRoute(
+    sharedViewModel: PlanSharedViewModel,
     viewModel: ScheduleEditViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onShowToast: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
+    // 화면 진입 시 초기 데이터 로드 (Event 전달)
+    LaunchedEffect(Unit) {
+        val sharedState = sharedViewModel.sharedState.value
+        val dayPlan = sharedState.course.dayPlans.find { it.rawDayNumber == viewModel.dayNum }
+        if (dayPlan != null) {
+            viewModel.setEvent(ScheduleEditEvent.OnInit(dayPlan.dateLabel, dayPlan.schedules))
+        }
+    }
+
+    // Effect 관찰
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is ScheduleEditEffect.NavigateBack -> onNavigateBack()
                 is ScheduleEditEffect.ShowToast -> onShowToast(effect.message)
+                is ScheduleEditEffect.SaveToShared -> {
+                    sharedViewModel.setEvent(PlanSharedEvent.OnReorderSchedules(effect.dayNumber, effect.schedules))
+                }
             }
         }
     }
 
+    // 프레젠테이션 모델을 스크린 모델로 매핑하여 하위 컴포저블에 전달
     ScheduleEditScreen(
-        state = state,
+        dayLabel = state.dayLabel,
+        dateLabel = state.dateLabel,
+        schedules = state.schedules.map { it.toScreen() },
         onEvent = viewModel::setEvent
     )
 }
@@ -85,9 +106,17 @@ fun ScheduleEditRoute(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleEditScreen(
-    state: ScheduleEditState,
+    dayLabel: String,
+    dateLabel: String,
+    schedules: List<ScheduleItemScreenModel>,
     onEvent: (ScheduleEditEvent) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val dragDropState = rememberScheduleDragDropState(
+        listState = listState,
+        onMoveRequest = { from, to -> onEvent(ScheduleEditEvent.OnScheduleMoved(from, to)) }
+    )
+
     Scaffold(
         containerColor = Color.White,
         topBar = {
@@ -117,7 +146,10 @@ fun ScheduleEditScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                KakaoMapSection(focusedSchedules = state.schedules)
+                KakaoMapSection(
+                    focusedSchedules = schedules,
+                    draggedId = dragDropState.draggedId
+                )
             }
 
             Box(
@@ -126,16 +158,27 @@ fun ScheduleEditScreen(
                     .weight(1.2f)
                     .background(Color(0xFFFDFDFD))
             ) {
-                ScheduleListSection(state = state, onEvent = onEvent)
+                ScheduleListSection(
+                    dayLabel = dayLabel,
+                    dateLabel = dateLabel,
+                    schedules = schedules,
+                    dragDropState = dragDropState,
+                    onEvent = onEvent
+                )
             }
         }
     }
 }
 
 @Composable
-fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
+fun KakaoMapSection(
+    focusedSchedules: List<ScheduleItemScreenModel>,
+    draggedId: String? = null
+) {
     var mapInstance by remember { mutableStateOf<KakaoMap?>(null) }
     val context = LocalContext.current
+    val bitmapCache = remember { mutableMapOf<String, Bitmap>() }
+    var isInitialFocusDone by remember { mutableStateOf(false) }
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
@@ -156,6 +199,7 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
         }
     )
 
+    // 일정 변경 시 마커 및 라인 업데이트
     LaunchedEffect(focusedSchedules, mapInstance, context) {
         val map = mapInstance ?: return@LaunchedEffect
         if (focusedSchedules.isEmpty()) return@LaunchedEffect
@@ -173,20 +217,18 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
             points.add(latLng)
 
             val isAccommodation = index == focusedSchedules.lastIndex
+            val cacheKey = if (isAccommodation) "accommodation" else "${index + 1}"
+            val bitmap = bitmapCache.getOrPut(cacheKey) {
+                createCustomMarkerBitmap(context, "${index + 1}", isAccommodation)
+            }
 
-            val bitmap = createCustomMarkerBitmap(context, "${index + 1}", isAccommodation)
-
-            val style = LabelStyles.from(
-                LabelStyle.from(bitmap).setAnchorPoint(0.5f, 0.5f)
-            )
-
+            val style = LabelStyles.from(LabelStyle.from(bitmap).setAnchorPoint(0.5f, 0.5f))
             val options = LabelOptions.from(latLng).setStyles(style)
             labelManager?.layer?.addLabel(options)
         }
 
         if (points.size > 1) {
             points.add(points.first())
-
             val routeStyle = RouteLineStyle.from(4f, android.graphics.Color.parseColor("#888888"))
             val routeStylesSet = RouteLineStylesSet.from("route", RouteLineStyles.from(routeStyle))
             val segment = RouteLineSegment.from(points).setStyles(routeStylesSet.getStyles(0))
@@ -194,252 +236,358 @@ fun KakaoMapSection(focusedSchedules: List<ScheduleItemUiModel>) {
             routeLineManager?.layer?.addRouteLine(options)
         }
 
-        val cameraUpdate = CameraUpdateFactory.newCenterPosition(points.first(), 10)
-        map.moveCamera(cameraUpdate)
-    }
-}
-
-private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
-    val density = context.resources.displayMetrics.density
-    val size = (24 * density).toInt() // 마커 크기
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-
-    // 1. 배경 원 그리기
-    paint.color = if (isAccommodation) android.graphics.Color.parseColor("#FFC107") // 노란색
-    else android.graphics.Color.parseColor("#14B8A6") // 민트색
-    paint.style = Paint.Style.FILL
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-
-    // 2. 내부 콘텐츠 그리기
-    if (isAccommodation) {
-        val drawable = ContextCompat.getDrawable(context, R.drawable.home)
-        if (drawable != null) {
-            // 아이콘 크기 원 크기에 맞게
-            val iconSize = (14 * density).toInt()
-            val left = (size - iconSize) / 2
-            val top = (size - iconSize) / 2
-
-            drawable.setBounds(left, top, left + iconSize, top + iconSize)
-            drawable.setTint(android.graphics.Color.WHITE) // 아이콘 색상을 흰색으로 변경
-            drawable.draw(canvas)
+        // 초기 진입 시에만 기본 줌(10)으로 이동
+        if (!isInitialFocusDone) {
+            val firstSchedule = focusedSchedules.first()
+            val cameraUpdate = CameraUpdateFactory.newCenterPosition(
+                LatLng.from(firstSchedule.latitude, firstSchedule.longitude), 10
+            )
+            map.moveCamera(cameraUpdate)
+            isInitialFocusDone = true
         }
-    } else {
-        paint.color = android.graphics.Color.WHITE
-        // 숫자 그리기
-        paint.textSize = 13 * density
-        paint.textAlign = Paint.Align.CENTER
-        paint.typeface = Typeface.DEFAULT_BOLD
-
-        val textBounds = Rect()
-        paint.getTextBounds(text, 0, text.length, textBounds)
-        // 텍스트 수직 중앙 정렬 보정
-        val y = (size / 2f) + (textBounds.height() / 2f) - (0.5f * density)
-
-        canvas.drawText(text, size / 2f, y, paint)
     }
 
-    return bitmap
+    // 드래그 중인 아이템으로 카메라 이동 시 줌 레벨 유지
+    LaunchedEffect(draggedId, mapInstance) {
+        val map = mapInstance ?: return@LaunchedEffect
+        if (draggedId != null) {
+            val targetSchedule = focusedSchedules.find { it.scheduleId == draggedId }
+            if (targetSchedule != null) {
+                // 현재 지도의 줌 레벨을 가져옵니다.
+                val currentZoom = map.cameraPosition?.zoomLevel ?: 10
+
+                val cameraUpdate = CameraUpdateFactory.newCenterPosition(
+                    LatLng.from(targetSchedule.latitude, targetSchedule.longitude),
+                    currentZoom // 현재 줌 레벨 유지
+                )
+                map.moveCamera(cameraUpdate)
+            }
+        }
+    }
 }
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScheduleListSection(
-    state: ScheduleEditState,
+    dayLabel: String,
+    dateLabel: String,
+    schedules: List<ScheduleItemScreenModel>,
+    dragDropState: ScheduleDragDropState,
     onEvent: (ScheduleEditEvent) -> Unit
 ) {
-    val listState = rememberLazyListState()
-
-    var draggedId by remember { mutableStateOf<String?>(null) }
-    var dragOffsetY by remember { mutableStateOf(0f) }
-
-    val currentSchedules by rememberUpdatedState(state.schedules)
+    val currentSchedules by rememberUpdatedState(schedules)
 
     LazyColumn(
-        state = listState,
+        state = dragDropState.listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
         item(key = "header") {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
+            ScheduleListHeader(dayLabel = dayLabel, dateLabel = dateLabel)
+        }
+
+        itemsIndexed(items = schedules, key = { _, schedule -> schedule.scheduleId }) { index, schedule ->
+            val isAccommodation = index == schedules.lastIndex
+            val isDragging = dragDropState.draggedId == schedule.scheduleId
+            val translation = if (isDragging) dragDropState.dragOffsetY else 0f
+
+            ScheduleListItem(
+                schedule = schedule,
+                isAccommodation = isAccommodation,
+                isDragging = isDragging,
+                translationY = translation,
+                modifier = Modifier.animateItem(),
+                onDelete = { onEvent(ScheduleEditEvent.OnScheduleDeleted(schedule.scheduleId)) },
+                onDragStart = { dragDropState.onDragStart(schedule.scheduleId) },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    dragDropState.onDrag(dragAmount.y, currentSchedules)
+                },
+                onDragEnd = {
+                    dragDropState.onDragInterrupted()
+                    onEvent(ScheduleEditEvent.OnScheduleMoveFinished)
+                },
+                onDragCancel = { dragDropState.onDragInterrupted() }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScheduleListHeader(dayLabel: String, dateLabel: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+    ) {
+        Surface(
+            color = PrimaryTeal.copy(alpha = 0.2f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = dayLabel,
+                color = PrimaryTeal,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = dateLabel,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = Color.Black
+        )
+    }
+}
+
+@Composable
+private fun ScheduleListItem(
+    schedule: ScheduleItemScreenModel,
+    isAccommodation: Boolean,
+    isDragging: Boolean,
+    translationY: Float,
+    modifier: Modifier = Modifier,
+    onDelete: () -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (PointerInputChange, Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .zIndex(if (isDragging) 1f else 0f)
+            .graphicsLayer { this.translationY = translationY }
+            .then(if (isDragging) Modifier else modifier)
+    ) {
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(22.dp).background(Color.Red, CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    color = PrimaryTeal.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
+                Box(modifier = Modifier.width(10.dp).height(2.dp).background(Color.White))
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .border(1.dp, PrimaryTeal, RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isDragging) Color.LightGray.copy(alpha = 0.8f) else Color.White)
+                .padding(horizontal = 16.dp, vertical = if (isAccommodation) 8.dp else 14.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.Center) {
+                if (isAccommodation) {
                     Text(
-                        text = state.dayLabel,
-                        color = PrimaryTeal,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        text = "숙소",
+                        fontSize = 15.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 2.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = state.dateLabel,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    text = schedule.scheduleName,
+                    fontSize = 15.sp,
                     color = Color.Black
                 )
             }
         }
 
-        itemsIndexed(items = state.schedules, key = { _, schedule -> schedule.scheduleId }) { index, schedule ->
-            val isAccommodation = index == state.schedules.lastIndex
-            val isDragging = draggedId == schedule.scheduleId
-            val translation = if (isDragging) dragOffsetY else 0f
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+        if (!isAccommodation) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = "순서 변경",
+                tint = Color.Gray,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .zIndex(if (isDragging) 1f else 0f)
-                    .graphicsLayer { translationY = translation }
-                    .let { if (isDragging) it else it.animateItem() }
-            ) {
-                IconButton(
-                    onClick = { onEvent(ScheduleEditEvent.OnScheduleDeleted(schedule.scheduleId)) },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.size(22.dp).background(Color.Red, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(modifier = Modifier.width(10.dp).height(2.dp).background(Color.White))
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .border(1.dp, PrimaryTeal, RoundedCornerShape(8.dp))
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isDragging) Color.LightGray.copy(alpha = 0.8f) else Color.White)
-                        .padding(horizontal = 16.dp, vertical = if (isAccommodation) 8.dp else 14.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.Center) {
-                        if (isAccommodation) {
-                            Text(
-                                text = "숙소",
-                                fontSize = 10.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(bottom = 2.dp)
-                            )
-                        }
-                        Text(
-                            text = schedule.scheduleName,
-                            fontSize = 15.sp,
-                            color = Color.Black
+                    .size(32.dp)
+                    .padding(4.dp)
+                    .pointerInput(schedule.scheduleId) {
+                        detectDragGestures(
+                            onDragStart = { onDragStart() },
+                            onDrag = { change, dragAmount -> onDrag(change, dragAmount) },
+                            onDragEnd = { onDragEnd() },
+                            onDragCancel = { onDragCancel() }
                         )
                     }
-                }
+            )
+        }
+    }
+}
 
-                if (!isAccommodation) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "순서 변경",
-                        tint = Color.Gray,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .padding(4.dp)
-                            .pointerInput(schedule.scheduleId) {
-                                detectDragGestures(
-                                    onDragStart = {
-                                        draggedId = schedule.scheduleId
-                                        dragOffsetY = 0f
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        dragOffsetY += dragAmount.y
+// ---------------------------------------------------------------------------
+// 유틸리티 및 상태 관리 클래스 영역
+// ---------------------------------------------------------------------------
 
-                                        val currentIndex = currentSchedules.indexOfFirst { it.scheduleId == schedule.scheduleId }
-                                        val currentItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == schedule.scheduleId }
+private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
+    val density = context.resources.displayMetrics.density
+    val size = (24 * density).toInt()
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-                                        if (currentItemInfo != null && currentIndex != -1) {
-                                            if (currentItemInfo.index != currentIndex + 1) {
-                                                return@detectDragGestures
-                                            }
+    paint.color = if (isAccommodation) android.graphics.Color.parseColor("#FFC107")
+    else android.graphics.Color.parseColor("#14B8A6")
+    paint.style = Paint.Style.FILL
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
 
-                                            val visualCenterY = currentItemInfo.offset + (currentItemInfo.size / 2) + dragOffsetY
+    if (isAccommodation) {
+        val drawable = ContextCompat.getDrawable(context, R.drawable.home)
+        if (drawable != null) {
+            val iconSize = (14 * density).toInt()
+            val left = (size - iconSize) / 2
+            val top = (size - iconSize) / 2
+            drawable.setBounds(left, top, left + iconSize, top + iconSize)
+            drawable.setTint(android.graphics.Color.WHITE)
+            drawable.draw(canvas)
+        }
+    } else {
+        paint.color = android.graphics.Color.WHITE
+        paint.textSize = 13 * density
+        paint.textAlign = Paint.Align.CENTER
+        paint.typeface = Typeface.DEFAULT_BOLD
 
-                                            val targetItemInfo = listState.layoutInfo.visibleItemsInfo.find {
-                                                it.key != schedule.scheduleId &&
-                                                        it.key != "header" &&
-                                                        visualCenterY >= it.offset && visualCenterY <= (it.offset + it.size)
-                                            }
+        val textBounds = Rect()
+        paint.getTextBounds(text, 0, text.length, textBounds)
+        val y = (size / 2f) + (textBounds.height() / 2f) - (0.5f * density)
+        canvas.drawText(text, size / 2f, y, paint)
+    }
 
-                                            if (targetItemInfo != null) {
-                                                val targetIndex = currentSchedules.indexOfFirst { it.scheduleId == targetItemInfo.key }
+    return bitmap
+}
 
-                                                if (targetIndex != -1 && currentIndex != targetIndex && targetIndex < currentSchedules.lastIndex) {
-                                                    val direction = if (targetIndex > currentIndex) 1 else -1
+class ScheduleDragDropState(
+    val listState: LazyListState,
+    private val onMoveRequest: (Int, Int) -> Unit
+) {
+    var draggedId by mutableStateOf<String?>(null)
+        private set
+    var dragOffsetY by mutableStateOf(0f)
+        private set
 
-                                                    val itemsToShift = currentSchedules.slice(
-                                                        if (direction == 1) (currentIndex + 1)..targetIndex
-                                                        else targetIndex until currentIndex
-                                                    )
+    fun onDragStart(id: String) {
+        draggedId = id
+        dragOffsetY = 0f
+    }
 
-                                                    var totalShiftPx = 0
-                                                    itemsToShift.forEach { shiftItem ->
-                                                        val info = listState.layoutInfo.visibleItemsInfo.find { it.key == shiftItem.scheduleId }
-                                                        totalShiftPx += info?.size ?: currentItemInfo.size
-                                                    }
+    fun onDrag(dragAmountY: Float, currentSchedules: List<ScheduleItemScreenModel>) {
+        dragOffsetY += dragAmountY
+        val currentDraggedId = draggedId ?: return
 
-                                                    if (totalShiftPx > 0) {
-                                                        onEvent(ScheduleEditEvent.OnScheduleMoved(currentIndex, targetIndex))
-                                                        dragOffsetY -= (totalShiftPx * direction)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    onDragEnd = {
-                                        draggedId = null
-                                        dragOffsetY = 0f
-                                        onEvent(ScheduleEditEvent.OnScheduleMoveFinished)
-                                    },
-                                    onDragCancel = {
-                                        draggedId = null
-                                        dragOffsetY = 0f
-                                    }
-                                )
-                            }
+        val currentIndex = currentSchedules.indexOfFirst { it.scheduleId == currentDraggedId }
+        val currentItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == currentDraggedId }
+
+        if (currentItemInfo != null && currentIndex != -1) {
+            val visualCenterY = currentItemInfo.offset + (currentItemInfo.size / 2) + dragOffsetY
+
+            val targetItemInfo = listState.layoutInfo.visibleItemsInfo.find {
+                it.key != currentDraggedId &&
+                        it.key != "header" &&
+                        visualCenterY >= it.offset && visualCenterY <= (it.offset + it.size)
+            }
+
+            if (targetItemInfo != null) {
+                val targetIndex = currentSchedules.indexOfFirst { it.scheduleId == targetItemInfo.key }
+
+                if (targetIndex != -1 && currentIndex != targetIndex && targetIndex < currentSchedules.lastIndex) {
+                    val direction = if (targetIndex > currentIndex) 1 else -1
+
+                    val itemsToShift = currentSchedules.slice(
+                        if (direction == 1) (currentIndex + 1)..targetIndex
+                        else targetIndex until currentIndex
                     )
+
+                    var totalShiftPx = 0
+                    itemsToShift.forEach { shiftItem ->
+                        val info = listState.layoutInfo.visibleItemsInfo.find { it.key == shiftItem.scheduleId }
+                        totalShiftPx += info?.size ?: currentItemInfo.size
+                    }
+
+                    if (totalShiftPx > 0) {
+                        onMoveRequest(currentIndex, targetIndex)
+                        dragOffsetY -= (totalShiftPx * direction)
+                    }
                 }
             }
         }
+    }
+
+    fun onDragInterrupted() {
+        draggedId = null
+        dragOffsetY = 0f
+    }
+}
+
+@Composable
+fun rememberScheduleDragDropState(
+    listState: LazyListState = rememberLazyListState(),
+    onMoveRequest: (Int, Int) -> Unit
+): ScheduleDragDropState {
+    return remember(listState) {
+        ScheduleDragDropState(listState, onMoveRequest)
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun ScheduleEditScreenPreview() {
-    val dummyState = ScheduleEditState(
-        dayNumber = 1,
-        dayLabel = "Day 1",
-        dateLabel = "8/30 (일)",
-        schedules = listOf(
-            ScheduleItemUiModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
-            ScheduleItemUiModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-            ScheduleItemUiModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
-            ScheduleItemUiModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
-            ScheduleItemUiModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
-        )
+    val scheduleList = listOf(
+        ScheduleItemScreenModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
+        ScheduleItemScreenModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
+        ScheduleItemScreenModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
+        ScheduleItemScreenModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
+        ScheduleItemScreenModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
     )
 
     ScheduleEditScreen(
-        state = dummyState,
+        dayLabel = "1일차",
+        dateLabel = "8/30 (일)",
+        schedules = scheduleList,
         onEvent = {}
+    )
+}
+
+// ---------------------------------------------------------------------------
+// 스크린 전용 모델 및 매퍼 영역
+// ---------------------------------------------------------------------------
+
+data class ScheduleItemScreenModel(
+    val scheduleId: String = "",
+    val order: Int = 0,
+    val scheduleName: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
+)
+
+fun ScheduleItemUiModel.toScreen(): ScheduleItemScreenModel {
+    return ScheduleItemScreenModel(
+        scheduleId = this.scheduleId,
+        order = this.order,
+        scheduleName = this.scheduleName,
+        latitude = this.latitude,
+        longitude = this.longitude
+    )
+}
+
+fun ScheduleItemScreenModel.toPresentation(): ScheduleItemUiModel {
+    return ScheduleItemUiModel(
+        scheduleId = this.scheduleId,
+        order = this.order,
+        scheduleName = this.scheduleName,
+        latitude = this.latitude,
+        longitude = this.longitude
     )
 }

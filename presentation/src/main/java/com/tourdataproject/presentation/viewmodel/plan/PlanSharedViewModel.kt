@@ -99,9 +99,13 @@ class PlanSharedViewModel @Inject constructor(
                     if (domainCourse != null) {
                         Log.d(TAG, "코스 불러오기 성공: ${domainCourse.courseName}")
 
-
                         val uiModel = domainCourse.toUiModel()
-                        _courseState.update { uiModel }
+
+                        _sharedState.update { currentState ->
+                            currentState.copy(
+                                course = uiModel
+                            )
+                        }
 
                         if (uiModel.destination.isNotEmpty()) {
                             fetchRegionPosition(uiModel.destination)
@@ -156,10 +160,8 @@ class PlanSharedViewModel @Inject constructor(
     private fun updateRegion(regionName: String) {
         _sharedState.update { current ->
             current.copy(
-                courseId = UUID.randomUUID().toString(),
-                destination = regionName,
-                courseName = "${regionName} 여행"
                 course = current.course.copy(
+                    courseId = UUID.randomUUID().toString(),
                     destination = regionName,
                     courseName = "${regionName} 여행"
                 )

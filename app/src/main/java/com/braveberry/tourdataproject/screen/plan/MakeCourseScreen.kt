@@ -183,7 +183,6 @@ fun MakeCourseRoute(
                 is CourseEffect.NavigateToMapScreen -> { /* TODO */ }
 
                 is CourseEffect.NavigateToHomeScreen -> { onNavigateToHome() }
-                is CourseEffect.NavigateToHomeScreen -> { /* TODO */ }
                 is CourseEffect.NavigateToEditSchedule -> {
                     onNavigateToEditSchedule(effect.dayNumber)
                 }
@@ -206,7 +205,7 @@ fun MakeCourseRoute(
             onSharedEvent = sharedViewModel::setEvent,
             onFinalSaveClick = {
                 Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
-                makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState))
+                makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState.course))
                 onNavigateToHome()
             }
         )

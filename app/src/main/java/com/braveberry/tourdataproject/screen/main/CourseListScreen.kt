@@ -1,4 +1,4 @@
-package com.braveberry.tourdataproject.screen.plan
+package com.braveberry.tourdataproject.screen.main
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,8 +43,6 @@ import com.tourdataproject.presentation.viewmodel.course.courseList.CourseListVi
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 // ================= 색상 정의 (이미지 기반 파스텔 톤) =================
 val MintCardBg = Color(0xFFE4F2F1)

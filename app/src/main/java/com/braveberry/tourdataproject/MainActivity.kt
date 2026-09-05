@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -13,20 +12,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.braveberry.tourdataproject.screen.MockStartScreen
 import com.braveberry.tourdataproject.screen.kakaoMap.KakaoMapSearchRoute
 import com.braveberry.tourdataproject.screen.plan.AddLocationRoute
 import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
-import com.braveberry.tourdataproject.screen.plan.ListRoute
+import com.braveberry.tourdataproject.screen.main.ListRoute
 import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
-import com.tourdataproject.presentation.viewmodel.splash.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

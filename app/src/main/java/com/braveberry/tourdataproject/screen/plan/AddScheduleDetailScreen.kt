@@ -55,8 +55,8 @@ fun AddScheduleDetailRoute(
     onNavigateBack: () -> Unit,
     onNavigateToCourse: () -> Unit
 ) {
-
-    val draftSchedule by sharedViewModel.draftSchedule.collectAsState()
+    val sharedState by sharedViewModel.sharedState.collectAsState()
+    val draftSchedule = sharedState.draftSchedule
     val initModel = draftSchedule.toInitModel()
 
     val uiState by viewModel.state.collectAsState()
@@ -109,6 +109,7 @@ fun AddScheduleDetailRoute(
         )
     }
 }
+
 
 @Composable
 fun AddScheduleDetailScreen(

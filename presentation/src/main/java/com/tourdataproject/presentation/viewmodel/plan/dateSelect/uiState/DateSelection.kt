@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 data class CalendarDayPresentationModel(
-    val date: LocalDate?, // null이면 빈 칸(Spacer)
+    val date: LocalDate?,
     val dayNumber: Int,
     val isStart: Boolean = false,
     val isEnd: Boolean = false,
@@ -20,23 +20,16 @@ data class CalendarMonthPresentationModel(
 )
 
 data class DateSelectionState(
-    val startDate: LocalDate? = null,
-    val endDate: LocalDate? = null,
-    val targetMonths: List<YearMonth> = emptyList(),
-    val calendarMonths: List<CalendarMonthPresentationModel> = emptyList()
-) {
-    val isNextButtonEnabled: Boolean
-        get() = startDate != null && endDate != null
+    val targetMonths: List<YearMonth> = emptyList()
+)
+
+sealed interface DateSelectionIntent {
+    object OnLoadMoreMonths : DateSelectionIntent
+    object OnNextButtonClicked : DateSelectionIntent
+    object OnBackButtonClicked : DateSelectionIntent
 }
 
-sealed class DateSelectionIntent {
-    data class OnDateSelected(val date: LocalDate) : DateSelectionIntent()
-    object OnLoadMoreMonths : DateSelectionIntent()
-    object OnNextButtonClicked : DateSelectionIntent()
-    object OnBackButtonClicked : DateSelectionIntent()
-}
-
-sealed class DateSelectionEffect {
-    object NavigateToNextScreen : DateSelectionEffect()
-    object NavigateBack : DateSelectionEffect()
+sealed interface DateSelectionEffect {
+    object NavigateToNextScreen : DateSelectionEffect
+    object NavigateBack : DateSelectionEffect
 }

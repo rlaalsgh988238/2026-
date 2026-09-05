@@ -28,11 +28,13 @@ import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarDayPresentationModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthPresentationModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionIntent
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import java.time.LocalDate
+import java.time.YearMonth
 
 @Composable
 fun DateSelectionRoute(
@@ -48,13 +50,7 @@ fun DateSelectionRoute(
         viewModel.effect.collect { currentEffect ->
             when (currentEffect) {
                 is DateSelectionEffect.NavigateToNextScreen -> {
-                    val start = state.startDate
-                    val end = state.endDate
-                    if (start != null && end != null) {
-                        sharedViewModel.onIntent(
-                            PlanSharedIntent.OnDateSelected(start, end)
-                        )
-                    }
+                    sharedViewModel.onIntent(PlanSharedIntent.OnConfirmDateSelection)
                     onNavigateToNext()
                 }
                 is DateSelectionEffect.NavigateBack -> onNavigateBack()
@@ -62,9 +58,36 @@ fun DateSelectionRoute(
         }
     }
 
+    val isDraftActive = sharedState.draftStartDate != null || sharedState.draftEndDate != null
+
+    val currentStartMillis = if (isDraftActive) {
+        sharedState.draftStartDate
+    } else {
+        sharedState.course.rawStartDate.takeIf { it != 0L }
+    }
+
+    val currentEndMillis = if (isDraftActive) {
+        sharedState.draftEndDate
+    } else {
+        sharedState.course.rawEndDate.takeIf { it != 0L }
+    }
+
+    val calendarMonths by remember(state.targetMonths, currentStartMillis, currentEndMillis) {
+        derivedStateOf {
+            viewModel.generateCalendarMonths(
+                yearMonths = state.targetMonths,
+                startMillis = currentStartMillis,
+                endMillis = currentEndMillis
+            )
+        }
+    }
+
+    val isNextEnabled = currentStartMillis != null && currentEndMillis != null
+
     DateSelectionScreen(
         state = state,
-        sharedState = sharedState,
+        calendarMonths = calendarMonths,
+        isNextEnabled = isNextEnabled,
         onIntent = viewModel::onIntent,
         onSharedIntent = sharedViewModel::onIntent
     )
@@ -74,7 +97,8 @@ fun DateSelectionRoute(
 @Composable
 fun DateSelectionScreen(
     state: DateSelectionState,
-    sharedState: PlanSharedState,
+    calendarMonths: List<CalendarMonthPresentationModel>,
+    isNextEnabled: Boolean,
     onIntent: (DateSelectionIntent) -> Unit,
     onSharedIntent: (PlanSharedIntent) -> Unit
 ) {
@@ -119,7 +143,7 @@ fun DateSelectionScreen(
                 ) {
                     Button(
                         onClick = { onIntent(DateSelectionIntent.OnNextButtonClicked) },
-                        enabled = state.isNextButtonEnabled,
+                        enabled = isNextEnabled,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PrimaryTeal,
                             disabledContainerColor = DisabledGray
@@ -151,10 +175,12 @@ fun DateSelectionScreen(
                 )
             }
 
-            items(state.calendarMonths) { monthModel ->
+            items(calendarMonths) { monthModel ->
                 CalendarMonthView(
                     month = monthModel,
-                    onDateSelected = { onIntent(DateSelectionIntent.OnDateSelected(it)) }
+                    onDateSelected = { date ->
+                        onSharedIntent(PlanSharedIntent.OnCalendarDateTapped(date))
+                    }
                 )
                 Spacer(modifier = Modifier.height(40.dp))
             }
@@ -242,7 +268,6 @@ fun DateCell(
     Box(
         modifier = modifier
             .aspectRatio(1.2f)
-            // 🌟 과거 날짜면 클릭 이벤트를 막음
             .then(if (!isPast) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
@@ -270,7 +295,7 @@ fun DateCell(
             fontWeight = if (isStart || isEnd) FontWeight.Bold else FontWeight.Normal,
             color = when {
                 isStart || isEnd -> Color.White
-                isPast -> Color.LightGray // 🌟 과거 날짜는 회색으로 표시
+                isPast -> Color.LightGray
                 isWeekend -> WeekendBlue
                 else -> Color.Black
             }
@@ -281,9 +306,26 @@ fun DateCell(
 @Preview(showBackground = true)
 @Composable
 fun DateSelectionScreenPreview() {
+    val dummyMonth = CalendarMonthPresentationModel(
+        yearMonth = YearMonth.now(),
+        title = "2026년 9월",
+        weeks = listOf(
+            listOf(
+                CalendarDayPresentationModel(date = null, dayNumber = 0),
+                CalendarDayPresentationModel(date = null, dayNumber = 0),
+                CalendarDayPresentationModel(date = LocalDate.now(), dayNumber = 1, isStart = true),
+                CalendarDayPresentationModel(date = LocalDate.now().plusDays(1), dayNumber = 2, isInRange = true),
+                CalendarDayPresentationModel(date = LocalDate.now().plusDays(2), dayNumber = 3, isEnd = true),
+                CalendarDayPresentationModel(date = LocalDate.now().plusDays(3), dayNumber = 4),
+                CalendarDayPresentationModel(date = LocalDate.now().plusDays(4), dayNumber = 5, isWeekend = true)
+            )
+        )
+    )
+
     DateSelectionScreen(
         state = DateSelectionState(),
-        sharedState = PlanSharedState(),
+        calendarMonths = listOf(dummyMonth),
+        isNextEnabled = true,
         onIntent = {},
         onSharedIntent = {}
     )

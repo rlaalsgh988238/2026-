@@ -21,7 +21,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
@@ -42,9 +44,7 @@ class PlanSharedViewModel @Inject constructor(
     val sharedState = _sharedState.asStateFlow()
 
     init {
-        // 뷰모델이 생성되는 시점에 인자 확인
         val courseId: String? = savedStateHandle["courseId"]
-
         if (courseId != null) {
             loadCourseById(courseId)
         }
@@ -55,7 +55,6 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.OnCitySelected -> handleCitySelected(intent.cityName)
             is PlanSharedIntent.OnCityDeselected -> handleCityDeselected()
             is PlanSharedIntent.OnGetCityPosition -> fetchRegionPosition(intent.cityName)
-            is PlanSharedIntent.OnDateSelected -> handleDateSelected(intent.startDate, intent.endDate)
             is PlanSharedIntent.OnCourseNameChanged -> updateCourseName(intent.newName)
             is PlanSharedIntent.OnAddScheduleToDay -> addScheduleToDay(intent.targetDay, intent.newPlace)
             is PlanSharedIntent.OnDeleteSchedule -> deleteSchedule(intent.targetDay, intent.scheduleIdToRemove)
@@ -66,10 +65,11 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.OnLoadCourseById -> loadCourseById(intent.courseId)
             is PlanSharedIntent.OnClearDraftSchedule -> clearDraftSchedule()
             is PlanSharedIntent.ClearPlanState -> clearState()
+            is PlanSharedIntent.OnCalendarDateTapped -> handleCalendarDateTapped(intent.date)
+            is PlanSharedIntent.OnConfirmDateSelection -> confirmDateSelection()
         }
     }
 
-    // TODO 이거 혹시 로드가 완전히 다 안되는거...? 왜 이렇게 됐는지 모르겠음
     private fun loadCourseById(courseId: String) {
         viewModelScope.launch {
             getCourseByIdUseCase(courseId).collectDataResource(
@@ -108,12 +108,7 @@ class PlanSharedViewModel @Inject constructor(
 
     private fun handleCitySelected(cityName: String) {
         _sharedState.update { current ->
-            val newCourseId = if (current.course.courseId.isBlank()) {
-                UUID.randomUUID().toString()
-            } else {
-                current.course.courseId
-            }
-
+            val newCourseId = if (current.course.courseId.isBlank()) UUID.randomUUID().toString() else current.course.courseId
             current.copy(
                 course = current.course.copy(
                     courseId = newCourseId,
@@ -127,16 +122,43 @@ class PlanSharedViewModel @Inject constructor(
 
     private fun handleCityDeselected() {
         _sharedState.update { current ->
+            current.copy(course = current.course.copy(destination = "", courseName = ""))
+        }
+    }
+
+    private fun handleCalendarDateTapped(clickedDate: LocalDate) {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        if (clickedDate.isBefore(today)) return
+
+        _sharedState.update { current ->
+            val start = current.draftStartDate?.toLocalDate()
+            val end = current.draftEndDate?.toLocalDate()
+
+            val (newStart, newEnd) = when {
+                start == null || (start != null && end != null) -> clickedDate to null
+                clickedDate.isBefore(start) -> clickedDate to null
+                clickedDate == start -> null to null
+                else -> start to clickedDate
+            }
+
+            Log.d(TAG, "날짜 선택됨: 시작일=${newStart ?: "미선택"}, 종료일=${newEnd ?: "미선택"}")
+
             current.copy(
-                course = current.course.copy(
-                    destination = "",
-                    courseName = ""
-                )
+                draftStartDate = newStart?.toEpochMillis(),
+                draftEndDate = newEnd?.toEpochMillis()
             )
         }
     }
 
-    private fun handleDateSelected(startDate: LocalDate, endDate: LocalDate) {
+
+    private fun confirmDateSelection() {
+        val state = _sharedState.value
+        val startLong = state.draftStartDate ?: return
+        val endLong = state.draftEndDate ?: return
+
+        val startDate = startLong.toLocalDate()
+        val endDate = endLong.toLocalDate()
+
         val result = calculateCourseDatesUseCase(startDate, endDate)
         val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
         val datePeriodString = "${startDate.format(periodFormatter)} ~ ${endDate.format(periodFormatter)}"
@@ -222,16 +244,22 @@ class PlanSharedViewModel @Inject constructor(
     }
 
     private fun clearState(){
-        _sharedState.update {
-            PlanSharedState()
-        }
+        _sharedState.update { PlanSharedState() }
     }
+
+    private fun Long.toLocalDate(): LocalDate =
+        Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
+
+    private fun LocalDate.toEpochMillis(): Long =
+        this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 }
 
 data class PlanSharedState(
     val course: TravelCoursePresentationModel = TravelCoursePresentationModel(),
     val currentAddingDayNumber: Int = 1,
     val draftSchedule: ScheduleItemUiModel? = null,
+    val draftStartDate: Long? = null,
+    val draftEndDate: Long? = null,
     val isLoading: Boolean = false
 )
 
@@ -246,8 +274,9 @@ sealed interface PlanSharedIntent {
     data class OnCitySelected(val cityName: String) : PlanSharedIntent
     data class OnGetCityPosition(val cityName: String): PlanSharedIntent
     object OnCityDeselected : PlanSharedIntent
-    data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedIntent
     data class OnLoadCourseById(val courseId: String) : PlanSharedIntent
     object OnClearDraftSchedule : PlanSharedIntent
     object ClearPlanState : PlanSharedIntent
+    data class OnCalendarDateTapped(val date: LocalDate) : PlanSharedIntent
+    object OnConfirmDateSelection : PlanSharedIntent
 }

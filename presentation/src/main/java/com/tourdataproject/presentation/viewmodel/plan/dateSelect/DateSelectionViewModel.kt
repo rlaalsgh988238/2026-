@@ -16,11 +16,11 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
-
 
 @HiltViewModel
 class DateSelectionViewModel @Inject constructor() : ViewModel() {
@@ -37,17 +37,11 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
     init {
         val currentMonth = YearMonth.now(ZoneId.systemDefault())
         val initialMonths = (0..5).map { currentMonth.plusMonths(it.toLong()) }
-        _state.update {
-            it.copy(
-                targetMonths = initialMonths,
-                calendarMonths = generateCalendarMonths(initialMonths, null, null)
-            )
-        }
+        _state.update { it.copy(targetMonths = initialMonths) }
     }
 
     fun onIntent(intent: DateSelectionIntent) {
         when (intent) {
-            is DateSelectionIntent.OnDateSelected -> selectByTap(intent.date)
             is DateSelectionIntent.OnLoadMoreMonths -> loadMoreMonths()
             is DateSelectionIntent.OnNextButtonClicked -> {
                 viewModelScope.launch { _effect.emit(DateSelectionEffect.NavigateToNextScreen) }
@@ -58,46 +52,22 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    private fun selectByTap(clickedDate: LocalDate) {
-        if (clickedDate.isBefore(today)) return
-
-        _state.update { current ->
-            val start = current.startDate
-            val end = current.endDate
-
-            val (newStart, newEnd) = when {
-                start == null || (start != null && end != null) -> clickedDate to null
-                clickedDate.isBefore(start) -> clickedDate to null
-                clickedDate == start -> null to null
-                else -> start to clickedDate
-            }
-
-            current.copy(
-                startDate = newStart,
-                endDate = newEnd,
-                calendarMonths = generateCalendarMonths(current.targetMonths, newStart, newEnd)
-            )
-        }
-    }
-
     private fun loadMoreMonths() {
         _state.update { current ->
             val last = current.targetMonths.lastOrNull() ?: return@update current
             val more = (1..loadMoreCount).map { last.plusMonths(it.toLong()) }
-            val newMonths = current.targetMonths + more
-
-            current.copy(
-                targetMonths = newMonths,
-                calendarMonths = generateCalendarMonths(newMonths, current.startDate, current.endDate)
-            )
+            current.copy(targetMonths = current.targetMonths + more)
         }
     }
 
-    private fun generateCalendarMonths(
+    fun generateCalendarMonths(
         yearMonths: List<YearMonth>,
-        startDate: LocalDate?,
-        endDate: LocalDate?
+        startMillis: Long?,
+        endMillis: Long?
     ): List<CalendarMonthPresentationModel> {
+        val startDate = startMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+        val endDate = endMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+
         return yearMonths.map { yearMonth ->
             val firstDayOfMonth = yearMonth.atDay(1)
             val firstDayOffset = if (firstDayOfMonth.dayOfWeek.value == 7) 0 else firstDayOfMonth.dayOfWeek.value
@@ -139,3 +109,4 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
         }
     }
 }
+

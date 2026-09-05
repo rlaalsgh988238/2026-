@@ -24,16 +24,20 @@ fun MockStartScreen(
     ) {
         Button(
             onClick = {
-
-             sharedViewModel.onIntent(PlanSharedIntent.OnCitySelected("서울"))
+                // 1. 도시 선택
+                sharedViewModel.onIntent(PlanSharedIntent.OnCitySelected("서울"))
 
                 // 2. 가짜 날짜 강제 주입 (오늘부터 모레까지 2박 3일)
+                // 사용자가 시작일을 터치한 상황 흉내
                 sharedViewModel.onIntent(
-                    PlanSharedIntent.OnDateSelected(
-                        startDate = LocalDate.now(),
-                        endDate = LocalDate.now().plusDays(2)
-                    )
+                    PlanSharedIntent.OnCalendarDateTapped(LocalDate.now())
                 )
+                // 사용자가 종료일을 터치한 상황 흉내
+                sharedViewModel.onIntent(
+                    PlanSharedIntent.OnCalendarDateTapped(LocalDate.now().plusDays(2))
+                )
+                // 사용자가 '다음' 버튼을 눌러 확정한 상황 흉내
+                sharedViewModel.onIntent(PlanSharedIntent.OnConfirmDateSelection)
 
                 // 3. 내가 만든 메인 코스 화면으로 쏴버리기
                 onNavigateToMakeCourse()

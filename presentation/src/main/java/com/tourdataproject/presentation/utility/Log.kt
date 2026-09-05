@@ -4,7 +4,7 @@ import android.util.Log
 
 object Log {
     private const val BASE_TAG = "MyTag_Presentation"
-    private const val PREFIX = "MyTag_"
+    private const val END_TAG = "_MyTag"
 
     // Debug
     fun d(msg: String) {
@@ -12,7 +12,7 @@ object Log {
     }
 
     fun d(tag: String, msg: String) {
-        Log.d(PREFIX + tag, msg)
+        Log.d(tag + END_TAG, msg)
     }
 
     // Error
@@ -21,11 +21,11 @@ object Log {
     }
 
     fun e(tag: String, msg: String) {
-        Log.e(PREFIX + tag, msg)
+        Log.e(tag + END_TAG, msg)
     }
 
     fun e(tag: String, msg: String, e: Throwable) {
-        Log.e(PREFIX + tag, msg, e)
+        Log.e(tag + END_TAG, msg, e)
     }
 
     // Info
@@ -34,6 +34,6 @@ object Log {
     }
 
     fun i(tag: String, msg: String) {
-        Log.i(PREFIX + tag, msg)
+        Log.i(tag + END_TAG, msg)
     }
 }

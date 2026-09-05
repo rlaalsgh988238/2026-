@@ -57,7 +57,7 @@ import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 import com.tourdataproject.presentation.utility.Log
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
@@ -88,7 +88,7 @@ fun ScheduleEditRoute(
                 is ScheduleEditEffect.NavigateBack -> onNavigateBack()
                 is ScheduleEditEffect.ShowToast -> onShowToast(effect.message)
                 is ScheduleEditEffect.SaveToShared -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnReorderSchedules(effect.dayNumber, effect.schedules))
+                    sharedViewModel.onIntent(PlanSharedIntent.OnReorderSchedules(effect.dayNumber, effect.schedules))
                 }
             }
         }

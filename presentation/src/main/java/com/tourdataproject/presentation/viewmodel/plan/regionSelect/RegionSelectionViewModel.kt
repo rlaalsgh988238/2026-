@@ -5,15 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
 import com.tourdataproject.domain.usecase.plan.GetRegionByKeywordUseCase
-import com.tourdataproject.presentation.model.RegionUiModel
-import com.tourdataproject.presentation.model.toUiModel
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.toUiModel
 import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
-import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionIntent
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -28,7 +25,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class RegionSelectionViewModel @Inject constructor(
     private val getPopularCitiesUseCase: GetPopularCitiesUseCase,
@@ -50,44 +46,16 @@ class RegionSelectionViewModel @Inject constructor(
         observeSearchQuery()
     }
 
-    fun setEvent(event: RegionSelectionEvent) {
-        when (event) {
-            is RegionSelectionEvent.OnSearchQueryChanged -> handleSearchQueryChanged(event.query)
-            is RegionSelectionEvent.OnCitySelected -> handleCitySelected(event.city)
-            is RegionSelectionEvent.OnCityDeselected -> handleCityDeselected()
-            is RegionSelectionEvent.OnNextButtonClicked -> handleNextButtonClicked()
-            is RegionSelectionEvent.OnBackButtonClicked -> handleBackButtonClicked()
+    fun onIntent(intent: RegionSelectionIntent) {
+        when (intent) {
+            is RegionSelectionIntent.OnSearchQueryChanged -> handleSearchQueryChanged(intent.query)
+            is RegionSelectionIntent.OnBackButtonClicked -> handleBackButtonClicked()
         }
     }
 
     private fun handleSearchQueryChanged(query: String) {
         _state.update { it.copy(searchQuery = query) }
         searchQueryFlow.value = query
-    }
-
-    private fun handleCitySelected(city: RegionUiModel) {
-        _state.update {
-            it.copy(
-                selectedCity = city,
-                searchQuery = "",
-                searchResults = emptyList(),
-                isSearching = false
-            )
-        }
-        Log.d(TAG, city.shortName)
-        searchQueryFlow.value = ""
-    }
-
-    private fun handleCityDeselected() {
-        _state.update { it.copy(selectedCity = null) }
-    }
-
-    private fun handleNextButtonClicked() {
-        val selected = _state.value.selectedCity ?: return
-        val regionName = selected.city ?: selected.province
-        viewModelScope.launch {
-            _effect.emit(RegionSelectionEffect.NavigateToDateSelection(regionName))
-        }
     }
 
     private fun handleBackButtonClicked() {

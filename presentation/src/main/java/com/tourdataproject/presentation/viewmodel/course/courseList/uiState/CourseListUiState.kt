@@ -1,6 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.course.courseList.uiState
 
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
 import com.tourdataproject.presentation.utility.Log
 import java.time.Instant
 import java.time.LocalDate
@@ -35,7 +35,7 @@ sealed interface CourseListEffect {
 // ================= 여기서부터 ViewModel이 사용할 매퍼(조립 공정) =================
 
 // 4. DB에서 가져온 원본 리스트(TravelCourseUiModel)를 UI State로 예쁘게 포장해주는 확장 함수
-fun List<TravelCourseUiModel>.toCourseListState(): CourseListUiState {
+fun List<TravelCoursePresentationModel>.toCourseListState(): CourseListUiState {
     return try {
         if (this.isEmpty()) {
             return CourseListUiState(isLoading = false, courses = emptyList())

@@ -23,7 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthUiModel
@@ -48,8 +48,8 @@ fun DateSelectionRoute(
                     val start = state.startDate
                     val end = state.endDate
                     if (start != null && end != null) {
-                        sharedViewModel.setEvent(
-                            PlanSharedEvent.OnDateSelected(start, end)
+                        sharedViewModel.onIntent(
+                            PlanSharedIntent.OnDateSelected(start, end)
                         )
                     }
                     onNavigateToNext()

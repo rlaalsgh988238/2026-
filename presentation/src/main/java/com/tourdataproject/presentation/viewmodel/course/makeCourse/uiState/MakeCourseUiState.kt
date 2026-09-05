@@ -1,11 +1,11 @@
 package com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState
 
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
 
 data class CourseState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
-    val course: TravelCourseUiModel? = null,
+    val course: TravelCoursePresentationModel? = null,
     val errorMessage: String? = null
 )
 
@@ -18,7 +18,7 @@ sealed interface CourseEvent {
     object OnMapButtonClicked : CourseEvent
     object OnNextButtonClicked : CourseEvent
     //저장 버튼
-    data class OnSaveButtonClicked(val finalCourse: TravelCourseUiModel) : CourseEvent
+    data class OnSaveButtonClicked(val finalCourse: TravelCoursePresentationModel) : CourseEvent
 
     data class OnAddScheduleClicked(val dayNumber: Int) : CourseEvent
     data class OnScheduleItemClicked(val scheduleId: String) : CourseEvent

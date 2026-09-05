@@ -1,8 +1,8 @@
-package com.tourdataproject.presentation.model
+package com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState
 
 import com.tourdataproject.domain.model.Region
 
-data class RegionUiModel(
+data class RegionPresentationModel(
     val code: String,
     val province: String,
     val city: String? = null,
@@ -10,6 +10,13 @@ data class RegionUiModel(
     val village: String? = null,
     val isPopular: Boolean = false
 ) {
+    val exactName: String
+        get(){
+            city?.let {
+                return "${province} ${city}"
+            }
+            return province
+        }
     val shortName: String
         get() {
             // 1. 우선순위: town(읍면동) -> city(시군구) -> province(도)
@@ -50,7 +57,7 @@ data class RegionUiModel(
 
 
 
-internal fun RegionUiModel.toDomain() =
+internal fun RegionPresentationModel.toDomain() =
     Region(
         code,
         province,
@@ -61,6 +68,6 @@ internal fun RegionUiModel.toDomain() =
     )
 
 internal fun Region.toUiModel() =
-    RegionUiModel(
+    RegionPresentationModel(
         code, province, city, town, village, isPopular
     )

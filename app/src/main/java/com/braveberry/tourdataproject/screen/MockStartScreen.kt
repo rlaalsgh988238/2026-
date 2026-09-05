@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import java.time.LocalDate
 
@@ -25,11 +25,11 @@ fun MockStartScreen(
         Button(
             onClick = {
 
-             sharedViewModel.setEvent(PlanSharedEvent.OnCitySelected("서울"))
+             sharedViewModel.onIntent(PlanSharedIntent.OnCitySelected("서울"))
 
                 // 2. 가짜 날짜 강제 주입 (오늘부터 모레까지 2박 3일)
-                sharedViewModel.setEvent(
-                    PlanSharedEvent.OnDateSelected(
+                sharedViewModel.onIntent(
+                    PlanSharedIntent.OnDateSelected(
                         startDate = LocalDate.now(),
                         endDate = LocalDate.now().plusDays(2)
                     )

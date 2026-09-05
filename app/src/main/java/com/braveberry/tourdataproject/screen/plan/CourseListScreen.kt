@@ -39,17 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
 import com.tourdataproject.presentation.viewmodel.course.courseList.CourseListViewModel
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 
 // ================= 색상 정의 (이미지 기반 파스텔 톤) =================
 val MintCardBg = Color(0xFFE4F2F1)
@@ -80,7 +75,7 @@ fun ListRoute(
                 is CourseListEffect.NavigateToCreatePlan -> onNavigateToCreateNewCourse()
                 is CourseListEffect.NavigateToRestroomGuide -> { /* TODO */ }
                 is CourseListEffect.NavigateToCourseDetail -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnLoadCourseById(effect.courseId))
+                    sharedViewModel.onIntent(PlanSharedIntent.OnLoadCourseById(effect.courseId))
                     onNavigateToCourseDetail()
                 }
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)

@@ -49,7 +49,7 @@ import com.tourdataproject.presentation.KakaoMapEffect
 import com.tourdataproject.presentation.KakaoMapEvent
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent // 🌟 이벤트 임포트
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -88,7 +88,7 @@ fun KakaoMapSearchRoute(
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
                 is KakaoMapEffect.NavigateNextScreen -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnSetDraftSchedule(effect.place))
+                    sharedViewModel.onIntent(PlanSharedIntent.OnSetDraftSchedule(effect.place))
                     onNavigateToNext()
                 }
             }
@@ -96,7 +96,7 @@ fun KakaoMapSearchRoute(
     }
 
     val handleBackClick = {
-        sharedViewModel.setEvent(PlanSharedEvent.OnClearDraftSchedule)
+        sharedViewModel.onIntent(PlanSharedIntent.OnClearDraftSchedule)
         onBackClick()
     }
 

@@ -4,7 +4,7 @@ import com.tourdataproject.domain.model.course.TravelCourse
 import com.tourdataproject.presentation.mapper.UiMapper
 import com.tourdataproject.presentation.mapper.mapListToDomain
 
-data class TravelCourseUiModel(
+data class TravelCoursePresentationModel(
     val courseId: String = "",    //고유값
     val destination: String = "", // 여기 기준으로 검색 필터링 (필요하다면?)
     val destinationLatitude: Double = 0.0,

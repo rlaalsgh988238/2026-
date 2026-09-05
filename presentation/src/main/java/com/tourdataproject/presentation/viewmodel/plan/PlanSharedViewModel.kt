@@ -13,7 +13,7 @@ import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
 import com.tourdataproject.presentation.utility.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,19 +39,21 @@ class PlanSharedViewModel @Inject constructor(
     private val _sharedState = MutableStateFlow(PlanSharedState())
     val sharedState = _sharedState.asStateFlow()
 
-    fun setEvent(event: PlanSharedEvent) {
-        when (event) {
-            is PlanSharedEvent.OnCitySelected -> handleCitySelected(event.cityName)
-            is PlanSharedEvent.OnDateSelected -> handleDateSelected(event.startDate, event.endDate)
-            is PlanSharedEvent.OnCourseNameChanged -> updateCourseName(event.newName)
-            is PlanSharedEvent.OnAddScheduleToDay -> addScheduleToDay(event.targetDay, event.newPlace)
-            is PlanSharedEvent.OnDeleteSchedule -> deleteSchedule(event.targetDay, event.scheduleIdToRemove)
-            is PlanSharedEvent.OnReorderSchedules -> reorderSchedules(event.targetDay, event.reorderedSchedules)
-            is PlanSharedEvent.OnSetAddingDayNumber -> updateAddingDayNumber(event.dayNumber)
-            is PlanSharedEvent.OnSetDraftSchedule -> setDraftSchedule(event.place)
-            is PlanSharedEvent.OnConfirmAndAddSchedule -> confirmAndAddSchedule(event.memoInput, event.accessibilityInfo)
-            is PlanSharedEvent.OnLoadCourseById -> loadCourseById(event.courseId)
-            is PlanSharedEvent.OnClearDraftSchedule -> clearDraftSchedule()
+    fun onIntent(intent: PlanSharedIntent) {
+        when (intent) {
+            is PlanSharedIntent.OnCitySelected -> handleCitySelected(intent.cityName)
+            is PlanSharedIntent.OnCityDeselected -> handleCityDeselected()
+            is PlanSharedIntent.OnGetCityPosition -> fetchRegionPosition(intent.cityName)
+            is PlanSharedIntent.OnDateSelected -> handleDateSelected(intent.startDate, intent.endDate)
+            is PlanSharedIntent.OnCourseNameChanged -> updateCourseName(intent.newName)
+            is PlanSharedIntent.OnAddScheduleToDay -> addScheduleToDay(intent.targetDay, intent.newPlace)
+            is PlanSharedIntent.OnDeleteSchedule -> deleteSchedule(intent.targetDay, intent.scheduleIdToRemove)
+            is PlanSharedIntent.OnReorderSchedules -> reorderSchedules(intent.targetDay, intent.reorderedSchedules)
+            is PlanSharedIntent.OnSetAddingDayNumber -> updateAddingDayNumber(intent.dayNumber)
+            is PlanSharedIntent.OnSetDraftSchedule -> setDraftSchedule(intent.place)
+            is PlanSharedIntent.OnConfirmAndAddSchedule -> confirmAndAddSchedule(intent.memoInput, intent.accessibilityInfo)
+            is PlanSharedIntent.OnLoadCourseById -> loadCourseById(intent.courseId)
+            is PlanSharedIntent.OnClearDraftSchedule -> clearDraftSchedule()
         }
     }
 
@@ -84,6 +86,7 @@ class PlanSharedViewModel @Inject constructor(
                             )
                         )
                     }
+                    Log.d(TAG, "좌표: ${location.latitude},${location.longitude}")
                 },
                 onError = { Log.e(TAG, "좌표 복구 에러: ${it.message}") }
             )
@@ -92,21 +95,36 @@ class PlanSharedViewModel @Inject constructor(
 
     private fun handleCitySelected(cityName: String) {
         _sharedState.update { current ->
+            val newCourseId = if (current.course.courseId.isBlank()) {
+                UUID.randomUUID().toString()
+            } else {
+                current.course.courseId
+            }
+
             current.copy(
                 course = current.course.copy(
-                    courseId = UUID.randomUUID().toString(),
+                    courseId = newCourseId,
                     destination = cityName,
                     courseName = "${cityName} 여행"
                 )
             )
         }
-        fetchRegionPosition(cityName)
         Log.d(TAG, cityName)
+    }
+
+    private fun handleCityDeselected() {
+        _sharedState.update { current ->
+            current.copy(
+                course = current.course.copy(
+                    destination = "",
+                    courseName = ""
+                )
+            )
+        }
     }
 
     private fun handleDateSelected(startDate: LocalDate, endDate: LocalDate) {
         val result = calculateCourseDatesUseCase(startDate, endDate)
-
         val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
         val datePeriodString = "${startDate.format(periodFormatter)} ~ ${endDate.format(periodFormatter)}"
 
@@ -130,10 +148,7 @@ class PlanSharedViewModel @Inject constructor(
         _sharedState.update { currentState ->
             val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
             val updatedDomainPlans = addScheduleToDayUseCase(currentDomainPlans, targetDay, newPlace.toDomain())
-
-            currentState.copy(
-                course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() })
-            )
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
     }
 
@@ -141,10 +156,7 @@ class PlanSharedViewModel @Inject constructor(
         _sharedState.update { currentState ->
             val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
             val updatedDomainPlans = deleteScheduleUseCase(currentDomainPlans, targetDay, scheduleIdToRemove)
-
-            currentState.copy(
-                course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() })
-            )
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
     }
 
@@ -153,10 +165,7 @@ class PlanSharedViewModel @Inject constructor(
             val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
             val domainReordered = reorderedSchedules.map { it.toDomain() }
             val updatedDomainPlans = reorderSchedulesUseCase(currentDomainPlans, targetDay, domainReordered)
-
-            currentState.copy(
-                course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() })
-            )
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
     }
 
@@ -181,13 +190,10 @@ class PlanSharedViewModel @Inject constructor(
     private fun confirmAndAddSchedule(memoInput: String, accessibilityInfo: AccessibilityInfoUiModel?) {
         val currentState = _sharedState.value
         val draft = currentState.draftSchedule ?: return
-
         val finalSchedule = draft.copy(
             memo = memoInput,
             accessibilityInfo = accessibilityInfo ?: AccessibilityInfoUiModel()
         )
-
-        // 기존 addScheduleToDay 로직 재활용
         addScheduleToDay(currentState.currentAddingDayNumber, finalSchedule)
         clearDraftSchedule()
     }
@@ -198,30 +204,24 @@ class PlanSharedViewModel @Inject constructor(
 }
 
 data class PlanSharedState(
-    val course: TravelCourseUiModel = TravelCourseUiModel(),
+    val course: TravelCoursePresentationModel = TravelCoursePresentationModel(),
     val currentAddingDayNumber: Int = 1,
     val draftSchedule: ScheduleItemUiModel? = null,
     val isLoading: Boolean = false
 )
 
-sealed interface PlanSharedEvent {
-    data class OnCourseNameChanged(val newName: String) : PlanSharedEvent
-    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) : PlanSharedEvent
-    data class OnDeleteSchedule(val targetDay: Int, val scheduleIdToRemove: String) : PlanSharedEvent
-    data class OnReorderSchedules(
-        val targetDay: Int,
-        val reorderedSchedules: List<ScheduleItemUiModel>
-    ) : PlanSharedEvent
-    data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedEvent
-    data class OnSetDraftSchedule(val place: KakaoMapUiModel) : PlanSharedEvent
-    data class OnConfirmAndAddSchedule(
-        val memoInput: String,
-        val accessibilityInfo: AccessibilityInfoUiModel?
-    ) : PlanSharedEvent
-
-    data class OnCitySelected(val cityName: String) : PlanSharedEvent
-    data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedEvent
-    data class OnLoadCourseById(val courseId: String) : PlanSharedEvent
-
-    object OnClearDraftSchedule : PlanSharedEvent
+sealed interface PlanSharedIntent {
+    data class OnCourseNameChanged(val newName: String) : PlanSharedIntent
+    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) : PlanSharedIntent
+    data class OnDeleteSchedule(val targetDay: Int, val scheduleIdToRemove: String) : PlanSharedIntent
+    data class OnReorderSchedules(val targetDay: Int, val reorderedSchedules: List<ScheduleItemUiModel>) : PlanSharedIntent
+    data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedIntent
+    data class OnSetDraftSchedule(val place: KakaoMapUiModel) : PlanSharedIntent
+    data class OnConfirmAndAddSchedule(val memoInput: String, val accessibilityInfo: AccessibilityInfoUiModel?) : PlanSharedIntent
+    data class OnCitySelected(val cityName: String) : PlanSharedIntent
+    data class OnGetCityPosition(val cityName: String): PlanSharedIntent
+    object OnCityDeselected : PlanSharedIntent
+    data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedIntent
+    data class OnLoadCourseById(val courseId: String) : PlanSharedIntent
+    object OnClearDraftSchedule : PlanSharedIntent
 }

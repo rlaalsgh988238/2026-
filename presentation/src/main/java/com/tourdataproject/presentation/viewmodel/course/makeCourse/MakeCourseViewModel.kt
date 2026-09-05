@@ -3,7 +3,7 @@ package com.tourdataproject.presentation.viewmodel.course
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.domain.usecase.course.SaveCourseUseCase
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEvent
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseState
@@ -28,7 +28,7 @@ class MakeCourseViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<CourseEffect>()
     val effect: SharedFlow<CourseEffect> = _effect.asSharedFlow()
 
-    fun setInitialCourse(course: TravelCourseUiModel) { // 파라미터 타입 맞춰서!
+    fun setInitialCourse(course: TravelCoursePresentationModel) { // 파라미터 타입 맞춰서!
         try {
             android.util.Log.d("CrashCatch", "4. 뷰모델 setInitialCourse 진입함!")
             _state.update {
@@ -65,7 +65,7 @@ class MakeCourseViewModel @Inject constructor(
     }
 
 
-    fun saveFinalCourseToDB(finalCourse: TravelCourseUiModel) {
+    fun saveFinalCourseToDB(finalCourse: TravelCoursePresentationModel) {
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
             try {

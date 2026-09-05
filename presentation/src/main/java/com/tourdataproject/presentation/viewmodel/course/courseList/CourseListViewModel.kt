@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
 import com.tourdataproject.domain.usecase.course.GetAllCoursesUseCase
 import com.tourdataproject.presentation.mapper.toUiModel
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
 import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState

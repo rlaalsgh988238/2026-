@@ -64,7 +64,7 @@ import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEvent
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseState
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 data class MakeCourseUiState(
@@ -174,7 +174,7 @@ fun MakeCourseRoute(
                     onNavigateBack()
                 }
                 is CourseEffect.NavigateToAddSchedule ->{
-                    sharedViewModel.setEvent(PlanSharedEvent.OnSetAddingDayNumber(effect.dayNumber))
+                    sharedViewModel.onIntent(PlanSharedIntent.OnSetAddingDayNumber(effect.dayNumber))
                     onNavigateToAddSchedule()
                 }
                 is CourseEffect.ShowToast -> onShowToast(effect.message)
@@ -202,7 +202,7 @@ fun MakeCourseRoute(
         MakeCourseScreen(
             state = uiState,
             onEvent = makeCourseViewModel::onEvent,
-            onSharedEvent = sharedViewModel::setEvent,
+            onSharedEvent = sharedViewModel::onIntent,
             onFinalSaveClick = {
                 Log.d("MakeCourseDebug", "저장 버튼 클릭됨!")
                 makeCourseViewModel.onEvent(CourseEvent.OnSaveButtonClicked(sharedCourseState.course))
@@ -217,7 +217,7 @@ fun MakeCourseRoute(
 fun MakeCourseScreen(
     state: MakeCourseUiState,
     onEvent: (CourseEvent) -> Unit,
-    onSharedEvent: (PlanSharedEvent) -> Unit,
+    onSharedEvent: (PlanSharedIntent) -> Unit,
     onFinalSaveClick: () -> Unit
 ) {
     Scaffold(

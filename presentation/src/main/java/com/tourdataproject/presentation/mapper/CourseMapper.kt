@@ -9,7 +9,7 @@ import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
 import com.tourdataproject.presentation.model.course.DayPlanUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -42,7 +42,7 @@ fun DayPlan.toUiModel(): DayPlanUiModel {
     )
 }
 //TODO: 기획에 맞게 수정
-fun TravelCourse.toUiModel(): TravelCourseUiModel {
+fun TravelCourse.toUiModel(): TravelCoursePresentationModel {
     // 1. 전체 시작일과 종료일을 꺼냅니다.
     val startLocalDate = Instant.ofEpochMilli(this.startDate).atZone(ZoneId.systemDefault()).toLocalDate()
     val endLocalDate = Instant.ofEpochMilli(this.endDate).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -53,7 +53,7 @@ fun TravelCourse.toUiModel(): TravelCourseUiModel {
     val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     val generatedDatePeriod = "${startLocalDate.format(periodFormatter)} ~ ${endLocalDate.format(periodFormatter)}"
 
-    return TravelCourseUiModel(
+    return TravelCoursePresentationModel(
         courseId = this.courseId,
         destination = this.destination,
         courseName = this.courseName,

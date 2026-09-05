@@ -1,6 +1,5 @@
 package com.tourdataproject.presentation.viewmodel.plan
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
@@ -13,6 +12,7 @@ import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.DayPlanUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.utility.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

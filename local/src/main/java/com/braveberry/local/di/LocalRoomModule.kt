@@ -1,7 +1,6 @@
 package com.braveberry.local.di
 
 import android.content.Context
-import android.util.Log
 import androidx.room.Room
 import dagger.Module
 import dagger.Provides
@@ -14,6 +13,7 @@ import com.braveberry.local.roomDB.RoomConstant
 import com.braveberry.local.roomDB.dao.CourseDao
 import com.braveberry.local.roomDB.dao.RegionDataDao
 import com.braveberry.local.roomDB.dao.ToiletDataDao
+import com.braveberry.local.util.Log
 import javax.inject.Singleton
 
 @Module

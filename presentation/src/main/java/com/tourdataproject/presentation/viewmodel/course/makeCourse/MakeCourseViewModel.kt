@@ -1,6 +1,5 @@
 package com.tourdataproject.presentation.viewmodel.course
 
-import android.util.Log.e
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.domain.usecase.course.SaveCourseUseCase

@@ -1,7 +1,6 @@
 package com.braveberry.local.roomDB
 
 import android.content.Context
-import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -16,6 +15,7 @@ import com.braveberry.local.roomDB.dao.ToiletDataDao
 import com.braveberry.local.roomDB.dataLoader.regionDataLoader.initRegionTableFromCsv
 import com.braveberry.local.roomDB.dataLoader.toiletDataLoader.initToiletTableFromCsv
 import com.braveberry.local.util.CourseTypeConverter
+import com.braveberry.local.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

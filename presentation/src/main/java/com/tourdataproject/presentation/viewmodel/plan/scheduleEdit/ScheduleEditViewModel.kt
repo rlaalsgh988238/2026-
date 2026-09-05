@@ -1,10 +1,10 @@
 package com.tourdataproject.presentation.viewmodel.plan.scheduleEdit
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEvent
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditState

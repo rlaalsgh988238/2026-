@@ -1,7 +1,7 @@
 package com.tourdataproject.presentation.viewmodel.course.courseList.uiState
 
-import android.util.Log
 import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.utility.Log
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

@@ -1,11 +1,11 @@
 package com.tourdataproject.presentation.viewmodel.course.addSchedule
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.domain.usecase.calculateAceesibility.CalculateAccessibilityUseCase
 import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
+import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.AddScheduleDetailEffect
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.AddScheduleDetailUiState
 import dagger.hilt.android.lifecycle.HiltViewModel

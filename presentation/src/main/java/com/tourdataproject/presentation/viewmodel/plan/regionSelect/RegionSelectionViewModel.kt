@@ -1,12 +1,12 @@
 package com.tourdataproject.presentation.viewmodel.plan.regionSelect
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
 import com.tourdataproject.domain.usecase.plan.GetRegionByKeywordUseCase
 import com.tourdataproject.presentation.model.toUiModel
+import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState

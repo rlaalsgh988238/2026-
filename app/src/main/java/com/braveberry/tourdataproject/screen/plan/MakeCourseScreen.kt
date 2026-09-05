@@ -1,6 +1,5 @@
 package com.braveberry.tourdataproject.screen.plan
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -60,6 +59,7 @@ import com.braveberry.tourdataproject.ui.theme.Red
 import com.braveberry.tourdataproject.ui.theme.Yellow
 import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
+import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEvent

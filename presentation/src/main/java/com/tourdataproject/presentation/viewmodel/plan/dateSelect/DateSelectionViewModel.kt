@@ -2,10 +2,10 @@ package com.tourdataproject.presentation.viewmodel.plan.dateSelect
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarDayUiModel
-import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthUiModel
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarDayPresentationModel
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthPresentationModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
-import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionIntent
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -44,14 +44,14 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun setEvent(event: DateSelectionEvent) {
-        when (event) {
-            is DateSelectionEvent.OnDateSelected -> selectByTap(event.date)
-            is DateSelectionEvent.OnLoadMoreMonths -> loadMoreMonths()
-            is DateSelectionEvent.OnNextButtonClicked -> {
+    fun onIntent(intent: DateSelectionIntent) {
+        when (intent) {
+            is DateSelectionIntent.OnDateSelected -> selectByTap(intent.date)
+            is DateSelectionIntent.OnLoadMoreMonths -> loadMoreMonths()
+            is DateSelectionIntent.OnNextButtonClicked -> {
                 viewModelScope.launch { _effect.emit(DateSelectionEffect.NavigateToNextScreen) }
             }
-            is DateSelectionEvent.OnBackButtonClicked -> {
+            is DateSelectionIntent.OnBackButtonClicked -> {
                 viewModelScope.launch { _effect.emit(DateSelectionEffect.NavigateBack) }
             }
         }
@@ -96,7 +96,7 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
         yearMonths: List<YearMonth>,
         startDate: LocalDate?,
         endDate: LocalDate?
-    ): List<CalendarMonthUiModel> {
+    ): List<CalendarMonthPresentationModel> {
         return yearMonths.map { yearMonth ->
             val firstDayOfMonth = yearMonth.atDay(1)
             val firstDayOffset = if (firstDayOfMonth.dayOfWeek.value == 7) 0 else firstDayOfMonth.dayOfWeek.value
@@ -116,7 +116,7 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
                     val isWeekend = cellIndex % 7 == 0 || cellIndex % 7 == 6
                     val isPast = currentDate.isBefore(today) // 🌟 오늘 이전인지 확인
 
-                    CalendarDayUiModel(
+                    CalendarDayPresentationModel(
                         date = currentDate,
                         dayNumber = dayNumber,
                         isStart = isStart,
@@ -126,11 +126,11 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
                         isPast = isPast
                     )
                 } else {
-                    CalendarDayUiModel(date = null, dayNumber = 0)
+                    CalendarDayPresentationModel(date = null, dayNumber = 0)
                 }
             }
 
-            CalendarMonthUiModel(
+            CalendarMonthPresentationModel(
                 yearMonth = yearMonth,
                 title = "${yearMonth.year}년 ${yearMonth.monthValue}월",
                 weeks = days.chunked(7)

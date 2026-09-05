@@ -20,15 +20,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
-import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthUiModel
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthPresentationModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
-import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionIntent
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import java.time.LocalDate
 
@@ -39,7 +40,8 @@ fun DateSelectionRoute(
     onNavigateToNext: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { currentEffect ->
@@ -59,14 +61,14 @@ fun DateSelectionRoute(
         }
     }
 
-    DateSelectionScreen(state = state, onEvent = viewModel::setEvent)
+    DateSelectionScreen(state = state, onIntent = viewModel::onIntent)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateSelectionScreen(
     state: DateSelectionState,
-    onEvent: (DateSelectionEvent) -> Unit
+    onIntent: (DateSelectionIntent) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -79,7 +81,7 @@ fun DateSelectionScreen(
     }
 
     LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) onEvent(DateSelectionEvent.OnLoadMoreMonths)
+        if (shouldLoadMore) onIntent(DateSelectionIntent.OnLoadMoreMonths)
     }
 
     Scaffold(
@@ -88,7 +90,7 @@ fun DateSelectionScreen(
             CenterAlignedTopAppBar(
                 title = { Text("날짜 선택", fontSize = 18.sp, fontWeight = FontWeight.Medium) },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(DateSelectionEvent.OnBackButtonClicked) }) {
+                    IconButton(onClick = { onIntent(DateSelectionIntent.OnBackButtonClicked) }) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
@@ -108,7 +110,7 @@ fun DateSelectionScreen(
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
                     Button(
-                        onClick = { onEvent(DateSelectionEvent.OnNextButtonClicked) },
+                        onClick = { onIntent(DateSelectionIntent.OnNextButtonClicked) },
                         enabled = state.isNextButtonEnabled,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PrimaryTeal,
@@ -144,7 +146,7 @@ fun DateSelectionScreen(
             items(state.calendarMonths) { monthModel ->
                 CalendarMonthView(
                     month = monthModel,
-                    onDateSelected = { onEvent(DateSelectionEvent.OnDateSelected(it)) }
+                    onDateSelected = { onIntent(DateSelectionIntent.OnDateSelected(it)) }
                 )
                 Spacer(modifier = Modifier.height(40.dp))
             }
@@ -154,7 +156,7 @@ fun DateSelectionScreen(
 
 @Composable
 fun CalendarMonthView(
-    month: CalendarMonthUiModel,
+    month: CalendarMonthPresentationModel,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val daysOfWeek = listOf("일", "월", "화", "수", "목", "금", "토")
@@ -274,6 +276,6 @@ fun DateCell(
 fun DateSelectionScreenPreview() {
     DateSelectionScreen(
         state = DateSelectionState(),
-        onEvent = {}
+        onIntent = {}
     )
 }

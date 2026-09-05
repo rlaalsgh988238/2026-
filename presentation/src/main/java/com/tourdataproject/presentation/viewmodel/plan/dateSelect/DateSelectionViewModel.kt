@@ -114,7 +114,7 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
                     val isInRange = startDate != null && endDate != null &&
                             currentDate.isAfter(startDate) && currentDate.isBefore(endDate)
                     val isWeekend = cellIndex % 7 == 0 || cellIndex % 7 == 6
-                    val isPast = currentDate.isBefore(today) // 🌟 오늘 이전인지 확인
+                    val isPast = currentDate.isBefore(today)
 
                     CalendarDayPresentationModel(
                         date = currentDate,

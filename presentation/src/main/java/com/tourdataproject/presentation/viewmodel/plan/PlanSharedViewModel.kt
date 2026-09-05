@@ -1,5 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.plan
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
@@ -27,6 +28,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlanSharedViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val getRegionPositionUseCase: GetRegionPositionUseCase,
     private val getCourseByIdUseCase: GetCourseByIdUseCase,
     private val calculateCourseDatesUseCase: CalculateCourseDatesUseCase,
@@ -38,6 +40,15 @@ class PlanSharedViewModel @Inject constructor(
 
     private val _sharedState = MutableStateFlow(PlanSharedState())
     val sharedState = _sharedState.asStateFlow()
+
+    init {
+        // 뷰모델이 생성되는 시점에 인자 확인
+        val courseId: String? = savedStateHandle["courseId"]
+
+        if (courseId != null) {
+            loadCourseById(courseId)
+        }
+    }
 
     fun onIntent(intent: PlanSharedIntent) {
         when (intent) {
@@ -54,9 +65,11 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.OnConfirmAndAddSchedule -> confirmAndAddSchedule(intent.memoInput, intent.accessibilityInfo)
             is PlanSharedIntent.OnLoadCourseById -> loadCourseById(intent.courseId)
             is PlanSharedIntent.OnClearDraftSchedule -> clearDraftSchedule()
+            is PlanSharedIntent.ClearPlanState -> clearState()
         }
     }
 
+    // TODO 이거 혹시 로드가 완전히 다 안되는거...? 왜 이렇게 됐는지 모르겠음
     private fun loadCourseById(courseId: String) {
         viewModelScope.launch {
             getCourseByIdUseCase(courseId).collectDataResource(
@@ -128,6 +141,8 @@ class PlanSharedViewModel @Inject constructor(
         val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
         val datePeriodString = "${startDate.format(periodFormatter)} ~ ${endDate.format(periodFormatter)}"
 
+        Log.d(TAG, datePeriodString)
+
         _sharedState.update { currentState ->
             currentState.copy(
                 course = currentState.course.copy(
@@ -142,6 +157,7 @@ class PlanSharedViewModel @Inject constructor(
 
     private fun updateCourseName(newName: String) {
         _sharedState.update { it.copy(course = it.course.copy(courseName = newName)) }
+        Log.d(TAG, "${newName}으로 수정")
     }
 
     private fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemUiModel) {
@@ -150,6 +166,7 @@ class PlanSharedViewModel @Inject constructor(
             val updatedDomainPlans = addScheduleToDayUseCase(currentDomainPlans, targetDay, newPlace.toDomain())
             currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
+        Log.d(TAG, "${newPlace.scheduleId} 추가")
     }
 
     private fun deleteSchedule(targetDay: Int, scheduleIdToRemove: String) {
@@ -158,6 +175,7 @@ class PlanSharedViewModel @Inject constructor(
             val updatedDomainPlans = deleteScheduleUseCase(currentDomainPlans, targetDay, scheduleIdToRemove)
             currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
+        Log.d(TAG, "${scheduleIdToRemove} 삭제")
     }
 
     private fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemUiModel>) {
@@ -167,6 +185,7 @@ class PlanSharedViewModel @Inject constructor(
             val updatedDomainPlans = reorderSchedulesUseCase(currentDomainPlans, targetDay, domainReordered)
             currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
+        Log.d(TAG, "스케줄 재정렬")
     }
 
     private fun updateAddingDayNumber(dayNumber: Int) {
@@ -201,6 +220,12 @@ class PlanSharedViewModel @Inject constructor(
     private fun clearDraftSchedule() {
         _sharedState.update { it.copy(draftSchedule = null) }
     }
+
+    private fun clearState(){
+        _sharedState.update {
+            PlanSharedState()
+        }
+    }
 }
 
 data class PlanSharedState(
@@ -224,4 +249,5 @@ sealed interface PlanSharedIntent {
     data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedIntent
     data class OnLoadCourseById(val courseId: String) : PlanSharedIntent
     object OnClearDraftSchedule : PlanSharedIntent
+    object ClearPlanState : PlanSharedIntent
 }

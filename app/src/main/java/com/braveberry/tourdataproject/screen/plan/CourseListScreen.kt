@@ -56,10 +56,9 @@ val YellowFabBg = Color(0xFFFFD54F)
 
 @Composable
 fun ListRoute(
-    sharedViewModel: PlanSharedViewModel,
     listViewModel: CourseListViewModel = hiltViewModel(),
     onNavigateToCreateNewCourse: () -> Unit,
-    onNavigateToCourseDetail: () -> Unit = {},
+    onNavigateToCourseDetail: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {}
 ) {
 
@@ -75,8 +74,7 @@ fun ListRoute(
                 is CourseListEffect.NavigateToCreatePlan -> onNavigateToCreateNewCourse()
                 is CourseListEffect.NavigateToRestroomGuide -> { /* TODO */ }
                 is CourseListEffect.NavigateToCourseDetail -> {
-                    sharedViewModel.onIntent(PlanSharedIntent.OnLoadCourseById(effect.courseId))
-                    onNavigateToCourseDetail()
+                    onNavigateToCourseDetail(effect.courseId)
                 }
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
             }

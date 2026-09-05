@@ -10,7 +10,7 @@ data class CalendarDayPresentationModel(
     val isEnd: Boolean = false,
     val isInRange: Boolean = false,
     val isWeekend: Boolean = false,
-    val isPast: Boolean = false // 🌟 과거 날짜 여부 추가
+    val isPast: Boolean = false
 )
 
 data class CalendarMonthPresentationModel(

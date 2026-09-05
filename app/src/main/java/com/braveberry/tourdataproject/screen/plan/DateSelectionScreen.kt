@@ -25,6 +25,7 @@ import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthPresentationModel
@@ -61,14 +62,21 @@ fun DateSelectionRoute(
         }
     }
 
-    DateSelectionScreen(state = state, onIntent = viewModel::onIntent)
+    DateSelectionScreen(
+        state = state,
+        sharedState = sharedState,
+        onIntent = viewModel::onIntent,
+        onSharedIntent = sharedViewModel::onIntent
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateSelectionScreen(
     state: DateSelectionState,
-    onIntent: (DateSelectionIntent) -> Unit
+    sharedState: PlanSharedState,
+    onIntent: (DateSelectionIntent) -> Unit,
+    onSharedIntent: (PlanSharedIntent) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -197,7 +205,6 @@ fun CalendarMonthView(
         month.weeks.forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 week.forEach { dayModel ->
-                    // 🌟 널 체크를 명시적인 변수로 빼서 컴파일 오류(스마트 캐스트 실패) 해결
                     val date = dayModel.date
                     if (date != null) {
                         DateCell(
@@ -276,6 +283,8 @@ fun DateCell(
 fun DateSelectionScreenPreview() {
     DateSelectionScreen(
         state = DateSelectionState(),
-        onIntent = {}
+        sharedState = PlanSharedState(),
+        onIntent = {},
+        onSharedIntent = {}
     )
 }

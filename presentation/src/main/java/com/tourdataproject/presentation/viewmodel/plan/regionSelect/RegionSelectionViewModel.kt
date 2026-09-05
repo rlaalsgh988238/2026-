@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
 import com.tourdataproject.domain.usecase.plan.GetRegionByKeywordUseCase
+import com.tourdataproject.presentation.model.RegionUiModel
 import com.tourdataproject.presentation.model.toUiModel
 import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
@@ -42,7 +43,6 @@ class RegionSelectionViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<RegionSelectionEffect>()
     val effect: SharedFlow<RegionSelectionEffect> = _effect.asSharedFlow()
 
-    // 검색어 입력 전용 스트림 (디바운스)
     private val searchQueryFlow = MutableStateFlow("")
 
     init {
@@ -52,42 +52,50 @@ class RegionSelectionViewModel @Inject constructor(
 
     fun setEvent(event: RegionSelectionEvent) {
         when (event) {
-            is RegionSelectionEvent.OnSearchQueryChanged -> {
-                _state.update { it.copy(searchQuery = event.query) }
-                searchQueryFlow.value = event.query
-            }
-            is RegionSelectionEvent.OnCitySelected -> {
-                // 선택하면 검색 상태를 정리하고 선택된 도시만 남김
-                _state.update {
-                    it.copy(
-                        selectedCity = event.city,
-                        searchQuery = "",
-                        searchResults = emptyList(),
-                        isSearching = false
-                    )
-                }
-                Log.d(TAG, event.city.shortName)
-                searchQueryFlow.value = ""
-            }
-            is RegionSelectionEvent.OnCityDeselected -> {
-                _state.update { it.copy(selectedCity = null) }
-            }
-            is RegionSelectionEvent.OnNextButtonClicked -> {
-                val selected = _state.value.selectedCity ?: return
-                val regionName = selected.city ?: selected.province
-                viewModelScope.launch {
-                    _effect.emit(RegionSelectionEffect.NavigateToDateSelection(regionName))
-                }
-            }
-            is RegionSelectionEvent.OnBackButtonClicked -> {
-                viewModelScope.launch {
-                    _effect.emit(RegionSelectionEffect.NavigateBack)
-                }
-            }
+            is RegionSelectionEvent.OnSearchQueryChanged -> handleSearchQueryChanged(event.query)
+            is RegionSelectionEvent.OnCitySelected -> handleCitySelected(event.city)
+            is RegionSelectionEvent.OnCityDeselected -> handleCityDeselected()
+            is RegionSelectionEvent.OnNextButtonClicked -> handleNextButtonClicked()
+            is RegionSelectionEvent.OnBackButtonClicked -> handleBackButtonClicked()
         }
     }
 
-    // 검색어가 바뀌면 300ms 대기 후 마지막 입력만 검색
+    private fun handleSearchQueryChanged(query: String) {
+        _state.update { it.copy(searchQuery = query) }
+        searchQueryFlow.value = query
+    }
+
+    private fun handleCitySelected(city: RegionUiModel) {
+        _state.update {
+            it.copy(
+                selectedCity = city,
+                searchQuery = "",
+                searchResults = emptyList(),
+                isSearching = false
+            )
+        }
+        Log.d(TAG, city.shortName)
+        searchQueryFlow.value = ""
+    }
+
+    private fun handleCityDeselected() {
+        _state.update { it.copy(selectedCity = null) }
+    }
+
+    private fun handleNextButtonClicked() {
+        val selected = _state.value.selectedCity ?: return
+        val regionName = selected.city ?: selected.province
+        viewModelScope.launch {
+            _effect.emit(RegionSelectionEffect.NavigateToDateSelection(regionName))
+        }
+    }
+
+    private fun handleBackButtonClicked() {
+        viewModelScope.launch {
+            _effect.emit(RegionSelectionEffect.NavigateBack)
+        }
+    }
+
     private fun observeSearchQuery() {
         viewModelScope.launch {
             searchQueryFlow

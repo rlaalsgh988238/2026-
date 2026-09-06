@@ -11,13 +11,13 @@ data class ScheduleEditState(
     val dayLabel: String = "Day $dayNumber"
 }
 
-sealed class ScheduleEditEvent {
-    data class OnInit(val dateLabel: String, val schedules: List<ScheduleItemUiModel>) : ScheduleEditEvent()
-    data class OnScheduleDeleted(val scheduleId: String) : ScheduleEditEvent()
-    data class OnScheduleMoved(val fromIndex: Int, val toIndex: Int) : ScheduleEditEvent()
-    object OnScheduleMoveFinished : ScheduleEditEvent()
-    object OnSaveClicked : ScheduleEditEvent()
-    object OnBackClicked : ScheduleEditEvent()
+sealed class ScheduleEditIntent {
+    data class OnInit(val dateLabel: String, val schedules: List<ScheduleItemUiModel>) : ScheduleEditIntent()
+    data class OnScheduleDeleted(val scheduleId: String) : ScheduleEditIntent()
+    data class OnScheduleMoved(val fromIndex: Int, val toIndex: Int) : ScheduleEditIntent()
+    object OnScheduleMoveFinished : ScheduleEditIntent()
+    object OnSaveClicked : ScheduleEditIntent()
+    object OnBackClicked : ScheduleEditIntent()
 }
 
 sealed class ScheduleEditEffect {

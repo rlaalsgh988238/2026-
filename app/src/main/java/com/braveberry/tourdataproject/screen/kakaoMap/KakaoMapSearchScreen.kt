@@ -49,7 +49,7 @@ import com.tourdataproject.presentation.KakaoMapEffect
 import com.tourdataproject.presentation.KakaoMapEvent
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트
+import com.tourdataproject.presentation.viewmodel.PlanSharedIntent // 🌟 이벤트 임포트
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds

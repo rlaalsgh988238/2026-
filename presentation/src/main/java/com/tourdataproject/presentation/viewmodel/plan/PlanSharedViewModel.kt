@@ -4,25 +4,35 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
+import com.tourdataproject.domain.model.PlanBackup
 import com.tourdataproject.domain.usecase.course.GetCourseByIdUseCase
 import com.tourdataproject.domain.usecase.course.SaveCourseUseCase
 import com.tourdataproject.domain.usecase.plan.AddScheduleToDayUseCase
 import com.tourdataproject.domain.usecase.plan.CalculateCourseDatesUseCase
+import com.tourdataproject.domain.usecase.plan.backUp.ClearPlanStateBackupUseCase
 import com.tourdataproject.domain.usecase.plan.DeleteScheduleUseCase
 import com.tourdataproject.domain.usecase.plan.GetRegionPositionUseCase
+import com.tourdataproject.domain.usecase.plan.backUp.GetRestoredPlanStateUseCase
 import com.tourdataproject.domain.usecase.plan.ReorderSchedulesUseCase
+import com.tourdataproject.domain.usecase.plan.backUp.SavePlanStateBackupUseCase
 import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.model.KakaoMapUiModel
 import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
 import com.tourdataproject.presentation.utility.Log
+import com.tourdataproject.presentation.viewmodel.PlanSharedEffect
+import com.tourdataproject.presentation.viewmodel.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.PlanSharedState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -32,31 +42,37 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class PlanSharedViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val getRegionPositionUseCase: GetRegionPositionUseCase,
     private val getCourseByIdUseCase: GetCourseByIdUseCase,
     private val calculateCourseDatesUseCase: CalculateCourseDatesUseCase,
     private val addScheduleToDayUseCase: AddScheduleToDayUseCase,
     private val deleteScheduleUseCase: DeleteScheduleUseCase,
     private val reorderSchedulesUseCase: ReorderSchedulesUseCase,
-    private val saveCourseUseCase: SaveCourseUseCase // 🌟 저장 유즈케이스 추가
+    private val saveCourseUseCase: SaveCourseUseCase,
+    private val getRestoredPlanStateUseCase: GetRestoredPlanStateUseCase,
+    private val savePlanStateBackupUseCase: SavePlanStateBackupUseCase,
+    private val clearPlanStateBackupUseCase: ClearPlanStateBackupUseCase
 ) : ViewModel() {
     private val TAG = "PlanSharedViewModel"
 
     private val _sharedState = MutableStateFlow(PlanSharedState())
     val sharedState = _sharedState.asStateFlow()
 
-    // 🌟 저장 완료 후 네비게이션 처리를 위한 Effect 추가
     private val _effect = MutableSharedFlow<PlanSharedEffect>()
     val effect: SharedFlow<PlanSharedEffect> = _effect.asSharedFlow()
 
     init {
-        val courseId: String? = savedStateHandle["courseId"]
-        if (courseId != null) {
-            loadCourseById(courseId)
-        }
+        backUpData()
+        initializePlanState()
+        observeAndBackupState()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
     }
 
     fun onIntent(intent: PlanSharedIntent) {
@@ -76,22 +92,90 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.ClearPlanState -> clearState()
             is PlanSharedIntent.OnCalendarDateTapped -> handleCalendarDateTapped(intent.date)
             is PlanSharedIntent.OnConfirmDateSelection -> confirmDateSelection()
-            is PlanSharedIntent.OnSaveCourse -> saveCourse() // 🌟 저장 인텐트 처리
+            is PlanSharedIntent.OnSaveCourse -> saveCourse()
+            is PlanSharedIntent.OnStoreBackUp -> storeBackUp(intent.state)
+            is PlanSharedIntent.OnClearBackUp -> clearBackUp()
         }
     }
 
-    // 🌟 SSOT가 직접 데이터를 저장하는 로직
+    private fun initializePlanState() {
+        val requestedCourseId: String? = savedStateHandle["courseId"]
+        if (requestedCourseId != null) {
+            onIntent(PlanSharedIntent.OnLoadCourseById(requestedCourseId))
+        }
+    }
+
+    private fun backUpData(){
+        viewModelScope.launch {
+            getRestoredPlanStateUseCase().collectDataResource(
+                onSuccess = { backup ->
+                    if (backup != null && backup != PlanSharedState()) {
+                        val restoredState = PlanSharedState(
+                            course = backup.course.toUiModel(),
+                            currentAddingDayNumber = backup.currentAddingDayNumber,
+                            draftStartDate = backup.draftStartDate,
+                            draftEndDate = backup.draftEndDate
+                        )
+                        onIntent(PlanSharedIntent.OnStoreBackUp(restoredState))
+                        Log.d(TAG, "프로세스 데스 복구 완료")
+                    } else{
+                        Log.d(TAG, "백업데이터 없음")
+                    }
+                },
+                onError = { Log.e(TAG, "백업 확인 실패: ${it.message}") }
+            )
+        }
+    }
+
+    private fun clearBackUp(){
+        viewModelScope.launch {
+            clearPlanStateBackupUseCase().collectDataResource(
+                onSuccess = {Log.d(TAG, "백업 데이터 삭제 성공")},
+                onError = {Log.d(TAG, "백업 데이터 삭제 실패")}
+            )
+        }
+    }
+
+    private fun storeBackUp(state: PlanSharedState){
+        _sharedState.value = state
+    }
+
+    private fun observeAndBackupState() {
+        viewModelScope.launch {
+            _sharedState
+                .drop(1)
+                .debounce(500L)
+                .collectLatest { state ->
+                    // UI State를 Domain Backup 모델로 변환하여 저장
+                    val backup = PlanBackup(
+                        course = state.course.toDomain(),
+                        currentAddingDayNumber = state.currentAddingDayNumber,
+                        draftStartDate = state.draftStartDate,
+                        draftEndDate = state.draftEndDate
+                    )
+                    savePlanStateBackupUseCase(backup).collectDataResource(
+                        onSuccess = { Log.d(TAG, "자동 백업 완료") },
+                        onError = { Log.e(TAG, "자동 백업 실패: ${it.message}") }
+                    )
+                }
+        }
+    }
+
     private fun saveCourse() {
         viewModelScope.launch {
-            _sharedState.update { it.copy(isSaving = true) }
             try {
                 Log.d(TAG, "🚨 코스저장 시도")
                 val currentCourse = _sharedState.value.course
                 saveCourseUseCase(currentCourse.toDomain())
-                _sharedState.update { it.copy(isSaving = false) }
+
+                // 🌟 코스 저장이 성공적으로 끝났으므로, 임시 백업 데이터를 삭제합니다.
+                clearPlanStateBackupUseCase().collectDataResource(
+                    onSuccess = { Log.d(TAG, "백업 데이터 초기화 완료") },
+                    onError = { Log.e(TAG, "백업 초기화 실패") }
+                )
+
                 _effect.emit(PlanSharedEffect.NavigateToHomeScreen)
             } catch (e: Exception) {
-                _sharedState.update { it.copy(isSaving = false) }
                 _effect.emit(PlanSharedEffect.ShowToast("코스 저장에 실패했습니다."))
                 Log.e(TAG, "코스 저장 에러: ${e.message}")
             }
@@ -99,27 +183,18 @@ class PlanSharedViewModel @Inject constructor(
     }
 
     private fun loadCourseById(courseId: String) {
-        _sharedState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             getCourseByIdUseCase(courseId).collectDataResource(
                 onSuccess = { domainCourse ->
                     if (domainCourse != null) {
                         val uiModel = domainCourse.toUiModel()
-                        _sharedState.update { it.copy(course = uiModel, isLoading = false) }
+                        _sharedState.update { it.copy(course = uiModel) }
                         if (uiModel.destination.isNotEmpty()) {
-                            fetchRegionPosition(uiModel.destination)
+                            onIntent(PlanSharedIntent.OnGetCityPosition(uiModel.destination))
                         }
-                    } else {
-                        _sharedState.update { it.copy(isLoading = false) }
                     }
                 },
-                onError = {
-                    _sharedState.update { it.copy(isLoading = false) }
-                    Log.e(TAG, "코스 불러오기 에러: ${it.message}")
-                },
-                onLoading = {
-
-                }
+                onError = { Log.e(TAG, "코스 불러오기 에러: ${it.message}") }
             )
         }
     }
@@ -284,45 +359,10 @@ class PlanSharedViewModel @Inject constructor(
     private fun clearState(){
         _sharedState.update { PlanSharedState() }
     }
-
-    private fun Long.toLocalDate(): LocalDate =
-        Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
-
-    private fun LocalDate.toEpochMillis(): Long =
-        this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 }
 
-data class PlanSharedState(
-    val course: TravelCoursePresentationModel = TravelCoursePresentationModel(),
-    val currentAddingDayNumber: Int = 1,
-    val draftSchedule: ScheduleItemUiModel? = null,
-    val draftStartDate: Long? = null,
-    val draftEndDate: Long? = null,
-    val isLoading: Boolean = false,
-    val isSaving: Boolean = false
-)
+private fun Long.toLocalDate(): LocalDate =
+    Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
 
-sealed interface PlanSharedIntent {
-    data class OnCourseNameChanged(val newName: String) : PlanSharedIntent
-    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) : PlanSharedIntent
-    data class OnDeleteSchedule(val targetDay: Int, val scheduleIdToRemove: String) : PlanSharedIntent
-    data class OnReorderSchedules(val targetDay: Int, val reorderedSchedules: List<ScheduleItemUiModel>) : PlanSharedIntent
-    data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedIntent
-    data class OnSetDraftSchedule(val place: KakaoMapUiModel) : PlanSharedIntent
-    data class OnConfirmAndAddSchedule(val memoInput: String, val accessibilityInfo: AccessibilityInfoUiModel?) : PlanSharedIntent
-    data class OnCitySelected(val cityName: String) : PlanSharedIntent
-    data class OnGetCityPosition(val cityName: String): PlanSharedIntent
-    object OnCityDeselected : PlanSharedIntent
-    data class OnLoadCourseById(val courseId: String) : PlanSharedIntent
-    object OnClearDraftSchedule : PlanSharedIntent
-    object ClearPlanState : PlanSharedIntent
-    data class OnCalendarDateTapped(val date: LocalDate) : PlanSharedIntent
-    object OnConfirmDateSelection : PlanSharedIntent
-    object OnSaveCourse : PlanSharedIntent
-}
-
-// 🌟 저장 완료 후 UI 처리를 위한 Effect 추가
-sealed interface PlanSharedEffect {
-    object NavigateToHomeScreen : PlanSharedEffect
-    data class ShowToast(val message: String) : PlanSharedEffect
-}
+private fun LocalDate.toEpochMillis(): Long =
+    this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()

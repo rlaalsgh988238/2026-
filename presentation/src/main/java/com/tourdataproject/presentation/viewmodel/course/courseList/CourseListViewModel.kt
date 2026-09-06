@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
 import com.tourdataproject.domain.usecase.course.GetAllCoursesUseCase
+import com.tourdataproject.domain.usecase.plan.backUp.ClearPlanStateBackupUseCase
 import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
@@ -23,7 +24,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CourseListViewModel @Inject constructor(
-    private val getAllCoursesUseCase: GetAllCoursesUseCase
+    private val getAllCoursesUseCase: GetAllCoursesUseCase,
+    private val clearPlanStateBackupUseCase: ClearPlanStateBackupUseCase
 ) : ViewModel() {
     private val TAG = "CourseListViewModel"
     private val _state = MutableStateFlow(CourseListUiState())
@@ -34,6 +36,10 @@ class CourseListViewModel @Inject constructor(
 
     fun loadCourses() {
         viewModelScope.launch {
+            clearPlanStateBackupUseCase().collectDataResource(
+                onSuccess = { Log.d(TAG, "백업데이터 삭제 성공")},
+                onError = {Log.d(TAG, "백업데이터 삭제 실패")}
+            )
             getAllCoursesUseCase().collectDataResource(
                 onSuccess = { domainCourses ->
                     Log.d(TAG, "DB에서 코스 ${domainCourses.size}개 불러오기 성공!")

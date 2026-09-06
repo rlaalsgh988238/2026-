@@ -9,5 +9,6 @@ internal object RoomConstant {
         const val USER = "user"
         const val COURSE = "course"
         const val REGION = "region"
+        const val BACKUP = "backUp"
     }
 }

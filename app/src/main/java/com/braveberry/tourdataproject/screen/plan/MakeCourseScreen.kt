@@ -34,8 +34,8 @@ import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseIntent
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEffect
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.PlanSharedEffect
+import com.tourdataproject.presentation.viewmodel.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 @Composable
@@ -80,27 +80,16 @@ fun MakeCourseRoute(
         }
     }
 
-    if (sharedState.isLoading) {
-        LoadingPopUp(message = "일정 정보를 가져오고 있습니다")
-    } else if (sharedState.isSaving) {
-        LoadingPopUp(message = "코스를 저장하고 있습니다")
-    } else if (uiState.isError) {
-        LaunchedEffect(uiState.errorMessage) {
-            Log.e("MakeCourseDebug", "🚨 에러 발생: ${uiState.errorMessage}")
-            onShowToast(uiState.errorMessage ?: "오류가 발생했습니다.")
-            onNavigateBack()
+    MakeCourseScreen(
+        state = uiState,
+        onIntent = makeCourseViewModel::onIntent,
+        onSharedIntent = sharedViewModel::onIntent,
+        onFinalSaveClick = {
+            sharedViewModel.onIntent(PlanSharedIntent.OnSaveCourse)
         }
-    } else {
-        MakeCourseScreen(
-            state = uiState,
-            onIntent = makeCourseViewModel::onIntent,
-            onSharedIntent = sharedViewModel::onIntent,
-            onFinalSaveClick = {
-                sharedViewModel.onIntent(PlanSharedIntent.OnSaveCourse)
-            }
-        )
-    }
+    )
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

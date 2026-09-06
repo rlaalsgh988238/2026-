@@ -22,7 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.AddScheduleDetailViewModel
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.AddScheduleDetailEffect
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트 추가
+import com.tourdataproject.presentation.viewmodel.PlanSharedIntent // 🌟 이벤트 임포트 추가
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 

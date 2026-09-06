@@ -24,8 +24,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
+import com.tourdataproject.presentation.viewmodel.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarDayPresentationModel

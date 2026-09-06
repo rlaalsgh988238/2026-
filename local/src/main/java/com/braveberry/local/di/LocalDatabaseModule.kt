@@ -3,6 +3,7 @@ package com.braveberry.local.di
 import android.content.Context
 import com.braveberry.local.roomDB.AppDatabase
 import com.braveberry.local.roomDB.DatabaseRegistrationManager
+import com.braveberry.local.roomDB.dao.PlanBackUpDao
 import com.braveberry.local.roomDB.dao.CourseDao
 import com.braveberry.local.roomDB.dao.RegionDataDao
 import com.braveberry.local.roomDB.dao.ToiletDataDao
@@ -41,4 +42,8 @@ internal object LocalDatabaseModule {
     @Provides
     @Singleton
     fun provideCourseDao(database: AppDatabase): CourseDao = database.courseDao()
+
+    @Provides
+    @Singleton
+    fun provideBackUpDao(database: AppDatabase): PlanBackUpDao = database.backupDao()
 }

@@ -5,4 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SystemDatasource {
     fun checkDatabaseInit(): Flow<DataResource<Unit>>
+    suspend fun storePlanBackUp(backUp: String)
+    suspend fun clearPlanBackUp()
+    suspend fun loadPlanBackUp(): String?
 }

@@ -7,8 +7,8 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class PlanBackup(
-    val course: TravelCourse,
     val currentAddingDayNumber: Int,
+    val course: TravelCourse,
     val draftStartDate: Long?,
     val draftEndDate: Long?
 )

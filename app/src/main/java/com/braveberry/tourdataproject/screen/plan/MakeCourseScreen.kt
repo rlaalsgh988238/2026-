@@ -25,17 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.R
-import com.braveberry.tourdataproject.screen.pop.LoadingPopUp
 import com.braveberry.tourdataproject.ui.theme.*
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
-import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
-import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityStatusPresentationModel
+import com.tourdataproject.presentation.model.plan.TravelCoursePresentationModel
 import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseIntent
-import com.tourdataproject.presentation.viewmodel.PlanSharedEffect
-import com.tourdataproject.presentation.viewmodel.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEffect
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
 @Composable
@@ -227,9 +226,9 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 val iconColor = when (schedule.accessibilityInfo?.status) {
-                    AccessibilityStatusUiModel.GOOD -> Green
-                    AccessibilityStatusUiModel.WARNING -> Yellow
-                    AccessibilityStatusUiModel.BAD -> Red
+                    AccessibilityStatusPresentationModel.GOOD -> Green
+                    AccessibilityStatusPresentationModel.WARNING -> Yellow
+                    AccessibilityStatusPresentationModel.BAD -> Red
                     else -> Color.Gray
                 }
                 Surface(shape = CircleShape, color = iconColor, modifier = Modifier.size(36.dp)) {
@@ -257,7 +256,7 @@ fun MakeCourseScreenPreview() {
                     order = 1,
                     memo = "바다 구경",
                     category = "관광지",
-                    accessibilityInfo = AccessibilityInfoUiModel(status = AccessibilityStatusUiModel.GOOD)
+                    accessibilityInfo = AccessibilityInfoPresentationModel(status = AccessibilityStatusPresentationModel.GOOD)
                 )
             )
         ),
@@ -307,7 +306,7 @@ data class MakeCourseScheduleState(
     val order: Int,
     val memo: String,
     val category: String?,
-    val accessibilityInfo: AccessibilityInfoUiModel? = null
+    val accessibilityInfo: AccessibilityInfoPresentationModel? = null
 )
 
 fun TravelCoursePresentationModel.toMakeCourseState(): MakeCourseUiState {

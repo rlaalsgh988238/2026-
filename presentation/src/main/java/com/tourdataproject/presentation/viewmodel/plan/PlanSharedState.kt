@@ -1,27 +1,27 @@
-package com.tourdataproject.presentation.viewmodel
+package com.tourdataproject.presentation.viewmodel.plan
 
-import com.tourdataproject.presentation.model.KakaoMapUiModel
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
+import com.tourdataproject.presentation.model.plan.TravelCoursePresentationModel
 import java.time.LocalDate
 
 data class PlanSharedState(
     val course: TravelCoursePresentationModel = TravelCoursePresentationModel(),
     val currentAddingDayNumber: Int = 1,
-    val draftSchedule: ScheduleItemUiModel? = null,
+    val draftSchedule: ScheduleItemPresentationModel? = null,
     val draftStartDate: Long? = null,
     val draftEndDate: Long? = null
 )
 
 sealed interface PlanSharedIntent {
     data class OnCourseNameChanged(val newName: String) : PlanSharedIntent
-    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) : PlanSharedIntent
+    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemPresentationModel) : PlanSharedIntent
     data class OnDeleteSchedule(val targetDay: Int, val scheduleIdToRemove: String) : PlanSharedIntent
-    data class OnReorderSchedules(val targetDay: Int, val reorderedSchedules: List<ScheduleItemUiModel>) : PlanSharedIntent
+    data class OnReorderSchedules(val targetDay: Int, val reorderedSchedules: List<ScheduleItemPresentationModel>) : PlanSharedIntent
     data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedIntent
-    data class OnSetDraftSchedule(val place: KakaoMapUiModel) : PlanSharedIntent
-    data class OnConfirmAndAddSchedule(val memoInput: String, val accessibilityInfo: AccessibilityInfoUiModel?) : PlanSharedIntent
+    data class OnSetDraftSchedule(val place: KakaoMapPresentationModel) : PlanSharedIntent
+    data class OnConfirmAndAddSchedule(val memoInput: String, val accessibilityInfo: AccessibilityInfoPresentationModel?) : PlanSharedIntent
     data class OnCitySelected(val cityName: String) : PlanSharedIntent
     data class OnGetCityPosition(val cityName: String): PlanSharedIntent
     object OnCityDeselected : PlanSharedIntent

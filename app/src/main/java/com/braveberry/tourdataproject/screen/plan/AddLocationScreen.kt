@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.braveberry.tourdataproject.ui.theme.SearchPlaceGray
 
-//TODO 여기 지금 뷰모델이 없어서 중간에 튕기면 아무것도 안나옴
+//TODO 여기 튕겼다가 다시 들어오면 검색 안됨
 @Composable
 fun AddLocationRoute(
     onNavigateBack: () -> Unit,

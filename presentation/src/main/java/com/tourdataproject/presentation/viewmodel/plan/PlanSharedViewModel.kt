@@ -16,13 +16,10 @@ import com.tourdataproject.domain.usecase.plan.backUp.GetRestoredPlanStateUseCas
 import com.tourdataproject.domain.usecase.plan.ReorderSchedulesUseCase
 import com.tourdataproject.domain.usecase.plan.backUp.SavePlanStateBackupUseCase
 import com.tourdataproject.presentation.mapper.toUiModel
-import com.tourdataproject.presentation.model.KakaoMapUiModel
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
 import com.tourdataproject.presentation.utility.Log
-import com.tourdataproject.presentation.viewmodel.PlanSharedEffect
-import com.tourdataproject.presentation.viewmodel.PlanSharedIntent
-import com.tourdataproject.presentation.viewmodel.PlanSharedState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -69,10 +66,6 @@ class PlanSharedViewModel @Inject constructor(
         backUpData()
         initializePlanState()
         observeAndBackupState()
-    }
-
-    override fun onCleared() {
-        super.onCleared()
     }
 
     fun onIntent(intent: PlanSharedIntent) {
@@ -295,7 +288,7 @@ class PlanSharedViewModel @Inject constructor(
         Log.d(TAG, "${newName}으로 수정")
     }
 
-    private fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemUiModel) {
+    private fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemPresentationModel) {
         _sharedState.update { currentState ->
             val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
             val updatedDomainPlans = addScheduleToDayUseCase(currentDomainPlans, targetDay, newPlace.toDomain())
@@ -313,7 +306,7 @@ class PlanSharedViewModel @Inject constructor(
         Log.d(TAG, "${scheduleIdToRemove} 삭제")
     }
 
-    private fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemUiModel>) {
+    private fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemPresentationModel>) {
         _sharedState.update { currentState ->
             val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
             val domainReordered = reorderedSchedules.map { it.toDomain() }
@@ -327,8 +320,8 @@ class PlanSharedViewModel @Inject constructor(
         _sharedState.update { it.copy(currentAddingDayNumber = dayNumber) }
     }
 
-    private fun setDraftSchedule(place: KakaoMapUiModel) {
-        val draft = ScheduleItemUiModel(
+    private fun setDraftSchedule(place: KakaoMapPresentationModel) {
+        val draft = ScheduleItemPresentationModel(
             scheduleId = UUID.randomUUID().toString(),
             scheduleName = place.placeName,
             latitude = place.y,
@@ -341,12 +334,12 @@ class PlanSharedViewModel @Inject constructor(
         _sharedState.update { it.copy(draftSchedule = draft) }
     }
 
-    private fun confirmAndAddSchedule(memoInput: String, accessibilityInfo: AccessibilityInfoUiModel?) {
+    private fun confirmAndAddSchedule(memoInput: String, accessibilityInfo: AccessibilityInfoPresentationModel?) {
         val currentState = _sharedState.value
         val draft = currentState.draftSchedule ?: return
         val finalSchedule = draft.copy(
             memo = memoInput,
-            accessibilityInfo = accessibilityInfo ?: AccessibilityInfoUiModel()
+            accessibilityInfo = accessibilityInfo ?: AccessibilityInfoPresentationModel()
         )
         addScheduleToDay(currentState.currentAddingDayNumber, finalSchedule)
         clearDraftSchedule()

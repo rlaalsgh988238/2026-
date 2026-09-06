@@ -33,8 +33,8 @@ import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.screen.pop.LoadingPopUp
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionPresentationModel
-import com.tourdataproject.presentation.viewmodel.PlanSharedIntent
-import com.tourdataproject.presentation.viewmodel.PlanSharedState
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionIntent

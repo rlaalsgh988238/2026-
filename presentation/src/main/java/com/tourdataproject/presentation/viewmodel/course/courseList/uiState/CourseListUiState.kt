@@ -1,6 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.course.courseList.uiState
 
-import com.tourdataproject.presentation.model.course.TravelCoursePresentationModel
+import com.tourdataproject.presentation.model.plan.TravelCoursePresentationModel
 import com.tourdataproject.presentation.utility.Log
 import java.time.Instant
 import java.time.LocalDate

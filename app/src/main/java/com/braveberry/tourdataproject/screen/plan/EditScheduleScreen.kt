@@ -56,10 +56,10 @@ import com.kakao.vectormap.route.RouteLineSegment
 import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
 import com.tourdataproject.presentation.utility.Log
-import com.tourdataproject.presentation.viewmodel.PlanSharedIntent
-import com.tourdataproject.presentation.viewmodel.PlanSharedState
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
@@ -541,11 +541,11 @@ fun rememberScheduleDragDropState(
 @Composable
 fun ScheduleEditScreenPreview() {
     val scheduleList = listOf(
-        ScheduleItemUiModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
-        ScheduleItemUiModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-        ScheduleItemUiModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
-        ScheduleItemUiModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
-        ScheduleItemUiModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
+        ScheduleItemPresentationModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
+        ScheduleItemPresentationModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
+        ScheduleItemPresentationModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
+        ScheduleItemPresentationModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
+        ScheduleItemPresentationModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
     )
 
     ScheduleEditScreen(
@@ -568,7 +568,7 @@ data class ScheduleItemScreenModel(
     val longitude: Double = 0.0
 )
 
-fun ScheduleItemUiModel.toScreen(): ScheduleItemScreenModel {
+fun ScheduleItemPresentationModel.toScreen(): ScheduleItemScreenModel {
     return ScheduleItemScreenModel(
         scheduleId = this.scheduleId,
         order = this.order,
@@ -578,8 +578,8 @@ fun ScheduleItemUiModel.toScreen(): ScheduleItemScreenModel {
     )
 }
 
-fun ScheduleItemScreenModel.toPresentation(): ScheduleItemUiModel {
-    return ScheduleItemUiModel(
+fun ScheduleItemScreenModel.toPresentation(): ScheduleItemPresentationModel {
+    return ScheduleItemPresentationModel(
         scheduleId = this.scheduleId,
         order = this.order,
         scheduleName = this.scheduleName,

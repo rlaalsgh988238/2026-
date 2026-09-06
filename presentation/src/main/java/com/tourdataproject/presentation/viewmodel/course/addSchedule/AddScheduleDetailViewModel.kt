@@ -3,8 +3,8 @@ package com.tourdataproject.presentation.viewmodel.course.addSchedule
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tourdataproject.domain.usecase.calculateAceesibility.CalculateAccessibilityUseCase
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
-import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityStatusPresentationModel
 import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.AddScheduleDetailEffect
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.AddScheduleDetailUiState
@@ -45,8 +45,8 @@ class AddScheduleDetailViewModel @Inject constructor(
                 // 🌟 핵심 로그: UseCase가 도대체 무슨 값을 뱉어내는지 확인
                 Log.d("ToiletDebug", "3. UseCase 계산 완료 -> status: ${domainResult.status}, score: ${domainResult.safetyScore}")
 
-                val uiAccessibility = AccessibilityInfoUiModel(
-                    status = AccessibilityStatusUiModel.valueOf(domainResult.status.name),
+                val uiAccessibility = AccessibilityInfoPresentationModel(
+                    status = AccessibilityStatusPresentationModel.valueOf(domainResult.status.name),
                     safetyScore = domainResult.safetyScore,
                     planAToiletId = domainResult.planAToiletId,
                     planBToiletId = domainResult.planBToiletId

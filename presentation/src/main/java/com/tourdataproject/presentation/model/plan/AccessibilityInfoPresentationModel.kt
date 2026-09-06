@@ -1,10 +1,10 @@
-package com.tourdataproject.presentation.model.course
+package com.tourdataproject.presentation.model.plan
 
 import com.tourdataproject.domain.model.course.AccessibilityInfo
 import com.tourdataproject.presentation.mapper.UiMapper
 
-data class AccessibilityInfoUiModel(
-    val status: AccessibilityStatusUiModel = AccessibilityStatusUiModel.UNKNOWN,
+data class AccessibilityInfoPresentationModel(
+    val status: AccessibilityStatusPresentationModel = AccessibilityStatusPresentationModel.UNKNOWN,
     val safetyScore: Int = 0,
     val planAToiletId: String? = null,
     val planBToiletId: String? = null

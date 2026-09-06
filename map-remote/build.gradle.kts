@@ -26,6 +26,7 @@ android {
         buildConfigField("String", "KAKAO_API_KEY", "\"$kakaoApiKey\"")
     }
 }
+
 dependencies {
     testImplementation(libs.mockwebserver)
     implementation(project(":map-data"))

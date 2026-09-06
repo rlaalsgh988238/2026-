@@ -1,6 +1,6 @@
 package com.tourdataproject.presentation.model
 
-data class KakaoMapUiModel(
+data class KakaoMapPresentationModel(
     val id: String,
     val placeName: String,
     val address: String,

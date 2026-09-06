@@ -1,6 +1,5 @@
-package com.braveberry.tourdataproject.screen.plan
+package com.braveberry.tourdataproject.screen.main
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,17 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
 import com.tourdataproject.presentation.viewmodel.course.courseList.CourseListViewModel
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 
 // ================= 색상 정의 (이미지 기반 파스텔 톤) =================
 val MintCardBg = Color(0xFFE4F2F1)
@@ -62,10 +54,9 @@ val YellowFabBg = Color(0xFFFFD54F)
 
 @Composable
 fun ListRoute(
-    sharedViewModel: PlanSharedViewModel,
     listViewModel: CourseListViewModel = hiltViewModel(),
     onNavigateToCreateNewCourse: () -> Unit,
-    onNavigateToCourseDetail: () -> Unit = {},
+    onNavigateToCourseDetail: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {}
 ) {
 
@@ -81,8 +72,7 @@ fun ListRoute(
                 is CourseListEffect.NavigateToCreatePlan -> onNavigateToCreateNewCourse()
                 is CourseListEffect.NavigateToRestroomGuide -> { /* TODO */ }
                 is CourseListEffect.NavigateToCourseDetail -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnLoadCourseById(effect.courseId))
-                    onNavigateToCourseDetail()
+                    onNavigateToCourseDetail(effect.courseId)
                 }
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
             }

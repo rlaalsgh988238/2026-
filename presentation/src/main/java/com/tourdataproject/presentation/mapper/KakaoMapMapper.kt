@@ -1,10 +1,10 @@
 package com.tourdataproject.presentation.mapper
 
 import com.tourdataproject.domain.model.KakaoMapItem
-import com.tourdataproject.presentation.model.KakaoMapUiModel
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
 import java.util.Locale
 
-fun KakaoMapItem.toUiModel(): KakaoMapUiModel {
+fun KakaoMapItem.toUiModel(): KakaoMapPresentationModel {
     val displayAddress = this.roadAddressName.ifBlank { this.addressName }
 
     // 2. 미터(m) 단위 거리를 보기 좋게 변환 (예: 1500 -> 1.5km, 500 -> 500m)
@@ -14,7 +14,7 @@ fun KakaoMapItem.toUiModel(): KakaoMapUiModel {
         "${this.distance}m"
     }
 
-    return KakaoMapUiModel(
+    return KakaoMapPresentationModel(
         id = this.id,
         placeName = this.placeName,
         address = displayAddress,

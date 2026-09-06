@@ -18,11 +18,12 @@ class GetToiletsByDistanceUseCase @Inject constructor(
         distance: Float,
         latitude: Double,
         longitude: Double
-    ) = toiletRepository.getToiletsByDistance(distance, latitude, longitude)
-        .onSuccess {
+    ): Flow<DataResource<List<Toilet>>> =
+        toiletRepository.getToiletsByDistance(distance, latitude, longitude)
+            .onSuccess {
 
-        }
-        .onError {
+            }
+            .onError {
 
-        }
+            }
 }

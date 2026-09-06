@@ -19,13 +19,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.AddScheduleDetailViewModel
 import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.AddScheduleDetailEffect
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent // 🌟 이벤트 임포트 추가
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트 추가
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
-
+// TODO 여기 튕겼다가 들어오면 아무것도 안뜸
 data class AddScheduleInitModel(
     val placeName: String = "",
     val address: String = "",
@@ -34,7 +34,7 @@ data class AddScheduleInitModel(
     val isValid: Boolean = false
 )
 
-fun ScheduleItemUiModel?.toInitModel(): AddScheduleInitModel {
+fun ScheduleItemPresentationModel?.toInitModel(): AddScheduleInitModel {
     return if (this == null) {
         AddScheduleInitModel(isValid = false)
     } else {
@@ -55,8 +55,8 @@ fun AddScheduleDetailRoute(
     onNavigateBack: () -> Unit,
     onNavigateToCourse: () -> Unit
 ) {
-
-    val draftSchedule by sharedViewModel.draftSchedule.collectAsState()
+    val sharedState by sharedViewModel.sharedState.collectAsState()
+    val draftSchedule = sharedState.draftSchedule
     val initModel = draftSchedule.toInitModel()
 
     val uiState by viewModel.state.collectAsState()
@@ -78,8 +78,8 @@ fun AddScheduleDetailRoute(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is AddScheduleDetailEffect.SubmitSchedule -> {
-                    sharedViewModel.setEvent(
-                        PlanSharedEvent.OnConfirmAndAddSchedule(
+                    sharedViewModel.onIntent(
+                        PlanSharedIntent.OnConfirmAndAddSchedule(
                             memoInput = effect.memo,
                             accessibilityInfo = effect.accessibilityInfo
                         )
@@ -87,7 +87,7 @@ fun AddScheduleDetailRoute(
                     onNavigateToCourse()
                 }
                 is AddScheduleDetailEffect.NavigateBack -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnClearDraftSchedule)
+                    sharedViewModel.onIntent(PlanSharedIntent.OnClearDraftSchedule)
                     onNavigateBack()
                 }
             }
@@ -109,6 +109,7 @@ fun AddScheduleDetailRoute(
         )
     }
 }
+
 
 @Composable
 fun AddScheduleDetailScreen(

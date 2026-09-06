@@ -1,19 +1,13 @@
-package com.tourdataproject.presentation.model.course
+package com.tourdataproject.presentation.model.plan
 
 import com.tourdataproject.domain.model.course.DayPlan
-import com.tourdataproject.presentation.mapper.UiMapper
-import com.tourdataproject.presentation.mapper.mapListToDomain
-import com.tourdataproject.presentation.mapper.toUiModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
-data class DayPlanUiModel(
+data class DayPlanPresentationModel(
     val dayLabel: String = "",   // "1일차"
     val dateLabel: String = "",  // "8/30"
     val rawDayNumber: Int = 0,  // 1
     val rawDate: Long = 0,      // 1693353600000L
-    val schedules: List<ScheduleItemUiModel> = emptyList()
+    val schedules: List<ScheduleItemPresentationModel> = emptyList()
 ) {
     fun toDomain(): DayPlan {
         return DayPlan(

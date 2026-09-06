@@ -6,7 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,6 +39,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.R
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.kakao.vectormap.KakaoMap
@@ -56,12 +56,15 @@ import com.kakao.vectormap.route.RouteLineSegment
 import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
+import com.tourdataproject.presentation.utility.Log
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
-import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEvent
+import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditIntent
+import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditState
 
 @Composable
 fun ScheduleEditRoute(
@@ -70,14 +73,14 @@ fun ScheduleEditRoute(
     onNavigateBack: () -> Unit,
     onShowToast: (String) -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
 
-    // 화면 진입 시 초기 데이터 로드 (Event 전달)
-    LaunchedEffect(Unit) {
-        val sharedState = sharedViewModel.sharedState.value
+    // 공유 뷰모델의 상태를 계속 바라보며 독립 뷰모델 동기화
+    LaunchedEffect(sharedState.course.dayPlans) {
         val dayPlan = sharedState.course.dayPlans.find { it.rawDayNumber == viewModel.dayNum }
         if (dayPlan != null) {
-            viewModel.setEvent(ScheduleEditEvent.OnInit(dayPlan.dateLabel, dayPlan.schedules))
+            viewModel.onIntent(ScheduleEditIntent.OnInit(dayPlan.dateLabel, dayPlan.schedules))
         }
     }
 
@@ -88,33 +91,33 @@ fun ScheduleEditRoute(
                 is ScheduleEditEffect.NavigateBack -> onNavigateBack()
                 is ScheduleEditEffect.ShowToast -> onShowToast(effect.message)
                 is ScheduleEditEffect.SaveToShared -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnReorderSchedules(effect.dayNumber, effect.schedules))
+                    sharedViewModel.onIntent(PlanSharedIntent.OnReorderSchedules(effect.dayNumber, effect.schedules))
                 }
             }
         }
     }
 
-    // 프레젠테이션 모델을 스크린 모델로 매핑하여 하위 컴포저블에 전달
     ScheduleEditScreen(
-        dayLabel = state.dayLabel,
-        dateLabel = state.dateLabel,
-        schedules = state.schedules.map { it.toScreen() },
-        onEvent = viewModel::setEvent
+        state = state,
+        sharedState = sharedState,
+        onIntent = viewModel::onIntent,
+        onSharedIntent = sharedViewModel::onIntent
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleEditScreen(
-    dayLabel: String,
-    dateLabel: String,
-    schedules: List<ScheduleItemScreenModel>,
-    onEvent: (ScheduleEditEvent) -> Unit
+    state: ScheduleEditState,
+    sharedState: PlanSharedState,
+    onIntent: (ScheduleEditIntent) -> Unit,
+    onSharedIntent: (PlanSharedIntent) -> Unit
 ) {
+    val schedules = state.schedules.map { it.toScreen() }
     val listState = rememberLazyListState()
     val dragDropState = rememberScheduleDragDropState(
         listState = listState,
-        onMoveRequest = { from, to -> onEvent(ScheduleEditEvent.OnScheduleMoved(from, to)) }
+        onMoveRequest = { from, to -> onIntent(ScheduleEditIntent.OnScheduleMoved(from, to)) }
     )
 
     Scaffold(
@@ -123,12 +126,12 @@ fun ScheduleEditScreen(
             CenterAlignedTopAppBar(
                 title = { Text("일정 편집", fontSize = 18.sp, fontWeight = FontWeight.Medium) },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(ScheduleEditEvent.OnBackClicked) }) {
+                    IconButton(onClick = { onIntent(ScheduleEditIntent.OnBackClicked) }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
                 actions = {
-                    TextButton(onClick = { onEvent(ScheduleEditEvent.OnSaveClicked) }) {
+                    TextButton(onClick = { onIntent(ScheduleEditIntent.OnSaveClicked) }) {
                         Text("저장", color = PrimaryTeal, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 },
@@ -159,11 +162,11 @@ fun ScheduleEditScreen(
                     .background(Color(0xFFFDFDFD))
             ) {
                 ScheduleListSection(
-                    dayLabel = dayLabel,
-                    dateLabel = dateLabel,
+                    dayLabel = state.dayLabel,
+                    dateLabel = state.dateLabel,
                     schedules = schedules,
                     dragDropState = dragDropState,
-                    onEvent = onEvent
+                    onEvent = onIntent
                 )
             }
         }
@@ -253,19 +256,16 @@ fun KakaoMapSection(
         if (draggedId != null) {
             val targetSchedule = focusedSchedules.find { it.scheduleId == draggedId }
             if (targetSchedule != null) {
-                // 현재 지도의 줌 레벨을 가져옵니다.
                 val currentZoom = map.cameraPosition?.zoomLevel ?: 10
-
                 val cameraUpdate = CameraUpdateFactory.newCenterPosition(
                     LatLng.from(targetSchedule.latitude, targetSchedule.longitude),
-                    currentZoom // 현재 줌 레벨 유지
+                    currentZoom
                 )
                 map.moveCamera(cameraUpdate)
             }
         }
     }
 }
-
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -274,7 +274,7 @@ fun ScheduleListSection(
     dateLabel: String,
     schedules: List<ScheduleItemScreenModel>,
     dragDropState: ScheduleDragDropState,
-    onEvent: (ScheduleEditEvent) -> Unit
+    onEvent: (ScheduleEditIntent) -> Unit
 ) {
     val currentSchedules by rememberUpdatedState(schedules)
 
@@ -300,7 +300,7 @@ fun ScheduleListSection(
                 isDragging = isDragging,
                 translationY = translation,
                 modifier = Modifier.animateItem(),
-                onDelete = { onEvent(ScheduleEditEvent.OnScheduleDeleted(schedule.scheduleId)) },
+                onDelete = { onEvent(ScheduleEditIntent.OnScheduleDeleted(schedule.scheduleId)) },
                 onDragStart = { dragDropState.onDragStart(schedule.scheduleId) },
                 onDrag = { change, dragAmount ->
                     change.consume()
@@ -308,7 +308,7 @@ fun ScheduleListSection(
                 },
                 onDragEnd = {
                     dragDropState.onDragInterrupted()
-                    onEvent(ScheduleEditEvent.OnScheduleMoveFinished)
+                    onEvent(ScheduleEditIntent.OnScheduleMoveFinished)
                 },
                 onDragCancel = { dragDropState.onDragInterrupted() }
             )
@@ -428,10 +428,6 @@ private fun ScheduleListItem(
     }
 }
 
-// ---------------------------------------------------------------------------
-// 유틸리티 및 상태 관리 클래스 영역
-// ---------------------------------------------------------------------------
-
 private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
     val density = context.resources.displayMetrics.density
     val size = (24 * density).toInt()
@@ -545,24 +541,24 @@ fun rememberScheduleDragDropState(
 @Composable
 fun ScheduleEditScreenPreview() {
     val scheduleList = listOf(
-        ScheduleItemScreenModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
-        ScheduleItemScreenModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-        ScheduleItemScreenModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
-        ScheduleItemScreenModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
-        ScheduleItemScreenModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
+        ScheduleItemPresentationModel(scheduleId = "1", order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
+        ScheduleItemPresentationModel(scheduleId = "2", order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
+        ScheduleItemPresentationModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
+        ScheduleItemPresentationModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
+        ScheduleItemPresentationModel(scheduleId = "5", order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
     )
 
     ScheduleEditScreen(
-        dayLabel = "1일차",
-        dateLabel = "8/30 (일)",
-        schedules = scheduleList,
-        onEvent = {}
+        state = ScheduleEditState(
+            dayNumber = 1,
+            dateLabel = "8/30 (일)",
+            schedules = scheduleList
+        ),
+        sharedState = PlanSharedState(),
+        onIntent = {},
+        onSharedIntent = {}
     )
 }
-
-// ---------------------------------------------------------------------------
-// 스크린 전용 모델 및 매퍼 영역
-// ---------------------------------------------------------------------------
 
 data class ScheduleItemScreenModel(
     val scheduleId: String = "",
@@ -572,7 +568,7 @@ data class ScheduleItemScreenModel(
     val longitude: Double = 0.0
 )
 
-fun ScheduleItemUiModel.toScreen(): ScheduleItemScreenModel {
+fun ScheduleItemPresentationModel.toScreen(): ScheduleItemScreenModel {
     return ScheduleItemScreenModel(
         scheduleId = this.scheduleId,
         order = this.order,
@@ -582,8 +578,8 @@ fun ScheduleItemUiModel.toScreen(): ScheduleItemScreenModel {
     )
 }
 
-fun ScheduleItemScreenModel.toPresentation(): ScheduleItemUiModel {
-    return ScheduleItemUiModel(
+fun ScheduleItemScreenModel.toPresentation(): ScheduleItemPresentationModel {
+    return ScheduleItemPresentationModel(
         scheduleId = this.scheduleId,
         order = this.order,
         scheduleName = this.scheduleName,

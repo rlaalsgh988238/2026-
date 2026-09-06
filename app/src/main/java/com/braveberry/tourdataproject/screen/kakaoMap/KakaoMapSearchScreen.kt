@@ -47,9 +47,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tourdataproject.presentation.KakaoMapEffect
 import com.tourdataproject.presentation.KakaoMapEvent
-import com.tourdataproject.presentation.model.KakaoMapUiModel
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent // 🌟 이벤트 임포트
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -88,7 +88,7 @@ fun KakaoMapSearchRoute(
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
                 is KakaoMapEffect.NavigateNextScreen -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnSetDraftSchedule(effect.place))
+                    sharedViewModel.onIntent(PlanSharedIntent.OnSetDraftSchedule(effect.place))
                     onNavigateToNext()
                 }
             }
@@ -96,7 +96,7 @@ fun KakaoMapSearchRoute(
     }
 
     val handleBackClick = {
-        sharedViewModel.setEvent(PlanSharedEvent.OnClearDraftSchedule)
+        sharedViewModel.onIntent(PlanSharedIntent.OnClearDraftSchedule)
         onBackClick()
     }
 
@@ -118,11 +118,11 @@ fun KakaoMapSearchScreen(
     modifier: Modifier = Modifier,
     searchQuery: String,
     isLoading: Boolean,
-    searchResults: List<KakaoMapUiModel>,
-    autoCompleteResults: List<KakaoMapUiModel>,
+    searchResults: List<KakaoMapPresentationModel>,
+    autoCompleteResults: List<KakaoMapPresentationModel>,
     onQueryChanged: (String) -> Unit,
     onSearch: (String) -> Unit,
-    onPlaceClick: (KakaoMapUiModel) -> Unit,
+    onPlaceClick: (KakaoMapPresentationModel) -> Unit,
     onBackClick: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
@@ -213,7 +213,7 @@ fun KakaoMapSearchScreen(
 }
 
 @Composable
-fun PlaceItem(place: KakaoMapUiModel, onClick: () -> Unit) {
+fun PlaceItem(place: KakaoMapPresentationModel, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -239,7 +239,7 @@ fun KakaoMapSearchScreenPreview() {
         searchQuery = "서울역",
         isLoading = false,
         searchResults = listOf(
-            KakaoMapUiModel(
+            KakaoMapPresentationModel(
                 id = "1",
                 placeName = "서울역",
                 address = "서울 용산구 한강대로 405",

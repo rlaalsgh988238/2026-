@@ -8,7 +8,7 @@ import com.tourdataproject.presentation.KakaoMapEffect
 import com.tourdataproject.presentation.KakaoMapEvent
 import com.tourdataproject.presentation.KakaoMapState
 import com.tourdataproject.presentation.mapper.toUiModel
-import com.tourdataproject.presentation.model.KakaoMapUiModel
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -152,7 +152,7 @@ class KakaoMapViewModel @Inject constructor(
             postSideEffect(KakaoMapEffect.ShowToast("통신 중 예외가 발생했습니다."))
         }
     }
-    private fun selectPlace(place: KakaoMapUiModel) = intent {
+    private fun selectPlace(place: KakaoMapPresentationModel) = intent {
         postSideEffect(KakaoMapEffect.NavigateNextScreen(place))
     }
 }

@@ -1,12 +1,11 @@
 package com.tourdataproject.presentation.viewmodel.plan.scheduleEdit
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
-import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEvent
+import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditIntent
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -38,24 +37,24 @@ class ScheduleEditViewModel @Inject constructor(
         setDayNum(dayNum)
     }
 
-    fun setEvent(event: ScheduleEditEvent) {
-        when (event) {
-            is ScheduleEditEvent.OnInit -> {
-                _state.update { it.copy(dateLabel = event.dateLabel, schedules = event.schedules) }
+    fun onIntent(intent: ScheduleEditIntent) {
+        when (intent) {
+            is ScheduleEditIntent.OnInit -> {
+                _state.update { it.copy(dateLabel = intent.dateLabel, schedules = intent.schedules) }
             }
-            is ScheduleEditEvent.OnBackClicked -> {
+            is ScheduleEditIntent.OnBackClicked -> {
                 viewModelScope.launch { _effect.emit(ScheduleEditEffect.NavigateBack) }
             }
-            is ScheduleEditEvent.OnSaveClicked -> {
+            is ScheduleEditIntent.OnSaveClicked -> {
                 saveCourse()
             }
-            is ScheduleEditEvent.OnScheduleDeleted -> {
-                deleteSchedule(event.scheduleId)
+            is ScheduleEditIntent.OnScheduleDeleted -> {
+                deleteSchedule(intent.scheduleId)
             }
-            is ScheduleEditEvent.OnScheduleMoved -> {
-                moveSchedule(event.fromIndex, event.toIndex)
+            is ScheduleEditIntent.OnScheduleMoved -> {
+                moveSchedule(intent.fromIndex, intent.toIndex)
             }
-            is ScheduleEditEvent.OnScheduleMoveFinished -> {
+            is ScheduleEditIntent.OnScheduleMoveFinished -> {
                 reorderSchedules()
             }
         }

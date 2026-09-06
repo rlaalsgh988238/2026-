@@ -1,10 +1,10 @@
 package com.tourdataproject.presentation.viewmodel.splash
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.splash.CheckDatabaseInitUseCase
+import com.tourdataproject.presentation.utility.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

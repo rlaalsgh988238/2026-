@@ -5,11 +5,11 @@ import com.tourdataproject.domain.model.course.AccessibilityStatus
 import com.tourdataproject.domain.model.course.DayPlan
 import com.tourdataproject.domain.model.course.ScheduleItem
 import com.tourdataproject.domain.model.course.TravelCourse
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
-import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
-import com.tourdataproject.presentation.model.course.DayPlanUiModel
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityStatusPresentationModel
+import com.tourdataproject.presentation.model.plan.DayPlanPresentationModel
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
+import com.tourdataproject.presentation.model.plan.TravelCoursePresentationModel
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
-fun ScheduleItem.toUiModel(): ScheduleItemUiModel = ScheduleItemUiModel(
+fun ScheduleItem.toUiModel(): ScheduleItemPresentationModel = ScheduleItemPresentationModel(
     scheduleId = this.scheduleId,
     order = this.order,
     scheduleName = this.scheduleName,
@@ -31,9 +31,9 @@ fun ScheduleItem.toUiModel(): ScheduleItemUiModel = ScheduleItemUiModel(
     accessibilityInfo = this.accessibilityInfo.toUiModel()
 )
 
-fun DayPlan.toUiModel(): DayPlanUiModel {
+fun DayPlan.toUiModel(): DayPlanPresentationModel {
     val dateFormat = SimpleDateFormat("M/d", Locale.KOREA)
-    return DayPlanUiModel(
+    return DayPlanPresentationModel(
         dayLabel = "${this.dayNumber}일차",
         dateLabel = dateFormat.format(Date(this.date)),
         rawDayNumber = this.dayNumber,
@@ -42,7 +42,7 @@ fun DayPlan.toUiModel(): DayPlanUiModel {
     )
 }
 //TODO: 기획에 맞게 수정
-fun TravelCourse.toUiModel(): TravelCourseUiModel {
+fun TravelCourse.toUiModel(): TravelCoursePresentationModel {
     // 1. 전체 시작일과 종료일을 꺼냅니다.
     val startLocalDate = Instant.ofEpochMilli(this.startDate).atZone(ZoneId.systemDefault()).toLocalDate()
     val endLocalDate = Instant.ofEpochMilli(this.endDate).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -53,7 +53,7 @@ fun TravelCourse.toUiModel(): TravelCourseUiModel {
     val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     val generatedDatePeriod = "${startLocalDate.format(periodFormatter)} ~ ${endLocalDate.format(periodFormatter)}"
 
-    return TravelCourseUiModel(
+    return TravelCoursePresentationModel(
         courseId = this.courseId,
         destination = this.destination,
         courseName = this.courseName,
@@ -65,7 +65,7 @@ fun TravelCourse.toUiModel(): TravelCourseUiModel {
         dayPlans = this.dayPlans.map { domainDayPlan ->
             val currentDayDate = startLocalDate.plusDays((domainDayPlan.dayNumber - 1).toLong())
 
-            DayPlanUiModel(
+            DayPlanPresentationModel(
                 dayLabel = "${domainDayPlan.dayNumber}일차",
                 dateLabel = currentDayDate.format(dateLabelFormatter),
                 rawDayNumber = domainDayPlan.dayNumber,
@@ -76,8 +76,8 @@ fun TravelCourse.toUiModel(): TravelCourseUiModel {
     )
 }
 
-fun AccessibilityInfo.toUiModel(): AccessibilityInfoUiModel {
-    return AccessibilityInfoUiModel(
+fun AccessibilityInfo.toUiModel(): AccessibilityInfoPresentationModel {
+    return AccessibilityInfoPresentationModel(
         status = this.status.toUiModel(),
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
@@ -85,9 +85,9 @@ fun AccessibilityInfo.toUiModel(): AccessibilityInfoUiModel {
     )
 }
 
-fun AccessibilityStatus.toUiModel(): AccessibilityStatusUiModel = when (this) {
-    AccessibilityStatus.GOOD -> AccessibilityStatusUiModel.GOOD
-    AccessibilityStatus.WARNING -> AccessibilityStatusUiModel.WARNING
-    AccessibilityStatus.BAD -> AccessibilityStatusUiModel.BAD
+fun AccessibilityStatus.toUiModel(): AccessibilityStatusPresentationModel = when (this) {
+    AccessibilityStatus.GOOD -> AccessibilityStatusPresentationModel.GOOD
+    AccessibilityStatus.WARNING -> AccessibilityStatusPresentationModel.WARNING
+    AccessibilityStatus.BAD -> AccessibilityStatusPresentationModel.BAD
     AccessibilityStatus.UNKNOWN -> TODO()
 }

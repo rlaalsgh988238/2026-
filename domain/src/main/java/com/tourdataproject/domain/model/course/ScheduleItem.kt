@@ -1,5 +1,8 @@
 package com.tourdataproject.domain.model.course
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class ScheduleItem(
     val scheduleId: String,
     val order: Int,

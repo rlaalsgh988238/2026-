@@ -1,18 +1,16 @@
 package com.tourdataproject.presentation.viewmodel.plan.regionSelect
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.plan.GetPopularCitiesUseCase
 import com.tourdataproject.domain.usecase.plan.GetRegionByKeywordUseCase
-import com.tourdataproject.presentation.model.toUiModel
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.toUiModel
+import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
-import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionIntent
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,7 +25,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class RegionSelectionViewModel @Inject constructor(
     private val getPopularCitiesUseCase: GetPopularCitiesUseCase,
@@ -42,7 +39,6 @@ class RegionSelectionViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<RegionSelectionEffect>()
     val effect: SharedFlow<RegionSelectionEffect> = _effect.asSharedFlow()
 
-    // 검색어 입력 전용 스트림 (디바운스)
     private val searchQueryFlow = MutableStateFlow("")
 
     init {
@@ -50,44 +46,24 @@ class RegionSelectionViewModel @Inject constructor(
         observeSearchQuery()
     }
 
-    fun setEvent(event: RegionSelectionEvent) {
-        when (event) {
-            is RegionSelectionEvent.OnSearchQueryChanged -> {
-                _state.update { it.copy(searchQuery = event.query) }
-                searchQueryFlow.value = event.query
-            }
-            is RegionSelectionEvent.OnCitySelected -> {
-                // 선택하면 검색 상태를 정리하고 선택된 도시만 남김
-                _state.update {
-                    it.copy(
-                        selectedCity = event.city,
-                        searchQuery = "",
-                        searchResults = emptyList(),
-                        isSearching = false
-                    )
-                }
-                Log.d(TAG, event.city.shortName)
-                searchQueryFlow.value = ""
-            }
-            is RegionSelectionEvent.OnCityDeselected -> {
-                _state.update { it.copy(selectedCity = null) }
-            }
-            is RegionSelectionEvent.OnNextButtonClicked -> {
-                val selected = _state.value.selectedCity ?: return
-                val regionName = selected.city ?: selected.province
-                viewModelScope.launch {
-                    _effect.emit(RegionSelectionEffect.NavigateToDateSelection(regionName))
-                }
-            }
-            is RegionSelectionEvent.OnBackButtonClicked -> {
-                viewModelScope.launch {
-                    _effect.emit(RegionSelectionEffect.NavigateBack)
-                }
-            }
+    fun onIntent(intent: RegionSelectionIntent) {
+        when (intent) {
+            is RegionSelectionIntent.OnSearchQueryChanged -> handleSearchQueryChanged(intent.query)
+            is RegionSelectionIntent.OnBackButtonClicked -> handleBackButtonClicked()
         }
     }
 
-    // 검색어가 바뀌면 300ms 대기 후 마지막 입력만 검색
+    private fun handleSearchQueryChanged(query: String) {
+        _state.update { it.copy(searchQuery = query) }
+        searchQueryFlow.value = query
+    }
+
+    private fun handleBackButtonClicked() {
+        viewModelScope.launch {
+            _effect.emit(RegionSelectionEffect.NavigateBack)
+        }
+    }
+
     private fun observeSearchQuery() {
         viewModelScope.launch {
             searchQueryFlow

@@ -97,7 +97,7 @@ class KakaoMapViewModel @Inject constructor(
             return@intent
         }
 
-        // 🌟 2. 매개변수로 안 넘어왔으면 state에서 꺼냄
+
         val targetLng = longitude ?: state.targetCoordinate?.second
         val targetLat = latitude ?: state.targetCoordinate?.first
 

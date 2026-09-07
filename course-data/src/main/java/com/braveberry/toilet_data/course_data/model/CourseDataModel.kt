@@ -4,6 +4,8 @@ package com.braveberry.toilet_data.course_data.model
 data class CourseDataModel(
     val courseId: String,
     val destination: String,
+    val destinationLatitude: Double,
+    val destinationLongitude: Double ,
     val courseName: String,
     val startDate: Long,
     val endDate: Long,

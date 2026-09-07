@@ -56,6 +56,8 @@ fun TravelCourse.toUiModel(): TravelCoursePresentationModel {
     return TravelCoursePresentationModel(
         courseId = this.courseId,
         destination = this.destination,
+        destinationLatitude = this.destinationLatitude,
+        destinationLongitude = this.destinationLongitude,
         courseName = this.courseName,
         rawStartDate = this.startDate,
         rawEndDate = this.endDate,

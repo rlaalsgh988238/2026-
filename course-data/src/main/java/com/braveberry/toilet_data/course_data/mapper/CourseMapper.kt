@@ -14,6 +14,8 @@ fun CourseDataModel.toDomain(): TravelCourse {
     return TravelCourse(
         courseId = this.courseId,
         destination = this.destination,
+        destinationLatitude = this.destinationLatitude,
+        destinationLongitude = this.destinationLongitude,
         courseName = this.courseName,
         startDate = this.startDate,
         endDate = this.endDate,
@@ -63,6 +65,8 @@ fun TravelCourse.toDataModel(): CourseDataModel {
     return CourseDataModel(
         courseId = this.courseId,
         destination = this.destination,
+        destinationLatitude = destinationLatitude,
+        destinationLongitude = destinationLongitude,
         courseName = this.courseName,
         startDate = this.startDate,
         endDate = this.endDate,

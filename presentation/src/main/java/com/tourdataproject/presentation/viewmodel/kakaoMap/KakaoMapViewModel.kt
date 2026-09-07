@@ -81,7 +81,7 @@ class KakaoMapViewModel @Inject constructor(
             query = query,
             longitude = currentLng,
             latitude = currentLat,
-            radius = null,
+            radius = 20000,
             page = 1
         ).collect { resource ->
             if (resource is DataResource.Success) {
@@ -101,7 +101,6 @@ class KakaoMapViewModel @Inject constructor(
         val targetLng = longitude ?: state.targetCoordinate?.second
         val targetLat = latitude ?: state.targetCoordinate?.first
 
-        // 🌟 3. 둘 다 없으면 강제 종료
         if (targetLng == null || targetLat == null) {
             postSideEffect(KakaoMapEffect.ShowToast("여행지 위치 정보가 없습니다. 이전 화면에서 다시 시도해주세요."))
             return@intent
@@ -114,7 +113,7 @@ class KakaoMapViewModel @Inject constructor(
         try {
             android.util.Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
 
-            // 🌟 4. 확실하게 null이 아님이 보장된(스마트 캐스팅) 좌표로 UseCase 호출
+            
             searchNearbyPlacesUseCase(
                 query = query,
                 longitude = targetLng,

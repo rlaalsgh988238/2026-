@@ -14,6 +14,8 @@ data class CourseLocalModel(
     @PrimaryKey val courseId: String,
     val destination: String,
     val courseName: String,
+    val destinationLatitude: Double,
+    val destinationLongitude: Double,
     val startDate: Long,
     val endDate: Long,
     val dayPlans: List<DayPlanLocalModel>
@@ -22,6 +24,8 @@ data class CourseLocalModel(
         courseId = courseId,
         destination = destination,
         courseName = courseName,
+        destinationLatitude = destinationLatitude,
+        destinationLongitude = destinationLongitude,
         startDate = startDate,
         endDate = endDate,
         dayPlans = dayPlans.map { it.toData() }

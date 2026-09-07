@@ -9,8 +9,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +26,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.braveberry.tourdataproject.R
 import com.braveberry.tourdataproject.ui.theme.*
@@ -89,7 +93,6 @@ fun MakeCourseRoute(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MakeCourseScreen(
@@ -98,6 +101,14 @@ fun MakeCourseScreen(
     onSharedIntent: (PlanSharedIntent) -> Unit,
     onFinalSaveClick: () -> Unit
 ) {
+    var showInfoDialog by remember { mutableStateOf(false) }
+
+
+    if (showInfoDialog) {
+        AccessibilityInfoDialog(
+            onDismiss = { showInfoDialog = false }
+        )
+    }
     Scaffold(
         modifier = Modifier
             .statusBarsPadding()
@@ -108,7 +119,8 @@ fun MakeCourseScreen(
             MakeCourseTopBar(
                 courseName = state.courseName,
                 datePeriod = state.datePeriod,
-                onBackClick = { onIntent(CourseIntent.OnBackButtonClicked) }
+                onBackClick = { onIntent(CourseIntent.OnBackButtonClicked) },
+                onInfoClick = { showInfoDialog = true }
             )
         },
         bottomBar = {
@@ -137,9 +149,42 @@ fun MakeCourseScreen(
         ) {
             HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
 
+            // 🌟 1. '숙소' 추가 버튼
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, Color(0xFFD4D4D4)), // 둥근 회색 테두리
+                    color = Color.White,
+                    modifier = Modifier.clickable { /* TODO: 숙소 추가 로직 */ }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "숙소 추가",
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.DarkGray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "숙소",
+                            fontSize = 14.sp,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(32.dp)
             ) {
                 items(state.dayPlans) { dayPlan ->
@@ -155,17 +200,26 @@ fun MakeCourseScreen(
 }
 
 @Composable
-fun MakeCourseTopBar(courseName: String, datePeriod: String, onBackClick: () -> Unit) {
+fun MakeCourseTopBar(
+    courseName: String,
+    datePeriod: String,
+    onBackClick: () -> Unit,
+    onInfoClick: () -> Unit
+) {
     Column {
         Row(
-            modifier = Modifier.fillMaxWidth().height(56.dp).background(Color.White),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(Color.White)
+                .padding(end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
             }
             Spacer(modifier = Modifier.width(4.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = courseName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                     Spacer(modifier = Modifier.width(4.dp))
@@ -173,11 +227,17 @@ fun MakeCourseTopBar(courseName: String, datePeriod: String, onBackClick: () -> 
                 }
                 Text(text = datePeriod, fontSize = 15.sp, color = Color.Gray)
             }
+            IconButton(onClick = onInfoClick) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = "정보",
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.Black
+                )
+            }
         }
-        HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
     }
 }
-
 @Composable
 fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit, onEditClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -283,6 +343,149 @@ fun MakeCourseScreenPreview() {
         onFinalSaveClick = {}
     )
 }
+
+
+
+@Composable
+fun AccessibilityInfoDialog(onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                // --- 타이틀 및 닫기 버튼 ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = "정보",
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.Black
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "화장실 접근성 색 기준 안내",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "닫기",
+                            tint = Color.Black
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- 설명 텍스트 ---
+                Text(
+                    text = "주변 화장실 개수와 이동 시간을 종합적으로 분석하여 산출한 점수에 따라 색상이 구분됩니다.",
+                    fontSize = 13.sp,
+                    color = Color.DarkGray,
+                    lineHeight = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // --- 3가지 상태 카드 영역 ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    StatusCard(
+                        modifier = Modifier.weight(1f),
+                        title = "안전",
+                        scoreText = "80점 이상",
+                        backgroundColor = Green.copy(alpha = 0.2f),
+                        iconColor = Green
+                    )
+
+                    StatusCard(
+                        modifier = Modifier.weight(1f),
+                        title = "주의",
+                        scoreText = "50~79점",
+                        backgroundColor = Yellow.copy(alpha = 0.2f),
+                        iconColor = Yellow
+                    )
+
+                    StatusCard(
+                        modifier = Modifier.weight(1f),
+                        title = "위험",
+                        scoreText = "50점 미만",
+                        backgroundColor = Red.copy(alpha = 0.2f),
+                        iconColor = Red
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatusCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    scoreText: String,
+    backgroundColor: Color,
+    iconColor: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        modifier = modifier
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                shape = CircleShape,
+                color = iconColor,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.accessible), // 접근성 아이콘 (기존꺼 재사용)
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = scoreText,
+                fontSize = 11.sp,
+                color = Color.DarkGray
+            )
+        }
+    }
+}
+
 
 // --- Mapper ---
 data class MakeCourseUiState(

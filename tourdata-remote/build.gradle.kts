@@ -34,6 +34,7 @@ dependencies {
     testImplementation(libs.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.test)
     implementation(project(":data-resource"))
+    implementation(project(":tourdata-data"))
     implementation(libs.kotlinx.coroutines.core)
 
 

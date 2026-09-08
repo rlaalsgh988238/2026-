@@ -6,6 +6,6 @@ import com.tourdataproject.domain.model.course.ScheduleItem
 import kotlinx.coroutines.flow.Flow
 
 interface TourRepository {
-    fun getLocationBasedList(lat: Double, lng: Double, radius: Int): Flow<DataResource<List<ScheduleItem>>>
+    fun getContentId(lat: Double, lng: Double, radius: Int): Flow<DataResource<String>>
     fun getTourDataToiletInfo(contentId: String): Flow<DataResource<AccessibilityInfo>>
 }

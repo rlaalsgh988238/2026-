@@ -28,7 +28,8 @@ fun ScheduleItem.toUiModel(): ScheduleItemPresentationModel = ScheduleItemPresen
     placeId = this.placeId,
     address = this.address,
     category = this.category,
-    accessibilityInfo = this.accessibilityInfo.toUiModel()
+    accessibilityInfo = this.accessibilityInfo.toUiModel(),
+    contentId = this.contentId
 )
 
 fun DayPlan.toUiModel(): DayPlanPresentationModel {
@@ -83,7 +84,14 @@ fun AccessibilityInfo.toUiModel(): AccessibilityInfoPresentationModel {
         status = this.status.toUiModel(),
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
-        planBToiletId = this.planBToiletId
+        planBToiletId = this.planBToiletId,
+        parking = this.parking,
+        route = this.route,
+        elevator = this.elevator,
+        restroom = this.restroom,
+        wheelchair = this.wheelchair,
+        exit = this.exit
+
     )
 }
 

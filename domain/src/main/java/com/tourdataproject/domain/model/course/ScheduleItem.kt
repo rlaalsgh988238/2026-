@@ -20,5 +20,5 @@ data class ScheduleItem(
     // --- 화장실 및 접근성 데이터 ---
     val accessibilityInfo: AccessibilityInfo,
     // 관광 데이터 위치기반 검색을 위한 contentId
-    val contentId: String,
+    val contentId: String?,
 )

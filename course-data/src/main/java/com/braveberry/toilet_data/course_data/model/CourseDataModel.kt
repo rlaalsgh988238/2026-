@@ -30,13 +30,20 @@ data class ScheduleItemDataModel(
     val placeId: String?,
     val address: String?,
     val category: String?,
-    val accessibilityInfo: AccessibilityInfoDataModel
+    val accessibilityInfo: AccessibilityInfoDataModel,
+    val contentId: String?
 )
 
 data class AccessibilityInfoDataModel(
     val status: String, // DB나 서버 저장을 위해 Enum 대신 String 사용 흠
-    val safetyScore: Int,
+    val safetyScore: Int?,
     val planAToiletId: String?,
-    val planBToiletId: String?
+    val planBToiletId: String?,
+    val parking: String? = null,
+    val route: String? = null,
+    val elevator: String? = null,
+    val restroom: String? = null,
+    val wheelchair: String? = null,
+    val exit: String? = null
 )
 

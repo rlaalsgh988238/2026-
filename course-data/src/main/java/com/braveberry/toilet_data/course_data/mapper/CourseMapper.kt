@@ -43,7 +43,8 @@ fun ScheduleItemDataModel.toDomain(): ScheduleItem {
         placeId = this.placeId,
         address = this.address,
         category = this.category,
-        accessibilityInfo = this.accessibilityInfo.toDomain()
+        accessibilityInfo = this.accessibilityInfo.toDomain(),
+        contentId = this.contentId
     )
 }
 
@@ -54,7 +55,13 @@ fun AccessibilityInfoDataModel.toDomain(): AccessibilityInfo {
             .getOrDefault(AccessibilityStatus.BAD),
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
-        planBToiletId = this.planBToiletId
+        planBToiletId = this.planBToiletId,
+        parking = this.parking,
+        route = this.route,
+        elevator = this.elevator,
+        restroom = this.restroom,
+        wheelchair = this.wheelchair,
+        exit = this.exit
     )
 }
 
@@ -94,7 +101,8 @@ fun ScheduleItem.toDataModel(): ScheduleItemDataModel {
         placeId = this.placeId,
         address = this.address,
         category = this.category,
-        accessibilityInfo = this.accessibilityInfo.toDataModel()
+        accessibilityInfo = this.accessibilityInfo.toDataModel(),
+        contentId = this.contentId
     )
 }
 
@@ -103,6 +111,12 @@ fun AccessibilityInfo.toDataModel(): AccessibilityInfoDataModel {
         status = this.status.name, // Enum -> String 변환
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
-        planBToiletId = this.planBToiletId
+        planBToiletId = this.planBToiletId,
+        parking = this.parking,
+        route = this.route,
+        elevator = this.elevator,
+        restroom = this.restroom,
+        wheelchair = this.wheelchair,
+        exit = this.exit
     )
 }

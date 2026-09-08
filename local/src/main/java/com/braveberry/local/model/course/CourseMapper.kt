@@ -33,12 +33,19 @@ internal fun ScheduleItemDataModel.toLocalModel(): ScheduleItemLocalModel = Sche
     placeId = placeId,
     address = address,
     category = category,
-    accessibilityInfo = accessibilityInfo.toLocalModel()
+    accessibilityInfo = accessibilityInfo.toLocalModel(),
+    contentId = contentId
 )
 
 internal fun AccessibilityInfoDataModel.toLocalModel(): AccessibilityInfoLocalModel = AccessibilityInfoLocalModel(
     status = status,
     safetyScore = safetyScore,
     planAToiletId = planAToiletId,
-    planBToiletId = planBToiletId
+    planBToiletId = planBToiletId,
+    route = route,
+    elevator = elevator,
+    restroom = restroom,
+    wheelchair = wheelchair,
+    exit = exit,
+    parking = parking
 )

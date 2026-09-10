@@ -1,7 +1,9 @@
+// 파일: DateSelectionViewModel.kt
 package com.tourdataproject.presentation.viewmodel.plan.dateSelect
 
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.tourdataproject.presentation.viewmodel.base.BaseViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarDayPresentationModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.CalendarMonthPresentationModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
@@ -9,11 +11,8 @@ import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSe
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -23,10 +22,9 @@ import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
-class DateSelectionViewModel @Inject constructor() : ViewModel() {
-
-    private val _state = MutableStateFlow(DateSelectionState())
-    val state: StateFlow<DateSelectionState> = _state.asStateFlow()
+class DateSelectionViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle
+) : BaseViewModel<DateSelectionState>(savedStateHandle, DateSelectionState()) {
 
     private val _effect = MutableSharedFlow<DateSelectionEffect>()
     val effect: SharedFlow<DateSelectionEffect> = _effect.asSharedFlow()
@@ -60,10 +58,14 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
         }
     }
 
+    // minSelectableDate, maxSelectableDate: 이 범위를 벗어난 날짜는 화면에 표시하지 않음
+    // 숙소 체크인-체크아웃 선택 모드에서 course.rawStartDate ~ rawEndDate 범위로 제한할 때 사용
     fun generateCalendarMonths(
         yearMonths: List<YearMonth>,
         startMillis: Long?,
-        endMillis: Long?
+        endMillis: Long?,
+        minSelectableDate: LocalDate? = null,
+        maxSelectableDate: LocalDate? = null
     ): List<CalendarMonthPresentationModel> {
         val startDate = startMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
         val endDate = endMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
@@ -80,22 +82,31 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
                 val dayNumber = cellIndex - firstDayOffset + 1
                 if (dayNumber in 1..daysInMonth) {
                     val currentDate = yearMonth.atDay(dayNumber)
-                    val isStart = currentDate == startDate
-                    val isEnd = currentDate == endDate
-                    val isInRange = startDate != null && endDate != null &&
-                            currentDate.isAfter(startDate) && currentDate.isBefore(endDate)
-                    val isWeekend = cellIndex % 7 == 0 || cellIndex % 7 == 6
-                    val isPast = currentDate.isBefore(today)
 
-                    CalendarDayPresentationModel(
-                        date = currentDate,
-                        dayNumber = dayNumber,
-                        isStart = isStart,
-                        isEnd = isEnd,
-                        isInRange = isInRange,
-                        isWeekend = isWeekend,
-                        isPast = isPast
-                    )
+                    // 범위 밖 날짜는 표시하지 않음 (빈 칸 처리)
+                    val isOutOfRange = (minSelectableDate != null && currentDate.isBefore(minSelectableDate)) ||
+                            (maxSelectableDate != null && currentDate.isAfter(maxSelectableDate))
+
+                    if (isOutOfRange) {
+                        CalendarDayPresentationModel(date = null, dayNumber = 0)
+                    } else {
+                        val isStart = currentDate == startDate
+                        val isEnd = currentDate == endDate
+                        val isInRange = startDate != null && endDate != null &&
+                                currentDate.isAfter(startDate) && currentDate.isBefore(endDate)
+                        val isWeekend = cellIndex % 7 == 0 || cellIndex % 7 == 6
+                        val isPast = currentDate.isBefore(today)
+
+                        CalendarDayPresentationModel(
+                            date = currentDate,
+                            dayNumber = dayNumber,
+                            isStart = isStart,
+                            isEnd = isEnd,
+                            isInRange = isInRange,
+                            isWeekend = isWeekend,
+                            isPast = isPast
+                        )
+                    }
                 } else {
                     CalendarDayPresentationModel(date = null, dayNumber = 0)
                 }
@@ -109,4 +120,3 @@ class DateSelectionViewModel @Inject constructor() : ViewModel() {
         }
     }
 }
-

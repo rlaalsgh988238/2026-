@@ -34,16 +34,18 @@ sealed interface PlanSharedIntent {
     data class OnReorderSchedules(val targetDay: Int, val reorderedSchedules: List<ScheduleItemPresentationModel>) : PlanSharedIntent
     data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedIntent
     data class OnSetDraftSchedule(val place: KakaoMapPresentationModel) : PlanSharedIntent
-    data class OnSetStay(val place: KakaoMapPresentationModel): PlanSharedIntent
+    data class OnSetDraftStay(val place: KakaoMapPresentationModel): PlanSharedIntent
     data class OnConfirmAndAddSchedule(val memoInput: String, val accessibilityInfo: AccessibilityInfoPresentationModel?) : PlanSharedIntent
     data class OnCitySelected(val cityName: String) : PlanSharedIntent
     data class OnGetCityPosition(val cityName: String): PlanSharedIntent
     object OnCityDeselected : PlanSharedIntent
     data class OnLoadCourseById(val courseId: String) : PlanSharedIntent
     object OnClearDraftSchedule : PlanSharedIntent
+    object OnClearDraftStay : PlanSharedIntent
     object ClearPlanState : PlanSharedIntent
     data class OnCalendarDateTapped(val date: LocalDate) : PlanSharedIntent
     object OnConfirmDateSelection : PlanSharedIntent
+    object OnConfirmStaySelection : PlanSharedIntent
     object OnSaveCourse : PlanSharedIntent
     data class OnStoreBackUp(val state: PlanSharedState): PlanSharedIntent
     object OnClearBackUp: PlanSharedIntent

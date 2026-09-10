@@ -49,7 +49,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tourdataproject.presentation.KakaoMapEffect
 import com.tourdataproject.presentation.KakaoMapIntent
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
-import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트
@@ -59,7 +58,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun KakaoMapSearchRoute(
-    sharedViewModel: PlanSharedViewModel,
+    sharedViewModel: PlanSharedViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     viewModel: KakaoMapViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
@@ -77,11 +76,10 @@ fun KakaoMapSearchRoute(
         val lat = courseState.course.destinationLatitude
         val lng = courseState.course.destinationLongitude
 
-        // 🌟 좌표가 정상적으로 있다면 카카오맵 뷰모델 초기화 이벤트 발송
         if (lat != 0.0 && lng != 0.0) {
             viewModel.onIntent(KakaoMapIntent.OnInitLocation(lat, lng))
         } else {
-            // (선택 사항) 만약 좌표가 0.0이면 에러 처리 로직 추가 가능
+
         }
     }
 
@@ -94,6 +92,7 @@ fun KakaoMapSearchRoute(
                 is KakaoMapEffect.NavigateNextScreen -> {
                     when(state.purpose){
                         ScreenPurpose.ADD_STAY -> {
+                            sharedViewModel.onIntent(PlanSharedIntent.OnSetDraftStay(effect.place))
                             onNavigateToDateSelect(ScreenPurpose.ADD_STAY)
                         }
                         ScreenPurpose.ADD_SCHEDULE -> {
@@ -141,10 +140,10 @@ fun KakaoMapSearchScreen(
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        // 화면이 완전히 그려지기 전에 포커스를 요청하면 무시될 수 있어 아주 짧은 딜레이를 줍니다.
         delay(100.milliseconds)
         focusRequester.requestFocus()
     }
+
     BackHandler {
         onBackClick()
     }

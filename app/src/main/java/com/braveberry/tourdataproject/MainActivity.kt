@@ -22,6 +22,7 @@ import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
+import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -51,7 +52,6 @@ class MainActivity : ComponentActivity() {
                     composable("course_list") {
                         ListRoute(
                             onNavigateToCreateNewCourse = {
-                                // 새 코스 생성 흐름 시작 -> plan_graph 진입 시 default purpose = CREATE_NEW_COURSE
                                 navController.navigate("plan_graph")
                             },
                             onNavigateToCourseDetail = { courseId ->
@@ -103,7 +103,15 @@ class MainActivity : ComponentActivity() {
                             DateSelectionRoute(
                                 sharedViewModel = sharedViewModel,
                                 onNavigateToNext = {
-                                    navController.navigate("make_course?from=date_selection&purpose=$purpose")
+                                    if (purpose == ScreenPurpose.ADD_STAY) {
+                                        // 숙소 체크인-체크아웃 확정 후에는 상세화면 없이 바로 코스 화면으로 복귀
+                                        navController.popBackStack(
+                                            route = "make_course?courseId={courseId}&from={from}&purpose={purpose}",
+                                            inclusive = false
+                                        )
+                                    } else {
+                                        navController.navigate("make_course?from=date_selection&purpose=$purpose")
+                                    }
                                 },
                                 onNavigateBack = { navController.popBackStack() }
                             )
@@ -202,8 +210,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToNext = {
                                     navController.navigate("add_schedule_detail?from=kakao_map_search&purpose=$purpose")
                                 },
-                                onNavigateToDateSelect = {purpose ->
-                                    navController.navigate("date_selection?from=kakao_map_search&purpose=$purpose")
+                                onNavigateToDateSelect = { stayPurpose ->
+                                    navController.navigate("date_selection?from=kakao_map_search&purpose=$stayPurpose")
                                 }
                             )
                         }

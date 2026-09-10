@@ -191,7 +191,6 @@ fun MakeCourseTopBar(courseName: String, datePeriod: String, onBackClick: () -> 
                 Text(text = courseName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Text(text = datePeriod, fontSize = 15.sp, color = Color.Gray)
             }
-            // 우측 상단 정보 아이콘 추가
             IconButton(onClick = { /* 기능 추가 불필요 */ }) {
                 Icon(imageVector = Icons.Outlined.Info, contentDescription = "정보", tint = Color.Black)
             }
@@ -214,6 +213,11 @@ fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit,
         Spacer(modifier = Modifier.height(16.dp))
         dayPlan.schedules.forEach { schedule ->
             ScheduleItemView(schedule = schedule)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        // 숙소가 지정된 day면 스케줄 목록 다음, 일정추가 버튼 앞에 표시
+        dayPlan.stay?.let { stay ->
+            StayItemView(stay = stay)
             Spacer(modifier = Modifier.height(12.dp))
         }
         OutlinedButton(
@@ -269,6 +273,44 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
     }
 }
 
+// 숙소 표시용 아이템. 사진 속 좌측 집 아이콘 + "숙소" 라벨 + 이름을 보여줌
+@Composable
+fun StayItemView(stay: MakeCourseScheduleState) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(shape = CircleShape, color = Color(0xFFFFF3E0), modifier = Modifier.size(28.dp)) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(text = "\uD83C\uDFE0", fontSize = 14.sp)
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Mint100), color = Color.White) {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "숙소", fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(text = stay.placeName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                val iconColor = when (stay.accessibilityInfo?.status) {
+                    AccessibilityStatusPresentationModel.GOOD -> Green
+                    AccessibilityStatusPresentationModel.WARNING -> Yellow
+                    AccessibilityStatusPresentationModel.BAD -> Red
+                    else -> Color.Gray
+                }
+                Surface(shape = CircleShape, color = iconColor, modifier = Modifier.size(36.dp)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(imageVector = ImageVector.vectorResource(id = R.drawable.accessible), contentDescription = "접근성 아이콘", tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun MakeCourseScreenPreview() {
@@ -294,6 +336,14 @@ fun MakeCourseScreenPreview() {
                     category = "관광지",
                     accessibilityInfo = AccessibilityInfoPresentationModel(status = AccessibilityStatusPresentationModel.WARNING)
                 )
+            ),
+            stay = MakeCourseScheduleState(
+                scheduleId = "stay1",
+                placeName = "거제 YAHO HOTEL",
+                order = 0,
+                memo = "",
+                category = "숙소",
+                accessibilityInfo = AccessibilityInfoPresentationModel(status = AccessibilityStatusPresentationModel.WARNING)
             )
         ),
         MakeCourseDayPlanState(
@@ -333,7 +383,8 @@ data class MakeCourseDayPlanState(
     val dayLabel: String = "",
     val dateLabel: String = "",
     val dayNumber: Int = 0,
-    val schedules: List<MakeCourseScheduleState> = emptyList()
+    val schedules: List<MakeCourseScheduleState> = emptyList(),
+    val stay: MakeCourseScheduleState? = null
 )
 
 data class MakeCourseScheduleState(
@@ -355,6 +406,20 @@ fun TravelCoursePresentationModel.toMakeCourseState(): MakeCourseUiState {
         }
 
         val tempDayPlans = this.dayPlans.map { dayPlan ->
+            // stay는 기본값(scheduleId="")일 수 있으므로 실제로 지정된 경우에만 표시
+            val stayState = if (dayPlan.stay.scheduleId.isNotBlank()) {
+                MakeCourseScheduleState(
+                    scheduleId = dayPlan.stay.scheduleId,
+                    placeName = dayPlan.stay.scheduleName,
+                    order = dayPlan.stay.order,
+                    memo = dayPlan.stay.memo,
+                    category = dayPlan.stay.category,
+                    accessibilityInfo = dayPlan.stay.accessibilityInfo
+                )
+            } else {
+                null
+            }
+
             MakeCourseDayPlanState(
                 dayLabel = dayPlan.dayLabel,
                 dateLabel = dayPlan.dateLabel,
@@ -368,7 +433,8 @@ fun TravelCoursePresentationModel.toMakeCourseState(): MakeCourseUiState {
                         category = schedule.category,
                         accessibilityInfo = schedule.accessibilityInfo
                     )
-                }
+                },
+                stay = stayState
             )
         }
 

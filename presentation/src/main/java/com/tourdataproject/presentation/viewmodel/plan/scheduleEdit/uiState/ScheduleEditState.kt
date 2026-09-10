@@ -6,13 +6,18 @@ data class ScheduleEditState(
     val dayNumber: Int = 1,
     val dateLabel: String = "",
     val schedules: List<ScheduleItemPresentationModel> = emptyList(),
+    val stay: ScheduleItemPresentationModel? = null,
     val isLoading: Boolean = false
 ){
     val dayLabel: String = "Day $dayNumber"
 }
 
 sealed class ScheduleEditIntent {
-    data class OnInit(val dateLabel: String, val schedules: List<ScheduleItemPresentationModel>) : ScheduleEditIntent()
+    data class OnInit(
+        val dateLabel: String,
+        val schedules: List<ScheduleItemPresentationModel>,
+        val stay: ScheduleItemPresentationModel?
+    ) : ScheduleEditIntent()
     data class OnScheduleDeleted(val scheduleId: String) : ScheduleEditIntent()
     data class OnScheduleMoved(val fromIndex: Int, val toIndex: Int) : ScheduleEditIntent()
     object OnScheduleMoveFinished : ScheduleEditIntent()

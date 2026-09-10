@@ -15,7 +15,6 @@ import javax.inject.Inject
 @HiltViewModel
 class MakeCourseViewModel @Inject constructor() : ViewModel() {
 
-    // 🌟 상태(State)와 저장 로직이 완전히 PlanSharedViewModel로 이관되어 제거됨
     private val _effect = MutableSharedFlow<CourseEffect>()
     val effect: SharedFlow<CourseEffect> = _effect.asSharedFlow()
 

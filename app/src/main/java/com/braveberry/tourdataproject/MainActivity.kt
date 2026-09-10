@@ -17,6 +17,7 @@ import com.braveberry.tourdataproject.screen.plan.AddLocationRoute
 import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
 import com.braveberry.tourdataproject.screen.main.ListRoute
+import com.braveberry.tourdataproject.screen.plan.FullCourseMapRoute
 import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
@@ -145,6 +146,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToHome = {
                                     navController.popBackStack("course_list", inclusive = false)
                                 },
+                                onNavigateToFullMap = {
+                                    navController.navigate("full_course_map")
+                                }
                             )
                         }
 
@@ -239,6 +243,19 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+
+                        // 8. full_course_map
+                        composable(route = "full_course_map") { entry ->
+                            val sharedViewModel: PlanSharedViewModel = hiltViewModel(
+                                remember(entry) { navController.getBackStackEntry("plan_graph") }
+                            )
+
+                            FullCourseMapRoute(
+                                sharedViewModel = sharedViewModel,
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+
                     }
                 }
             }

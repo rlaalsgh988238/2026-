@@ -23,10 +23,12 @@ sealed class ScheduleEditIntent {
     object OnScheduleMoveFinished : ScheduleEditIntent()
     object OnSaveClicked : ScheduleEditIntent()
     object OnBackClicked : ScheduleEditIntent()
+    object OnStayDeleted : ScheduleEditIntent()
 }
 
 sealed class ScheduleEditEffect {
     object NavigateBack : ScheduleEditEffect()
     data class ShowToast(val message: String) : ScheduleEditEffect()
     data class SaveToShared(val dayNumber: Int, val schedules: List<ScheduleItemPresentationModel>) : ScheduleEditEffect()
+    data class DeleteStayFromShared(val scheduleId: String) : ScheduleEditEffect()
 }

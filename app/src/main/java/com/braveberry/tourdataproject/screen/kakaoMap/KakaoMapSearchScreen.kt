@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
@@ -162,7 +163,12 @@ fun KakaoMapSearchScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로 가기")
+                Icon(
+                    painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                    contentDescription = "뒤로가기",
+                    tint = Color.Unspecified, // 원본 색상 유지 시
+                    modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
+                )
             }
 
             OutlinedTextField(

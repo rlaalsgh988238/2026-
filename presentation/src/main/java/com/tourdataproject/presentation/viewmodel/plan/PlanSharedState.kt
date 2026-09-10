@@ -49,6 +49,7 @@ sealed interface PlanSharedIntent {
     object OnSaveCourse : PlanSharedIntent
     data class OnStoreBackUp(val state: PlanSharedState): PlanSharedIntent
     object OnClearBackUp: PlanSharedIntent
+    data class OnDeleteStay(val scheduleId: String) : PlanSharedIntent
 }
 
 sealed interface PlanSharedEffect {

@@ -63,12 +63,22 @@ class ScheduleEditViewModel @Inject constructor(
             is ScheduleEditIntent.OnScheduleMoveFinished -> {
                 reorderSchedules()
             }
+
+            is ScheduleEditIntent.OnStayDeleted -> deleteStay()
         }
     }
 
     private fun setDayNum(dayNum: Int){
         _state.update { currentState ->
             currentState.copy(dayNumber = dayNum)
+        }
+    }
+
+    private fun deleteStay() {
+        val stayId = _state.value.stay?.scheduleId ?: return
+        _state.update { it.copy(stay = null) }
+        viewModelScope.launch {
+            _effect.emit(ScheduleEditEffect.DeleteStayFromShared(stayId))
         }
     }
 

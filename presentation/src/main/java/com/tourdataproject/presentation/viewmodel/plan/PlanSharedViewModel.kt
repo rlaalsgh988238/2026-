@@ -92,8 +92,23 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.OnSetDraftStay -> setDraftStay(intent.place)
             is PlanSharedIntent.OnConfirmStaySelection -> confirmStaySelection()
             is PlanSharedIntent.OnClearDraftStay -> clearDraftStay()
+            is PlanSharedIntent.OnDeleteStay -> deleteStay(intent.scheduleId)
         }
     }
+
+    private fun deleteStay(scheduleId: String) {
+        _sharedState.update { currentState ->
+            val updatedDayPlans = currentState.course.dayPlans.map { dayPlan ->
+                if (dayPlan.stay.scheduleId == scheduleId) {
+                    dayPlan.copy(stay = ScheduleItemPresentationModel())
+                } else dayPlan
+            }
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDayPlans))
+        }
+        Log.d(TAG, "숙소 삭제: $scheduleId")
+    }
+
+
     private fun initializePlanState() {
         val requestedCourseId: String? = savedStateHandle["courseId"]
         if (requestedCourseId != null) {

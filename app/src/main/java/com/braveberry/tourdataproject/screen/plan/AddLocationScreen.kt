@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.braveberry.local.R
 import com.braveberry.tourdataproject.ui.theme.SearchPlaceGray
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -93,9 +95,10 @@ fun AddLocationScreen(
                     ) {
                         IconButton(onClick = onBackClick) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
                                 contentDescription = "뒤로 가기",
-                                tint = Color.Black
+                                tint = Color.Black,
+                                modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
                             )
                         }
                     }

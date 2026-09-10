@@ -28,6 +28,7 @@ class MakeCourseViewModel @Inject constructor() : ViewModel() {
             is CourseIntent.OnMapButtonClicked -> emitEffect(NavigateToMapScreen)
             is CourseIntent.OnEditScheduleButtonClicked -> emitEffect(NavigateToEditSchedule(intent.dayNumber))
             is CourseIntent.OnAddStayButtonClicked -> emitEffect(NavigateToAddStay)
+            is CourseIntent.OnViewFullMapButtonClicked -> emitEffect(NavigateToFullMap)
         }
     }
 

@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -95,6 +96,9 @@ fun ScheduleEditRoute(
                 is ScheduleEditEffect.SaveToShared -> {
                     sharedViewModel.onIntent(PlanSharedIntent.OnReorderSchedules(effect.dayNumber, effect.schedules))
                 }
+                is ScheduleEditEffect.DeleteStayFromShared -> {
+                    sharedViewModel.onIntent(PlanSharedIntent.OnDeleteStay(effect.scheduleId))
+                }
             }
         }
     }
@@ -130,7 +134,11 @@ fun ScheduleEditScreen(
                 title = { Text("일정 편집", fontSize = 18.sp, fontWeight = FontWeight.Medium) },
                 navigationIcon = {
                     IconButton(onClick = { onIntent(ScheduleEditIntent.OnBackClicked) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(
+                            painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                            contentDescription = "뒤로가기",
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 },
                 actions = {
@@ -334,10 +342,12 @@ fun ScheduleListSection(
             )
         }
 
-        // 숙소는 리스트 최하단에 고정, 드래그 불가능한 별도 항목으로 표시
         if (stay != null) {
             item(key = "stay") {
-                StayListItem(stay = stay)
+                StayListItem(
+                    stay = stay,
+                    onDelete = { onEvent(ScheduleEditIntent.OnStayDeleted) }
+                )
             }
         }
     }
@@ -442,16 +452,21 @@ private fun ScheduleListItem(
     }
 }
 
-// 숙소 전용 항목. 리스트 최하단에 고정, 드래그 핸들 없음
 @Composable
-private fun StayListItem(stay: ScheduleItemScreenModel) {
+private fun StayListItem(stay: ScheduleItemScreenModel, onDelete: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
     ) {
-        Spacer(modifier = Modifier.width(40.dp)) // 삭제 버튼 자리만큼 인덴트 맞춤
+        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+            Box(
+                modifier = Modifier.size(22.dp).background(Color.Red, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(modifier = Modifier.width(10.dp).height(2.dp).background(Color.White))
+            }
+        }
+        Spacer(modifier = Modifier.width(8.dp))
 
         Box(
             modifier = Modifier
@@ -461,22 +476,12 @@ private fun StayListItem(stay: ScheduleItemScreenModel) {
                 .background(Color.White)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = "숙소",
-                    fontSize = 13.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 2.dp)
-                )
-                Text(
-                    text = stay.scheduleName,
-                    fontSize = 15.sp,
-                    color = Color.Black
-                )
+            Column {
+                Text("숙소", fontSize = 13.sp, color = Color.Gray)
+                Text(stay.scheduleName, fontSize = 15.sp, color = Color.Black)
             }
         }
-
-        Spacer(modifier = Modifier.width(40.dp)) // 드래그 핸들 자리만큼 인덴트 맞춤
+        Spacer(modifier = Modifier.width(40.dp)) // 드래그 핸들 자리 인덴트 유지
     }
 }
 
@@ -493,16 +498,26 @@ private fun createCustomMarkerBitmap(context: Context, text: String, isAccommoda
     canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
 
     if (isAccommodation) {
-        val drawable = ContextCompat.getDrawable(context, R.drawable.home)
+        val drawable = ContextCompat.getDrawable(context, R.drawable.stay_icon)
         if (drawable != null) {
-            val iconSize = (14 * density).toInt()
+            // 1. 아이콘 크기 설정:
+            // 마커 전체 크기(size)와 동일하게 하거나, 아주 살짝 작게(예: 2dp 여백) 설정
+            val padding = (2 * density).toInt()
+            val iconSize = size - (padding * 2)
+
             val left = (size - iconSize) / 2
             val top = (size - iconSize) / 2
+
             drawable.setBounds(left, top, left + iconSize, top + iconSize)
-            drawable.setTint(android.graphics.Color.WHITE)
+
+            // 2. 틴트 제거:
+            // SVG 내부의 노란색(#F7CD18)과 흰색 집 모양이 그대로 나오도록 틴트를 null로 설정
+            drawable.setTintList(null)
+
             drawable.draw(canvas)
         }
     } else {
+        // 일반 숫자 마커 로직 (기존 유지)
         paint.color = android.graphics.Color.WHITE
         paint.textSize = 13 * density
         paint.textAlign = Paint.Align.CENTER

@@ -201,6 +201,9 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() },
                                 onNavigateToNext = {
                                     navController.navigate("add_schedule_detail?from=kakao_map_search&purpose=$purpose")
+                                },
+                                onNavigateToDateSelect = {purpose ->
+                                    navController.navigate("date_selection?from=kakao_map_search&purpose=$purpose")
                                 }
                             )
                         }

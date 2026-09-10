@@ -1,12 +1,11 @@
 package com.tourdataproject.presentation.viewmodel.kakaoMap
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.SearchNearbyPlacesUseCase
 import com.tourdataproject.presentation.KakaoMapEffect
-import com.tourdataproject.presentation.KakaoMapEvent
+import com.tourdataproject.presentation.KakaoMapIntent
 import com.tourdataproject.presentation.KakaoMapState
 import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
@@ -43,13 +42,13 @@ class KakaoMapViewModel @Inject constructor(
         observeQueryForAutoComplete()
     }
 
-    fun onEvent(event: KakaoMapEvent) {
+    fun onIntent(event: KakaoMapIntent) {
         Log.d("KakaoMapDebug", "Event received: $event")
         when (event) {
-            is KakaoMapEvent.OnSearchQueryChanged -> updateSearchQuery(event.query)
-            is KakaoMapEvent.OnSearchClicked -> searchPlaces(event.query)
-            is KakaoMapEvent.OnPlaceItemClicked -> selectPlace(event.place)
-            is KakaoMapEvent.OnInitLocation -> intent {
+            is KakaoMapIntent.OnSearchQueryChanged -> updateSearchQuery(event.query)
+            is KakaoMapIntent.OnSearchClicked -> searchPlaces(event.query)
+            is KakaoMapIntent.OnPlaceItemClicked -> selectPlace(event.place)
+            is KakaoMapIntent.OnInitLocation -> intent {
                 reduce {
                     state.copy(targetCoordinate = Pair(event.latitude, event.longitude))
                 }

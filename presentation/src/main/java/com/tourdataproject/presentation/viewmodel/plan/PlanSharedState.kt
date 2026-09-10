@@ -10,9 +10,11 @@ import java.time.LocalDate
 data class PlanSharedState(
     val course: TravelCoursePresentationModel = TravelCoursePresentationModel(),
     val currentAddingDayNumber: Int = 1,
+    //========= 드래프트 영역 ============
     val draftSchedule: ScheduleItemPresentationModel? = null,
     val draftStartDate: Long? = null,
-    val draftEndDate: Long? = null
+    val draftEndDate: Long? = null,
+    val draftStay: ScheduleItemPresentationModel? = null
 )
 
 fun PlanSharedState.toBackUp(): PlanBackup =
@@ -21,7 +23,8 @@ fun PlanSharedState.toBackUp(): PlanBackup =
         currentAddingDayNumber = currentAddingDayNumber,
         draftEndDate = draftEndDate,
         draftStartDate = draftStartDate,
-        draftScheduleItem = draftSchedule?.toDomain()
+        draftScheduleItem = draftSchedule?.toDomain(),
+        draftStay = draftStay?.toDomain()
     )
 
 sealed interface PlanSharedIntent {
@@ -31,6 +34,7 @@ sealed interface PlanSharedIntent {
     data class OnReorderSchedules(val targetDay: Int, val reorderedSchedules: List<ScheduleItemPresentationModel>) : PlanSharedIntent
     data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedIntent
     data class OnSetDraftSchedule(val place: KakaoMapPresentationModel) : PlanSharedIntent
+    data class OnSetStay(val place: KakaoMapPresentationModel): PlanSharedIntent
     data class OnConfirmAndAddSchedule(val memoInput: String, val accessibilityInfo: AccessibilityInfoPresentationModel?) : PlanSharedIntent
     data class OnCitySelected(val cityName: String) : PlanSharedIntent
     data class OnGetCityPosition(val cityName: String): PlanSharedIntent

@@ -25,12 +25,12 @@ data class KakaoMapState(
         )
 }
 
-sealed interface KakaoMapEvent {
-    data class OnSearchQueryChanged(val query: String) : KakaoMapEvent
-    data class OnSearchClicked(val query: String) : KakaoMapEvent
+sealed interface KakaoMapIntent {
+    data class OnSearchQueryChanged(val query: String) : KakaoMapIntent
+    data class OnSearchClicked(val query: String) : KakaoMapIntent
 
-    data class OnPlaceItemClicked(val place: KakaoMapPresentationModel) : KakaoMapEvent
-    data class OnInitLocation(val latitude: Double, val longitude: Double) : KakaoMapEvent
+    data class OnPlaceItemClicked(val place: KakaoMapPresentationModel) : KakaoMapIntent
+    data class OnInitLocation(val latitude: Double, val longitude: Double) : KakaoMapIntent
 }
 
 sealed interface KakaoMapEffect {

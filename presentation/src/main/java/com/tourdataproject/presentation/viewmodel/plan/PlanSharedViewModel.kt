@@ -89,6 +89,7 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.OnSaveCourse -> saveCourse()
             is PlanSharedIntent.OnStoreBackUp -> storeBackUp(intent.state)
             is PlanSharedIntent.OnClearBackUp -> clearBackUp()
+            is PlanSharedIntent.OnSetStay -> TODO()
         }
     }
 
@@ -347,6 +348,10 @@ class PlanSharedViewModel @Inject constructor(
 
     private fun clearState(){
         _sharedState.update { PlanSharedState() }
+    }
+
+    private fun addStay(){
+
     }
 }
 

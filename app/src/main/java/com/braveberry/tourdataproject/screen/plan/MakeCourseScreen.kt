@@ -2,6 +2,7 @@ package com.braveberry.tourdataproject.screen.plan
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -161,7 +163,8 @@ fun MakeCourseScreen(
                 items(state.dayPlans) { dayPlan ->
                     DayPlanItem(
                         dayPlan = dayPlan,
-                        onAddScheduleClick = { onIntent(CourseIntent.OnAddScheduleClicked(dayPlan.dayNumber)) }
+                        onAddScheduleClick = { onIntent(CourseIntent.OnAddScheduleClicked(dayPlan.dayNumber)) },
+                        onEditClick = { onIntent(CourseIntent.OnEditScheduleButtonClicked(dayPlan.dayNumber)) }
                     )
                 }
             }
@@ -180,8 +183,7 @@ fun MakeCourseTopBar(courseName: String, datePeriod: String, onBackClick: () -> 
                 .padding(end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onBackClick) {
+            IconButton(onClick = onBackClick) {
                 Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
             }
             Spacer(modifier = Modifier.width(4.dp))
@@ -199,14 +201,15 @@ fun MakeCourseTopBar(courseName: String, datePeriod: String, onBackClick: () -> 
 }
 
 @Composable
-fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit) {
+fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit, onEditClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Surface(color = Mint20, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp)) {
                 Text(text = dayPlan.dayLabel, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Mint100, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
             }
             Text(text = dayPlan.dateLabel, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-            // 편집 버튼 제거됨
+            Spacer(modifier = Modifier.weight(1f))
+            Text(text = "편집", fontSize = 14.sp, color = Color.Gray, textDecoration = TextDecoration.Underline, modifier = Modifier.clickable(onClick = onEditClick).padding(4.dp))
         }
         Spacer(modifier = Modifier.height(16.dp))
         dayPlan.schedules.forEach { schedule ->

@@ -12,5 +12,6 @@ data class PlanBackup(
     val course: TravelCourse,
     val draftStartDate: Long?,
     val draftEndDate: Long?,
-    val draftScheduleItem: ScheduleItem?
+    val draftScheduleItem: ScheduleItem?,
+    val draftStay: ScheduleItem?
 )

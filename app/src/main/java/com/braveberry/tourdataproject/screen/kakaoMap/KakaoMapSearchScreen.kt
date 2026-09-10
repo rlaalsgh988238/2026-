@@ -45,9 +45,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tourdataproject.presentation.KakaoMapEffect
-import com.tourdataproject.presentation.KakaoMapEvent
+import com.tourdataproject.presentation.KakaoMapIntent
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.utility.Log
+import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -60,13 +63,15 @@ fun KakaoMapSearchRoute(
     modifier: Modifier = Modifier,
     viewModel: KakaoMapViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    onNavigateToNext: () -> Unit
+    onNavigateToNext: () -> Unit,
+    onNavigateToDateSelect: (purpose: String) -> Unit
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val uiState by viewModel.container.stateFlow.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(""))
+        viewModel.onIntent(KakaoMapIntent.OnSearchQueryChanged(""))
 
         val courseState = sharedViewModel.sharedState.value
         val lat = courseState.course.destinationLatitude
@@ -74,7 +79,7 @@ fun KakaoMapSearchRoute(
 
         // 🌟 좌표가 정상적으로 있다면 카카오맵 뷰모델 초기화 이벤트 발송
         if (lat != 0.0 && lng != 0.0) {
-            viewModel.onEvent(KakaoMapEvent.OnInitLocation(lat, lng))
+            viewModel.onIntent(KakaoMapIntent.OnInitLocation(lat, lng))
         } else {
             // (선택 사항) 만약 좌표가 0.0이면 에러 처리 로직 추가 가능
         }
@@ -87,8 +92,15 @@ fun KakaoMapSearchRoute(
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
                 is KakaoMapEffect.NavigateNextScreen -> {
-                    sharedViewModel.onIntent(PlanSharedIntent.OnSetDraftSchedule(effect.place))
-                    onNavigateToNext()
+                    when(state.purpose){
+                        ScreenPurpose.ADD_STAY -> {
+                            onNavigateToDateSelect(ScreenPurpose.ADD_STAY)
+                        }
+                        ScreenPurpose.ADD_SCHEDULE -> {
+                            sharedViewModel.onIntent(PlanSharedIntent.OnSetDraftSchedule(effect.place))
+                            onNavigateToNext()
+                        }
+                    }
                 }
             }
         }
@@ -105,9 +117,11 @@ fun KakaoMapSearchRoute(
         isLoading = uiState.isLoading,
         searchResults = uiState.searchResults,
         autoCompleteResults = uiState.autoCompleteResults,
-        onQueryChanged = { viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(it)) },
-        onSearch = { query -> viewModel.onEvent(KakaoMapEvent.OnSearchClicked(query)) },
-        onPlaceClick = { place -> viewModel.onEvent(KakaoMapEvent.OnPlaceItemClicked(place)) },
+        onQueryChanged = { viewModel.onIntent(KakaoMapIntent.OnSearchQueryChanged(it)) },
+        onSearch = { query -> viewModel.onIntent(KakaoMapIntent.OnSearchClicked(query)) },
+        onPlaceClick = { place ->
+            viewModel.onIntent(KakaoMapIntent.OnPlaceItemClicked(place))
+       },
         onBackClick = handleBackClick
     )
 }

@@ -41,7 +41,6 @@ class MainActivity : ComponentActivity() {
                     composable("splash") {
                         SplashScreen(
                             onInitComplete = {
-                                // 초기화 완료 시 메인 화면(course_list)으로 이동
                                 navController.navigate("course_list") {
                                     popUpTo("splash") { inclusive = true }
                                 }
@@ -52,52 +51,71 @@ class MainActivity : ComponentActivity() {
                     composable("course_list") {
                         ListRoute(
                             onNavigateToCreateNewCourse = {
-                                // 새 플랜 생성 시 plan_graph의 startDestination인 region_selection으로 진입
+                                // 새 코스 생성 흐름 시작 -> plan_graph 진입 시 default purpose = CREATE_NEW_COURSE
                                 navController.navigate("plan_graph")
                             },
                             onNavigateToCourseDetail = { courseId ->
-                                // 기존 플랜 클릭 시 courseId를 담아 make_course로 직접 진입
-                                navController.navigate("make_course?courseId=$courseId")
+                                navController.navigate("make_course?courseId=$courseId&purpose=VIEW_EXISTING_COURSE")
                             }
                         )
                     }
 
-                    navigation(startDestination = "region_selection", route = "plan_graph") {
+                    navigation(
+                        startDestination = "region_selection?from={from}&purpose={purpose}",
+                        route = "plan_graph"
+                    ) {
 
-                        composable("region_selection") { entry ->
+                        // 1. region_selection
+                        composable(
+                            route = "region_selection?from={from}&purpose={purpose}",
+                            arguments = listOf(
+                                navArgument("from") { defaultValue = "UNKNOWN" },
+                                navArgument("purpose") { defaultValue = "CREATE_NEW_COURSE" }
+                            )
+                        ) { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
+                            val purpose = entry.arguments?.getString("purpose") ?: "CREATE_NEW_COURSE"
 
                             RegionSelectionRoute(
                                 sharedViewModel = sharedViewModel,
                                 onNavigateToDateSelection = {
-                                    navController.navigate("date_selection")
+                                    navController.navigate("date_selection?from=region_selection&purpose=$purpose")
                                 },
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
 
-                        composable("date_selection") { entry ->
+                        // 2. date_selection
+                        composable(
+                            route = "date_selection?from={from}&purpose={purpose}",
+                            arguments = listOf(
+                                navArgument("from") { defaultValue = "UNKNOWN" },
+                                navArgument("purpose") { defaultValue = "UNKNOWN" }
+                            )
+                        ) { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
+                            val purpose = entry.arguments?.getString("purpose") ?: "UNKNOWN"
 
                             DateSelectionRoute(
                                 sharedViewModel = sharedViewModel,
-                                onNavigateToNext = { navController.navigate("make_course") },
+                                onNavigateToNext = {
+                                    navController.navigate("make_course?from=date_selection&purpose=$purpose")
+                                },
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
 
-                        // courseId를 선택적 인자로 받도록 라우트 수정
+                        // 3. make_course
                         composable(
-                            route = "make_course?courseId={courseId}",
+                            route = "make_course?courseId={courseId}&from={from}&purpose={purpose}",
                             arguments = listOf(
-                                navArgument("courseId") {
-                                    type = NavType.StringType
-                                    nullable = true
-                                }
+                                navArgument("courseId") { type = NavType.StringType; nullable = true },
+                                navArgument("from") { defaultValue = "UNKNOWN" },
+                                navArgument("purpose") { defaultValue = "UNKNOWN" }
                             )
                         ) { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
@@ -107,25 +125,29 @@ class MainActivity : ComponentActivity() {
                             MakeCourseRoute(
                                 sharedViewModel = sharedViewModel,
                                 onNavigateBack = { navController.popBackStack() },
-                                onNavigateToAddSchedule = {
-                                    navController.navigate("add_location")
+                                onNavigateToAddSchedule = { schedulePurpose ->
+                                    navController.navigate("add_location?from=make_course&purpose=$schedulePurpose")
                                 },
-                                onNavigateToEditSchedule = { dayNum ->
-                                    navController.navigate("editSchedule/$dayNum")
+                                onNavigateToEditSchedule = { dayNum, purpose ->
+                                    navController.navigate("editSchedule/$dayNum?from=make_course&purpose=$purpose")
                                 },
-                                onShowToast = { message ->
-                                    // 토스트 처리
+                                onNavigateToAddStay = { purpose ->
+                                    navController.navigate("add_location?from=make_course&purpose=$purpose")
                                 },
                                 onNavigateToHome = {
-                                    // 홈으로 돌아갈 때는 백스택을 정리하며 course_list로 이동
                                     navController.popBackStack("course_list", inclusive = false)
-                                }
+                                },
                             )
                         }
 
+                        // 4. editSchedule
                         composable(
-                            route = "editSchedule/{dayNum}",
-                            arguments = listOf(navArgument("dayNum") { type = NavType.IntType })
+                            route = "editSchedule/{dayNum}?from={from}&purpose={purpose}",
+                            arguments = listOf(
+                                navArgument("dayNum") { type = NavType.IntType },
+                                navArgument("from") { defaultValue = "UNKNOWN" },
+                                navArgument("purpose") { defaultValue = "UNKNOWN" }
+                            )
                         ) { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
@@ -134,47 +156,75 @@ class MainActivity : ComponentActivity() {
                             ScheduleEditRoute(
                                 sharedViewModel = sharedViewModel,
                                 viewModel = hiltViewModel(),
-                                onNavigateBack = { navController.popBackStack() },
-                                onShowToast = { /* 토스트 처리 */ }
+                                onNavigateBack = { navController.popBackStack() }
                             )
                         }
 
-                        composable("add_location") {
+                        // 5. add_location
+                        composable(
+                            route = "add_location?from={from}&purpose={purpose}",
+                            arguments = listOf(
+                                navArgument("from") { defaultValue = "UNKNOWN" },
+                                navArgument("purpose") { defaultValue = "UNKNOWN" }
+                            )
+                        ) { entry ->
+                            val sharedViewModel: PlanSharedViewModel = hiltViewModel(
+                                remember(entry) { navController.getBackStackEntry("plan_graph") }
+                            )
+                            val purpose = entry.arguments?.getString("purpose") ?: "UNKNOWN"
+
                             AddLocationRoute(
+                                viewModel = hiltViewModel(),
+                                sharedViewModel = sharedViewModel,
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToSearch = {
-                                    navController.navigate("kakao_map_search")
+                                    navController.navigate("kakao_map_search?from=add_location&purpose=$purpose")
                                 }
                             )
                         }
 
-                        composable("kakao_map_search") { entry ->
+                        // 6. kakao_map_search
+                        composable(
+                            route = "kakao_map_search?from={from}&purpose={purpose}",
+                            arguments = listOf(
+                                navArgument("from") { defaultValue = "UNKNOWN" },
+                                navArgument("purpose") { defaultValue = "UNKNOWN" }
+                            )
+                        ) { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
+                            val purpose = entry.arguments?.getString("purpose") ?: "UNKNOWN"
 
                             KakaoMapSearchRoute(
                                 sharedViewModel = sharedViewModel,
                                 onBackClick = { navController.popBackStack() },
                                 onNavigateToNext = {
-                                    navController.navigate("add_schedule_detail")
+                                    navController.navigate("add_schedule_detail?from=kakao_map_search&purpose=$purpose")
                                 }
                             )
                         }
 
-                        composable("add_schedule_detail") { entry ->
+                        // 7. add_schedule_detail
+                        composable(
+                            route = "add_schedule_detail?from={from}&purpose={purpose}",
+                            arguments = listOf(
+                                navArgument("from") { defaultValue = "UNKNOWN" },
+                                navArgument("purpose") { defaultValue = "UNKNOWN" }
+                            )
+                        ) { entry ->
                             val sharedViewModel: PlanSharedViewModel = hiltViewModel(
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
 
                             AddScheduleDetailRoute(
                                 sharedViewModel = sharedViewModel,
-                                onNavigateBack = {
-                                    navController.popBackStack()
-                                },
+                                onNavigateBack = { navController.popBackStack() },
                                 onNavigateToCourse = {
-                                    // make_course로 돌아갈 때 인자 없이 라우트 이름만 사용해도 매칭됩니다
-                                    navController.popBackStack(route = "make_course?courseId={courseId}", inclusive = false)
+                                    navController.popBackStack(
+                                        route = "make_course?courseId={courseId}&from={from}&purpose={purpose}",
+                                        inclusive = false
+                                    )
                                 }
                             )
                         }

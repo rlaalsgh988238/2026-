@@ -9,6 +9,7 @@ sealed interface CourseIntent {
     data class OnAddScheduleClicked(val dayNumber: Int) : CourseIntent
     data class OnScheduleItemClicked(val scheduleId: String) : CourseIntent
     data class OnEditScheduleButtonClicked(val dayNumber: Int): CourseIntent
+    object OnAddStayButtonClicked: CourseIntent
 }
 
 sealed interface CourseEffect {
@@ -20,4 +21,5 @@ sealed interface CourseEffect {
     data class NavigateToEditSchedule(val dayNumber: Int): CourseEffect
     data class NavigateToAddSchedule(val dayNumber: Int) : CourseEffect
     data class ShowToast(val message: String) : CourseEffect
+    object NavigateToAddStay: CourseEffect
 }

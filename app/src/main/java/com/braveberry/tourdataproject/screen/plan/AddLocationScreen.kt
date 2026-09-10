@@ -1,8 +1,6 @@
 package com.braveberry.tourdataproject.screen.plan
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,10 +22,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,23 +33,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.ui.theme.SearchPlaceGray
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
+import com.tourdataproject.presentation.viewmodel.plan.addLocation.AddLocationViewModel
+import com.tourdataproject.presentation.viewmodel.plan.addLocation.uiState.AddLocationState
+import com.tourdataproject.presentation.viewmodel.plan.addLocation.uiState.AddLocationViewMode
 
 //TODO 여기 튕겼다가 다시 들어오면 검색 안됨
 @Composable
 fun AddLocationRoute(
+    viewModel: AddLocationViewModel = hiltViewModel(),
+    sharedViewModel: PlanSharedViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToSearch: () -> Unit,
+    onNavigateToSearch: (String) -> Unit,
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
+
     AddLocationScreen(
+        state = state,
+        sharedState = sharedState,
         onBackClick = onNavigateBack,
-        onSearchClick = onNavigateToSearch
+        onSearchClick = { onNavigateToSearch(state.purpose ?: "unknown") }
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddLocationScreen(
+    state: AddLocationState,
+    sharedState: PlanSharedState,
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit
 ) {
@@ -88,7 +101,7 @@ fun AddLocationScreen(
                     }
 
                     Text(
-                        text = "장소 추가",
+                        text = state.title,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -106,7 +119,10 @@ fun AddLocationScreen(
                 .padding(horizontal = 20.dp, vertical = 24.dp)
         ) {
             Text(
-                text = "어디를 방문할건가요?",
+                text = when(state.viewMode){
+                    AddLocationViewMode.AddScheduleMode -> "어디를 방문할껀가요?"
+                    AddLocationViewMode.AddStayMode -> sharedState.course.destination
+                },
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -155,6 +171,8 @@ fun AddLocationScreen(
 @Composable
 fun AddLocationScreenPreview() {
     AddLocationScreen(
+        state = AddLocationState(),
+        sharedState = PlanSharedState(),
         onBackClick = {},
         onSearchClick = {}
     )

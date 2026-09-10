@@ -38,6 +38,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -137,15 +138,10 @@ class PlanSharedViewModel @Inject constructor(
         viewModelScope.launch {
             _sharedState
                 .drop(1)
-                .debounce(500L)
+                .debounce(500L.milliseconds)
                 .collectLatest { state ->
                     // UI State를 Domain Backup 모델로 변환하여 저장
-                    val backup = PlanBackup(
-                        course = state.course.toDomain(),
-                        currentAddingDayNumber = state.currentAddingDayNumber,
-                        draftStartDate = state.draftStartDate,
-                        draftEndDate = state.draftEndDate
-                    )
+                    val backup = state.toBackUp()
                     savePlanStateBackupUseCase(backup).collectDataResource(
                         onSuccess = { Log.d(TAG, "자동 백업 완료") },
                         onError = { Log.e(TAG, "자동 백업 실패: ${it.message}") }

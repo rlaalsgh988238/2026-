@@ -1,5 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.kakaoMap
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
@@ -9,6 +10,8 @@ import com.tourdataproject.presentation.KakaoMapEvent
 import com.tourdataproject.presentation.KakaoMapState
 import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.utility.Log
+import com.tourdataproject.presentation.viewmodel.base.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,11 +29,14 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class KakaoMapViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase
-) : ViewModel(), ContainerHost<KakaoMapState, KakaoMapEffect> {
+) : BaseViewModel<KakaoMapState>(
+    savedStateHandle = savedStateHandle,
+    initialState = KakaoMapState()
+), ContainerHost<KakaoMapState, KakaoMapEffect> {
 
     override val container = container<KakaoMapState, KakaoMapEffect>(KakaoMapState())
-
     private val queryFlow = MutableStateFlow("")
 
     init {
@@ -38,7 +44,7 @@ class KakaoMapViewModel @Inject constructor(
     }
 
     fun onEvent(event: KakaoMapEvent) {
-        android.util.Log.d("KakaoMapDebug", "Event received: $event")
+        Log.d("KakaoMapDebug", "Event received: $event")
         when (event) {
             is KakaoMapEvent.OnSearchQueryChanged -> updateSearchQuery(event.query)
             is KakaoMapEvent.OnSearchClicked -> searchPlaces(event.query)
@@ -107,12 +113,12 @@ class KakaoMapViewModel @Inject constructor(
             return@intent
         }
 
-        android.util.Log.d("KakaoMapDebug", "1. searchPlaces 시작: query = $query")
+        Log.d("KakaoMapDebug", "1. searchPlaces 시작: query = $query")
         reduce { state.copy(isLoading = true, errorMessage = null) }
         val radius = 20000
 
         try {
-            android.util.Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
+            Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
 
             // 🌟 4. 확실하게 null이 아님이 보장된(스마트 캐스팅) 좌표로 UseCase 호출
             searchNearbyPlacesUseCase(

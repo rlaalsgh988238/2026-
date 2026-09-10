@@ -1,5 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.plan
 
+import com.tourdataproject.domain.model.PlanBackup
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
 import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
 import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
@@ -13,6 +14,15 @@ data class PlanSharedState(
     val draftStartDate: Long? = null,
     val draftEndDate: Long? = null
 )
+
+fun PlanSharedState.toBackUp(): PlanBackup =
+    PlanBackup(
+        course = course.toDomain(),
+        currentAddingDayNumber = currentAddingDayNumber,
+        draftEndDate = draftEndDate,
+        draftStartDate = draftStartDate,
+        draftScheduleItem = draftSchedule?.toDomain()
+    )
 
 sealed interface PlanSharedIntent {
     data class OnCourseNameChanged(val newName: String) : PlanSharedIntent

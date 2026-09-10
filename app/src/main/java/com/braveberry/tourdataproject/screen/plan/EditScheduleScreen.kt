@@ -71,7 +71,7 @@ fun ScheduleEditRoute(
     sharedViewModel: PlanSharedViewModel,
     viewModel: ScheduleEditViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onShowToast: (String) -> Unit
+    onShowToast: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()

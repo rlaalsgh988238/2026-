@@ -39,9 +39,11 @@ fun DayPlan.toUiModel(): DayPlanPresentationModel {
         dateLabel = dateFormat.format(Date(this.date)),
         rawDayNumber = this.dayNumber,
         rawDate = this.date,
-        schedules = this.schedules.map { it.toUiModel() }
+        schedules = this.schedules.map { it.toUiModel() },
+        stay = this.stay?.toUiModel() ?: ScheduleItemPresentationModel()
     )
 }
+
 //TODO: 기획에 맞게 수정
 fun TravelCourse.toUiModel(): TravelCoursePresentationModel {
     // 1. 전체 시작일과 종료일을 꺼냅니다.
@@ -73,7 +75,8 @@ fun TravelCourse.toUiModel(): TravelCoursePresentationModel {
                 dateLabel = currentDayDate.format(dateLabelFormatter),
                 rawDayNumber = domainDayPlan.dayNumber,
                 rawDate = currentDayDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                schedules = domainDayPlan.schedules.map { it.toUiModel() }
+                schedules = domainDayPlan.schedules.map { it.toUiModel() },
+                stay = domainDayPlan.stay?.toUiModel() ?: ScheduleItemPresentationModel()
             )
         }
     )
@@ -99,5 +102,5 @@ fun AccessibilityStatus.toUiModel(): AccessibilityStatusPresentationModel = when
     AccessibilityStatus.GOOD -> AccessibilityStatusPresentationModel.GOOD
     AccessibilityStatus.WARNING -> AccessibilityStatusPresentationModel.WARNING
     AccessibilityStatus.BAD -> AccessibilityStatusPresentationModel.BAD
-    AccessibilityStatus.UNKNOWN -> TODO()
+    AccessibilityStatus.UNKNOWN -> AccessibilityStatusPresentationModel.UNKNOWN
 }

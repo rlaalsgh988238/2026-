@@ -1,7 +1,7 @@
 package com.tourdataproject.presentation.model.plan
 
 import com.tourdataproject.domain.model.course.TravelCourse
-import com.tourdataproject.presentation.mapper.UiMapper
+import com.tourdataproject.presentation.mapper.PresentationMapper
 import com.tourdataproject.presentation.mapper.mapListToDomain
 
 data class TravelCoursePresentationModel(
@@ -14,7 +14,7 @@ data class TravelCoursePresentationModel(
     val rawStartDate: Long = 0,
     val rawEndDate: Long = 0,
     val dayPlans: List<DayPlanPresentationModel> = emptyList()
-) : UiMapper<TravelCourse> {
+) : PresentationMapper<TravelCourse> {
 
     override fun toDomain(): TravelCourse {
         return TravelCourse(

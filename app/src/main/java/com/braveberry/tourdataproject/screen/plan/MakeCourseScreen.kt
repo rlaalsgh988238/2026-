@@ -13,6 +13,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -34,6 +38,7 @@ import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentation
 import com.tourdataproject.presentation.model.plan.AccessibilityStatusPresentationModel
 import com.tourdataproject.presentation.model.plan.TravelCoursePresentationModel
 import com.tourdataproject.presentation.utility.Log
+import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.course.MakeCourseViewModel
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseEffect
 import com.tourdataproject.presentation.viewmodel.course.makeCourse.uiState.CourseIntent
@@ -46,11 +51,13 @@ fun MakeCourseRoute(
     sharedViewModel: PlanSharedViewModel,
     makeCourseViewModel: MakeCourseViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToAddSchedule: () -> Unit,
+    onNavigateToAddSchedule: (String) -> Unit,
+    onNavigateToAddStay: (String) -> Unit,
     onNavigateToHome: () -> Unit,
-    onNavigateToEditSchedule: (Int) -> Unit,
-    onShowToast: (String) -> Unit
-) {
+    onNavigateToEditSchedule: (Int, String) -> Unit,
+    onNavigateToFullMap: () -> Unit, // 추가
+    onShowToast: (String) -> Unit = {}
+)  {
     val sharedState by sharedViewModel.sharedState.collectAsState()
 
     val uiState = remember(sharedState.course) {
@@ -63,13 +70,16 @@ fun MakeCourseRoute(
                 is CourseEffect.NavigateBack -> onNavigateBack()
                 is CourseEffect.NavigateToAddSchedule -> {
                     sharedViewModel.onIntent(PlanSharedIntent.OnSetAddingDayNumber(effect.dayNumber))
-                    onNavigateToAddSchedule()
+                    onNavigateToAddSchedule(ScreenPurpose.ADD_SCHEDULE)
                 }
                 is CourseEffect.ShowToast -> onShowToast(effect.message)
                 is CourseEffect.NavigateToCourseInfo -> { /* TODO */ }
                 is CourseEffect.ShareCourse -> { /* TODO */ }
                 is CourseEffect.NavigateToMapScreen -> { /* TODO */ }
-                is CourseEffect.NavigateToEditSchedule -> onNavigateToEditSchedule(effect.dayNumber)
+                is CourseEffect.NavigateToEditSchedule -> onNavigateToEditSchedule(effect.dayNumber,
+                    ScreenPurpose.ADD_SCHEDULE)
+                is CourseEffect.NavigateToAddStay -> onNavigateToAddStay(ScreenPurpose.ADD_STAY)
+                is CourseEffect.NavigateToFullMap -> onNavigateToFullMap()
             }
         }
     }
@@ -134,7 +144,9 @@ fun MakeCourseScreen(
                     onClick = onFinalSaveClick,
                     colors = ButtonDefaults.buttonColors(containerColor = Mint100),
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
                 ) {
                     Text("저장", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
@@ -147,46 +159,60 @@ fun MakeCourseScreen(
                 .padding(paddingValues)
                 .background(Color.White)
         ) {
-            HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
-
-            // 🌟 1. '숙소' 추가 버튼
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Color(0xFFD4D4D4)), // 둥근 회색 테두리
-                    color = Color.White,
-                    modifier = Modifier.clickable { /* TODO: 숙소 추가 로직 */ }
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "숙소 추가",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.DarkGray
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "숙소",
-                            fontSize = 14.sp,
-                            color = Color.DarkGray,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(32.dp)
             ) {
+                // 숙소 버튼 추가
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { onIntent(CourseIntent.OnAddStayButtonClicked) },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF5F5F5)),
+                            border = BorderStroke(1.dp, Color.Gray),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            modifier = Modifier.defaultMinSize(minWidth = 1.dp, minHeight = 1.dp)
+                        ) {
+                            Text(text = "+ 숙소", fontSize = 14.sp, color = Color.Black)
+                        }
+
+                        OutlinedButton(
+                            onClick = { onIntent(CourseIntent.OnViewFullMapButtonClicked) },
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, Mint100),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(R.drawable.green_map), // 지도 아이콘 리소스
+                                    contentDescription = null,
+                                    tint = Mint100,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("전체일정 지도 보기", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Mint100)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowRight, // 없으면 KeyboardArrowRight로 대체
+                                    contentDescription = null,
+                                    tint = Mint100,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+
                 items(state.dayPlans) { dayPlan ->
                     DayPlanItem(
                         dayPlan = dayPlan,
@@ -210,34 +236,40 @@ fun MakeCourseTopBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(64.dp) // 아이콘이 커지므로 높이를 약간 여유 있게(56->64) 조정해도 좋습니다.
                 .background(Color.White)
                 .padding(end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                Icon(
+                    painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                    contentDescription = "뒤로가기",
+                    modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
+                )
             }
             Spacer(modifier = Modifier.width(4.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = courseName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = "이름 수정", modifier = Modifier.size(14.dp), tint = Color.Gray)
-                }
+                Text(text = courseName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Text(text = datePeriod, fontSize = 15.sp, color = Color.Gray)
             }
-            IconButton(onClick = onInfoClick) {
+            // 인포 아이콘 크기 확대 적용
+            IconButton(
+                onClick = { /* 기능 추가 불필요 */ },
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = "정보",
-                    modifier = Modifier.size(24.dp),
-                    tint = Color.Black
+                    tint = Color.Black,
+                    modifier = Modifier.size(28.dp) // 여기서 크기를 결정합니다.
                 )
             }
         }
     }
 }
+
+
 @Composable
 fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit, onEditClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -254,9 +286,16 @@ fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit,
             ScheduleItemView(schedule = schedule)
             Spacer(modifier = Modifier.height(12.dp))
         }
+        // 숙소가 지정된 day면 스케줄 목록 다음, 일정추가 버튼 앞에 표시
+        dayPlan.stay?.let { stay ->
+            StayItemView(stay = stay)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         OutlinedButton(
             onClick = onAddScheduleClick,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, Color(0xFF00B493)),
             colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
@@ -268,7 +307,9 @@ fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit,
 
 @Composable
 fun ScheduleItemView(schedule: MakeCourseScheduleState) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Surface(shape = CircleShape, color = Mint100, modifier = Modifier.size(28.dp)) {
             Box(contentAlignment = Alignment.Center) {
                 Text(text = schedule.order.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
@@ -276,7 +317,9 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
         }
         Spacer(modifier = Modifier.width(12.dp))
         Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Mint100), color = Color.White) {
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = schedule.placeName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                     if (schedule.memo.isNotBlank()) {
@@ -301,28 +344,95 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
     }
 }
 
+@Composable
+fun StayItemView(stay: MakeCourseScheduleState) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 배경 Surface를 제거하고, SVG 리소스 자체를 그대로 표시합니다.
+        // tint를 주면 SVG 내부의 노란색이 덮여버리므로 tint = Color.Unspecified가 핵심입니다.
+        Icon(
+            painter = painterResource(id = R.drawable.stay_icon),
+            contentDescription = "숙소 마커",
+            tint = Color.Unspecified, // SVG 내부의 노란색과 흰색을 그대로 유지
+            modifier = Modifier.size(28.dp)
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // 우측 정보 카드는 기존과 동일
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Mint100),
+            color = Color.White
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "숙소", fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stay.placeName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+
+                // ... (접근성 아이콘 부분은 기존 코드 유지)
+            }
+        }
+    }
+}
+
+
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun MakeCourseScreenPreview() {
     val mockDayPlans = listOf(
         MakeCourseDayPlanState(
-            dayLabel = "1일차",
-            dateLabel = "8/30",
+            dayLabel = "Day 1",
+            dateLabel = "8/30 (일)",
             dayNumber = 1,
             schedules = listOf(
                 MakeCourseScheduleState(
                     scheduleId = "1",
-                    placeName = "해운대 해수욕장",
+                    placeName = "가덕휴게소",
                     order = 1,
-                    memo = "바다 구경",
+                    memo = "메모",
                     category = "관광지",
                     accessibilityInfo = AccessibilityInfoPresentationModel(status = AccessibilityStatusPresentationModel.GOOD)
+                ),
+                MakeCourseScheduleState(
+                    scheduleId = "2",
+                    placeName = "매미성",
+                    order = 2,
+                    memo = "",
+                    category = "관광지",
+                    accessibilityInfo = AccessibilityInfoPresentationModel(status = AccessibilityStatusPresentationModel.WARNING)
                 )
+            ),
+            stay = MakeCourseScheduleState(
+                scheduleId = "stay1",
+                placeName = "거제 YAHO HOTEL",
+                order = 0,
+                memo = "",
+                category = "숙소",
+                accessibilityInfo = AccessibilityInfoPresentationModel(status = AccessibilityStatusPresentationModel.WARNING)
             )
         ),
         MakeCourseDayPlanState(
-            dayLabel = "2일차",
-            dateLabel = "8/31",
+            dayLabel = "Day 2",
+            dateLabel = "8/31 (월)",
             dayNumber = 2,
             schedules = emptyList()
         )
@@ -331,7 +441,7 @@ fun MakeCourseScreenPreview() {
     val mockState = MakeCourseUiState(
         isError = false,
         errorMessage = null,
-        courseName = "부산 여행",
+        courseName = "거제 여행",
         datePeriod = "2026.08.30 ~ 2026.08.31",
         dayPlans = mockDayPlans
     )
@@ -500,7 +610,8 @@ data class MakeCourseDayPlanState(
     val dayLabel: String = "",
     val dateLabel: String = "",
     val dayNumber: Int = 0,
-    val schedules: List<MakeCourseScheduleState> = emptyList()
+    val schedules: List<MakeCourseScheduleState> = emptyList(),
+    val stay: MakeCourseScheduleState? = null
 )
 
 data class MakeCourseScheduleState(
@@ -522,6 +633,20 @@ fun TravelCoursePresentationModel.toMakeCourseState(): MakeCourseUiState {
         }
 
         val tempDayPlans = this.dayPlans.map { dayPlan ->
+            // stay는 기본값(scheduleId="")일 수 있으므로 실제로 지정된 경우에만 표시
+            val stayState = if (dayPlan.stay.scheduleId.isNotBlank()) {
+                MakeCourseScheduleState(
+                    scheduleId = dayPlan.stay.scheduleId,
+                    placeName = dayPlan.stay.scheduleName,
+                    order = dayPlan.stay.order,
+                    memo = dayPlan.stay.memo,
+                    category = dayPlan.stay.category,
+                    accessibilityInfo = dayPlan.stay.accessibilityInfo
+                )
+            } else {
+                null
+            }
+
             MakeCourseDayPlanState(
                 dayLabel = dayPlan.dayLabel,
                 dateLabel = dayPlan.dateLabel,
@@ -535,7 +660,8 @@ fun TravelCoursePresentationModel.toMakeCourseState(): MakeCourseUiState {
                         category = schedule.category,
                         accessibilityInfo = schedule.accessibilityInfo
                     )
-                }
+                },
+                stay = stayState
             )
         }
 

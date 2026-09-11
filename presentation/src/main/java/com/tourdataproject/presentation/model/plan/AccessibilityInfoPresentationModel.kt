@@ -1,7 +1,7 @@
 package com.tourdataproject.presentation.model.plan
 
 import com.tourdataproject.domain.model.course.AccessibilityInfo
-import com.tourdataproject.presentation.mapper.UiMapper
+import com.tourdataproject.presentation.mapper.PresentationMapper
 
 data class AccessibilityInfoPresentationModel(
     val status: AccessibilityStatusPresentationModel = AccessibilityStatusPresentationModel.UNKNOWN,
@@ -16,6 +16,8 @@ data class AccessibilityInfoPresentationModel(
     val wheelchair: String? = null,
     val exit: String? = null
 ) : UiMapper<AccessibilityInfo> {
+    val planBToiletId: String? = null
+) : PresentationMapper<AccessibilityInfo> {
     override fun toDomain(): AccessibilityInfo {
         return AccessibilityInfo(
             status = this.status.toDomain(),

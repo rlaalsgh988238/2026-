@@ -1,7 +1,7 @@
 package com.tourdataproject.presentation.model.plan
 
 import com.tourdataproject.domain.model.course.ScheduleItem
-import com.tourdataproject.presentation.mapper.UiMapper
+import com.tourdataproject.presentation.mapper.PresentationMapper
 
 data class ScheduleItemPresentationModel(
     val scheduleId: String = "",
@@ -16,7 +16,7 @@ data class ScheduleItemPresentationModel(
     val category: String? = null,
     val contentId: String? = null,
     val accessibilityInfo: AccessibilityInfoPresentationModel = AccessibilityInfoPresentationModel() // UI 모델 연결
-) : UiMapper<ScheduleItem> {
+) : PresentationMapper<ScheduleItem> {
     override fun toDomain(): ScheduleItem {
         return ScheduleItem(
             scheduleId = this.scheduleId,

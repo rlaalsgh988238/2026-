@@ -30,7 +30,7 @@ class CalculateCourseDatesUseCase @Inject constructor() {
             DayPlan(
                 dayNumber = i + 1,
                 date = currentDateMillis,
-                schedules = emptyList()
+                schedules = emptyList(),
             )
         }
 

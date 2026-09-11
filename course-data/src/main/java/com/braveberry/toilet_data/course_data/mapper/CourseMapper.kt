@@ -27,7 +27,8 @@ fun DayPlanDataModel.toDomain(): DayPlan {
     return DayPlan(
         dayNumber = this.dayNumber,
         date = this.date,
-        schedules = this.schedules.map { it.toDomain() }
+        schedules = this.schedules.map { it.toDomain() },
+        stay = this.stay?.toDomain()
     )
 }
 
@@ -85,7 +86,8 @@ fun DayPlan.toDataModel(): DayPlanDataModel {
     return DayPlanDataModel(
         dayNumber = this.dayNumber,
         date = this.date,
-        schedules = this.schedules.map { it.toDataModel() }
+        schedules = this.schedules.map { it.toDataModel() },
+        stay = this.stay?.toDataModel()
     )
 }
 

@@ -40,7 +40,13 @@ class ScheduleEditViewModel @Inject constructor(
     fun onIntent(intent: ScheduleEditIntent) {
         when (intent) {
             is ScheduleEditIntent.OnInit -> {
-                _state.update { it.copy(dateLabel = intent.dateLabel, schedules = intent.schedules) }
+                _state.update {
+                    it.copy(
+                        dateLabel = intent.dateLabel,
+                        schedules = intent.schedules,
+                        stay = intent.stay
+                    )
+                }
             }
             is ScheduleEditIntent.OnBackClicked -> {
                 viewModelScope.launch { _effect.emit(ScheduleEditEffect.NavigateBack) }
@@ -57,6 +63,8 @@ class ScheduleEditViewModel @Inject constructor(
             is ScheduleEditIntent.OnScheduleMoveFinished -> {
                 reorderSchedules()
             }
+
+            is ScheduleEditIntent.OnStayDeleted -> deleteStay()
         }
     }
 
@@ -66,14 +74,20 @@ class ScheduleEditViewModel @Inject constructor(
         }
     }
 
+    private fun deleteStay() {
+        val stayId = _state.value.stay?.scheduleId ?: return
+        _state.update { it.copy(stay = null) }
+        viewModelScope.launch {
+            _effect.emit(ScheduleEditEffect.DeleteStayFromShared(stayId))
+        }
+    }
+
+    // 숙소는 이제 schedules 리스트에 섞여있지 않으므로,
+    // 마지막 인덱스를 이동 금지시키던 예외 처리를 제거하고 전부 이동 가능하게 처리
     private fun moveSchedule(fromIndex: Int, toIndex: Int) {
         Log.d("ScheduleEditVM", "일정 이동 요청: fromIndex=$fromIndex, toIndex=$toIndex")
         _state.update { currentState ->
             val mutableSchedules = currentState.schedules.toMutableList()
-
-            if (fromIndex == mutableSchedules.lastIndex || toIndex == mutableSchedules.lastIndex) {
-                return@update currentState
-            }
 
             if (fromIndex in mutableSchedules.indices && toIndex in mutableSchedules.indices) {
                 val item = mutableSchedules.removeAt(fromIndex)
@@ -107,7 +121,7 @@ class ScheduleEditViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
 
-            // UI에 공유 뷰모델 업데이트를 위임하는 Effect 발생
+            // stay는 이 화면에서 순서를 건드리지 않으므로 schedules만 공유 뷰모델에 반영
             _effect.emit(ScheduleEditEffect.SaveToShared(_state.value.dayNumber, _state.value.schedules))
 
             _state.update { it.copy(isLoading = false) }

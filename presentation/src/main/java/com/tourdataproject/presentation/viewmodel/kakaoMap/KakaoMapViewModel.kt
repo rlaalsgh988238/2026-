@@ -1,14 +1,16 @@
 package com.tourdataproject.presentation.viewmodel.kakaoMap
 
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.SearchNearbyPlacesUseCase
 import com.tourdataproject.presentation.KakaoMapEffect
-import com.tourdataproject.presentation.KakaoMapEvent
+import com.tourdataproject.presentation.KakaoMapIntent
 import com.tourdataproject.presentation.KakaoMapState
 import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.utility.Log
+import com.tourdataproject.presentation.viewmodel.base.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,24 +28,27 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class KakaoMapViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase
-) : ViewModel(), ContainerHost<KakaoMapState, KakaoMapEffect> {
+) : BaseViewModel<KakaoMapState>(
+    savedStateHandle = savedStateHandle,
+    initialState = KakaoMapState()
+), ContainerHost<KakaoMapState, KakaoMapEffect> {
 
     override val container = container<KakaoMapState, KakaoMapEffect>(KakaoMapState())
-
     private val queryFlow = MutableStateFlow("")
 
     init {
         observeQueryForAutoComplete()
     }
 
-    fun onEvent(event: KakaoMapEvent) {
-        android.util.Log.d("KakaoMapDebug", "Event received: $event")
+    fun onIntent(event: KakaoMapIntent) {
+        Log.d("KakaoMapDebug", "Event received: $event")
         when (event) {
-            is KakaoMapEvent.OnSearchQueryChanged -> updateSearchQuery(event.query)
-            is KakaoMapEvent.OnSearchClicked -> searchPlaces(event.query)
-            is KakaoMapEvent.OnPlaceItemClicked -> selectPlace(event.place)
-            is KakaoMapEvent.OnInitLocation -> intent {
+            is KakaoMapIntent.OnSearchQueryChanged -> updateSearchQuery(event.query)
+            is KakaoMapIntent.OnSearchClicked -> searchPlaces(event.query)
+            is KakaoMapIntent.OnPlaceItemClicked -> selectPlace(event.place)
+            is KakaoMapIntent.OnInitLocation -> intent {
                 reduce {
                     state.copy(targetCoordinate = Pair(event.latitude, event.longitude))
                 }
@@ -106,12 +111,12 @@ class KakaoMapViewModel @Inject constructor(
             return@intent
         }
 
-        android.util.Log.d("KakaoMapDebug", "1. searchPlaces 시작: query = $query")
+        Log.d("KakaoMapDebug", "1. searchPlaces 시작: query = $query")
         reduce { state.copy(isLoading = true, errorMessage = null) }
         val radius = 20000
 
         try {
-            android.util.Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
+            Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
 
             
             searchNearbyPlacesUseCase(

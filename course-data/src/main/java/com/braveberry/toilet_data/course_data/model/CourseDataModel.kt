@@ -17,7 +17,8 @@ data class CourseDataModel(
 data class DayPlanDataModel(
     val dayNumber: Int,
     val date: Long,
-    val schedules: List<ScheduleItemDataModel>
+    val schedules: List<ScheduleItemDataModel>,
+    val stay: ScheduleItemDataModel? = null
 )
 data class ScheduleItemDataModel(
     val scheduleId: String,

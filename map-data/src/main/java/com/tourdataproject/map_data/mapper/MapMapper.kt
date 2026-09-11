@@ -22,7 +22,6 @@ fun KakaoMapDataModel.toDomainModel(): KakaoMapItem {
         // DataModel의 longitude/latitude를 도메인의 x/y로 매핑
         x = this.longitude,
         y = this.latitude,
-
         category = this.categoryGroupName,
         phone = this.phone
     )

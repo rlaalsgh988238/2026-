@@ -20,6 +20,8 @@ data class TravelCoursePresentationModel(
         return TravelCourse(
             courseId = this.courseId,
             destination = this.destination,
+            destinationLatitude = this.destinationLatitude,
+            destinationLongitude = this.destinationLongitude,
             courseName = this.courseName,
             startDate = this.rawStartDate,
             endDate = this.rawEndDate,

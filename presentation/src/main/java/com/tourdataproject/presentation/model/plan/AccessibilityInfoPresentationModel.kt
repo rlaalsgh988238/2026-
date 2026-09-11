@@ -5,8 +5,17 @@ import com.tourdataproject.presentation.mapper.PresentationMapper
 
 data class AccessibilityInfoPresentationModel(
     val status: AccessibilityStatusPresentationModel = AccessibilityStatusPresentationModel.UNKNOWN,
-    val safetyScore: Int = 0,
+    val safetyScore: Int? = 0,
     val planAToiletId: String? = null,
+    val planBToiletId: String? = null,
+    // 🌟 UI 화면에 띄워줄 무장애 정보들 추가 (기본값 null)
+    val parking: String? = null,
+    val route: String? = null,
+    val elevator: String? = null,
+    val restroom: String? = null,
+    val wheelchair: String? = null,
+    val exit: String? = null
+) : UiMapper<AccessibilityInfo> {
     val planBToiletId: String? = null
 ) : PresentationMapper<AccessibilityInfo> {
     override fun toDomain(): AccessibilityInfo {
@@ -14,7 +23,13 @@ data class AccessibilityInfoPresentationModel(
             status = this.status.toDomain(),
             safetyScore = this.safetyScore,
             planAToiletId = this.planAToiletId,
-            planBToiletId = this.planBToiletId
+            planBToiletId = this.planBToiletId,
+            parking = this.parking,
+            route = this.route,
+            elevator = this.elevator,
+            restroom = this.restroom,
+            wheelchair = this.wheelchair,
+            exit = this.exit
         )
     }
 }

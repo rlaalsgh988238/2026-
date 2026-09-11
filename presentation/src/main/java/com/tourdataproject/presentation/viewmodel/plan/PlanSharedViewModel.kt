@@ -190,9 +190,12 @@ class PlanSharedViewModel @Inject constructor(
                 onSuccess = { domainCourse ->
                     if (domainCourse != null) {
                         val uiModel = domainCourse.toUiModel()
-                        _sharedState.update { it.copy(course = uiModel) }
-                        if (uiModel.destination.isNotEmpty()) {
-                            onIntent(PlanSharedIntent.OnGetCityPosition(uiModel.destination))
+
+
+                        _sharedState.update { currentState ->
+                            currentState.copy(
+                                course = uiModel
+                          )
                         }
                     }
                 },
@@ -231,6 +234,7 @@ class PlanSharedViewModel @Inject constructor(
                 )
             )
         }
+        fetchRegionPosition(cityName)
         Log.d(TAG, cityName)
     }
 

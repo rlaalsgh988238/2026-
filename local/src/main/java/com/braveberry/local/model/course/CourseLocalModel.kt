@@ -14,6 +14,8 @@ data class CourseLocalModel(
     @PrimaryKey val courseId: String,
     val destination: String,
     val courseName: String,
+    val destinationLatitude: Double,
+    val destinationLongitude: Double,
     val startDate: Long,
     val endDate: Long,
     val dayPlans: List<DayPlanLocalModel>
@@ -22,6 +24,8 @@ data class CourseLocalModel(
         courseId = courseId,
         destination = destination,
         courseName = courseName,
+        destinationLatitude = destinationLatitude,
+        destinationLongitude = destinationLongitude,
         startDate = startDate,
         endDate = endDate,
         dayPlans = dayPlans.map { it.toData() }
@@ -53,6 +57,7 @@ data class ScheduleItemLocalModel(
     val placeId: String?,
     val address: String?,
     val category: String?,
+    val contentId : String?,
     val accessibilityInfo: AccessibilityInfoLocalModel
 ) : LocalMapper<ScheduleItemDataModel> {
     override fun toData(): ScheduleItemDataModel = ScheduleItemDataModel(
@@ -66,20 +71,33 @@ data class ScheduleItemLocalModel(
         placeId = placeId,
         address = address,
         category = category,
-        accessibilityInfo = accessibilityInfo.toData()
+        accessibilityInfo = accessibilityInfo.toData(),
+        contentId=this.contentId
     )
 }
 
 data class AccessibilityInfoLocalModel(
     val status: String,
-    val safetyScore: Int,
+    val safetyScore: Int?,
     val planAToiletId: String?,
-    val planBToiletId: String?
+    val planBToiletId: String?,
+    val parking: String?,
+    val route: String?,
+    val elevator: String?,
+    val restroom: String?,
+    val wheelchair: String?,
+    val exit: String?
 ) : LocalMapper<AccessibilityInfoDataModel> {
     override fun toData(): AccessibilityInfoDataModel = AccessibilityInfoDataModel(
         status = status,
         safetyScore = safetyScore,
         planAToiletId = planAToiletId,
-        planBToiletId = planBToiletId
+        planBToiletId = planBToiletId,
+        parking = parking,
+        route = route,
+        elevator = elevator,
+        restroom = restroom,
+        wheelchair = wheelchair,
+        exit = exit
     )
 }

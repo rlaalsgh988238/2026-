@@ -242,10 +242,6 @@ fun PlaceItem(place: KakaoMapPresentationModel, onClick: () -> Unit) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = place.address, color = Color.Gray, fontSize = 14.sp)
 
-        if (place.distanceText.isNotBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = place.distanceText, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
-        }
     }
     HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
 }

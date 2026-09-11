@@ -8,6 +8,8 @@ import com.braveberry.toilet_data.course_data.model.ScheduleItemDataModel
 internal fun CourseDataModel.toLocalModel(): CourseLocalModel = CourseLocalModel(
     courseId = courseId,
     destination = destination,
+    destinationLatitude = destinationLatitude,
+    destinationLongitude = destinationLongitude,
     courseName = courseName,
     startDate = startDate,
     endDate = endDate,
@@ -32,12 +34,19 @@ internal fun ScheduleItemDataModel.toLocalModel(): ScheduleItemLocalModel = Sche
     placeId = placeId,
     address = address,
     category = category,
-    accessibilityInfo = accessibilityInfo.toLocalModel()
+    accessibilityInfo = accessibilityInfo.toLocalModel(),
+    contentId = contentId
 )
 
 internal fun AccessibilityInfoDataModel.toLocalModel(): AccessibilityInfoLocalModel = AccessibilityInfoLocalModel(
     status = status,
     safetyScore = safetyScore,
     planAToiletId = planAToiletId,
-    planBToiletId = planBToiletId
+    planBToiletId = planBToiletId,
+    route = route,
+    elevator = elevator,
+    restroom = restroom,
+    wheelchair = wheelchair,
+    exit = exit,
+    parking = parking
 )

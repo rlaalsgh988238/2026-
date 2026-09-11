@@ -14,6 +14,7 @@ data class ScheduleItemPresentationModel(
     val placeId: String? = null,
     val address: String? = null,
     val category: String? = null,
+    val contentId: String? = null,
     val accessibilityInfo: AccessibilityInfoPresentationModel = AccessibilityInfoPresentationModel() // UI 모델 연결
 ) : PresentationMapper<ScheduleItem> {
     override fun toDomain(): ScheduleItem {
@@ -28,7 +29,8 @@ data class ScheduleItemPresentationModel(
             placeId = this.placeId,
             address = this.address,
             category = this.category,
-            accessibilityInfo = this.accessibilityInfo.toDomain()
+            accessibilityInfo = this.accessibilityInfo.toDomain(),
+            contentId=this.contentId
         )
     }
 }

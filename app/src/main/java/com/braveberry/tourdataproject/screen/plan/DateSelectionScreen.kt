@@ -1,5 +1,6 @@
 package com.braveberry.tourdataproject.screen.plan
 
+import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.ui.theme.WeekendBlue
+import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.DateSelectionViewModel
@@ -32,8 +35,12 @@ import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.Calend
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionEffect
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionIntent
 import com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState.DateSelectionState
+import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun DateSelectionRoute(
@@ -45,11 +52,18 @@ fun DateSelectionRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
 
+    val isStayMode = state.purpose == ScreenPurpose.ADD_STAY
+    val stayName = sharedState.draftStay?.scheduleName ?: ""
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { currentEffect ->
             when (currentEffect) {
                 is DateSelectionEffect.NavigateToNextScreen -> {
-                    sharedViewModel.onIntent(PlanSharedIntent.OnConfirmDateSelection)
+                    if (isStayMode) {
+                        sharedViewModel.onIntent(PlanSharedIntent.OnConfirmStaySelection)
+                    } else {
+                        sharedViewModel.onIntent(PlanSharedIntent.OnConfirmDateSelection)
+                    }
                     onNavigateToNext()
                 }
                 is DateSelectionEffect.NavigateBack -> onNavigateBack()
@@ -57,39 +71,94 @@ fun DateSelectionRoute(
         }
     }
 
-    val isDraftActive = sharedState.draftStartDate != null || sharedState.draftEndDate != null
+    // 숙소 모드일 때 선택 가능한 날짜 범위 (코스 전체 여행 기간)
+    val courseStartDate = if (isStayMode) sharedState.course.rawStartDate.takeIf { it != 0L }?.toLocalDate() else null
+    val courseEndDate = if (isStayMode) sharedState.course.rawEndDate.takeIf { it != 0L }?.toLocalDate() else null
 
-    val currentStartMillis = if (isDraftActive) {
-        sharedState.draftStartDate
+    // 숙소 모드에서는 course 날짜를 임시 선택값으로 사용하지 않음 (draft만 사용)
+    val currentStartMillis: Long?
+    val currentEndMillis: Long?
+    if (isStayMode) {
+        currentStartMillis = sharedState.draftStartDate
+        currentEndMillis = sharedState.draftEndDate
     } else {
-        sharedState.course.rawStartDate.takeIf { it != 0L }
+        val isDraftActive = sharedState.draftStartDate != null || sharedState.draftEndDate != null
+        currentStartMillis = if (isDraftActive) {
+            sharedState.draftStartDate
+        } else {
+            sharedState.course.rawStartDate.takeIf { it != 0L }
+        }
+        currentEndMillis = if (isDraftActive) {
+            sharedState.draftEndDate
+        } else {
+            sharedState.course.rawEndDate.takeIf { it != 0L }
+        }
     }
 
-    val currentEndMillis = if (isDraftActive) {
-        sharedState.draftEndDate
+    // 숙소 모드에서는 코스 기간에 해당하는 달만 보여줌, 일반 모드는 뷰모델이 관리하는 targetMonths 사용
+    val displayMonths = if (isStayMode && courseStartDate != null && courseEndDate != null) {
+        monthRange(courseStartDate, courseEndDate)
     } else {
-        sharedState.course.rawEndDate.takeIf { it != 0L }
+        state.targetMonths
     }
 
-    val calendarMonths by remember(state.targetMonths, currentStartMillis, currentEndMillis) {
+    val calendarMonths by remember(displayMonths, currentStartMillis, currentEndMillis, courseStartDate, courseEndDate) {
         derivedStateOf {
             viewModel.generateCalendarMonths(
-                yearMonths = state.targetMonths,
+                yearMonths = displayMonths,
                 startMillis = currentStartMillis,
-                endMillis = currentEndMillis
+                endMillis = currentEndMillis,
+                minSelectableDate = courseStartDate,
+                maxSelectableDate = courseEndDate
             )
         }
     }
 
     val isNextEnabled = currentStartMillis != null && currentEndMillis != null
 
+    val selectedRangeLabel = if (isStayMode && currentStartMillis != null && currentEndMillis != null) {
+        val start = currentStartMillis.toLocalDate()
+        val end = currentEndMillis.toLocalDate()
+        "${formatDateWithDay(start)} - ${formatDateWithDay(end)} 선택"
+    } else {
+        null
+    }
+
     DateSelectionScreen(
         state = state,
         calendarMonths = calendarMonths,
         isNextEnabled = isNextEnabled,
+        isStayMode = isStayMode,
+        stayName = stayName,
+        selectedRangeLabel = selectedRangeLabel,
         onIntent = viewModel::onIntent,
         onSharedIntent = sharedViewModel::onIntent
     )
+}
+
+private fun Long.toLocalDate(): LocalDate =
+    Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
+
+private fun monthRange(start: LocalDate, end: LocalDate): List<YearMonth> {
+    val startMonth = YearMonth.from(start)
+    val endMonth = YearMonth.from(end)
+    return generateSequence(startMonth) { it.plusMonths(1) }
+        .takeWhile { !it.isAfter(endMonth) }
+        .toList()
+}
+
+private fun formatDateWithDay(date: LocalDate): String {
+    val dayOfWeekKorean = when (date.dayOfWeek) {
+        DayOfWeek.SUNDAY -> "일"
+        DayOfWeek.MONDAY -> "월"
+        DayOfWeek.TUESDAY -> "화"
+        DayOfWeek.WEDNESDAY -> "수"
+        DayOfWeek.THURSDAY -> "목"
+        DayOfWeek.FRIDAY -> "금"
+        DayOfWeek.SATURDAY -> "토"
+    }
+    val formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+    return "${date.format(formatter)}(${dayOfWeekKorean})"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,11 +167,13 @@ fun DateSelectionScreen(
     state: DateSelectionState,
     calendarMonths: List<CalendarMonthPresentationModel>,
     isNextEnabled: Boolean,
+    isStayMode: Boolean = false,
+    stayName: String = "",
+    selectedRangeLabel: String? = null,
     onIntent: (DateSelectionIntent) -> Unit,
     onSharedIntent: (PlanSharedIntent) -> Unit
 ) {
     val listState = rememberLazyListState()
-
     val shouldLoadMore by remember {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -110,19 +181,29 @@ fun DateSelectionScreen(
             total > 0 && lastVisible >= total - 3
         }
     }
-
-    LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) onIntent(DateSelectionIntent.OnLoadMoreMonths)
+    // 숙소 모드는 코스 기간으로 달이 고정되어 있어서 추가로 불러올 필요 없음
+    LaunchedEffect(shouldLoadMore, isStayMode) {
+        if (shouldLoadMore && !isStayMode) onIntent(DateSelectionIntent.OnLoadMoreMonths)
     }
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("날짜 선택", fontSize = 18.sp, fontWeight = FontWeight.Medium) },
+                title = {
+                    Text(
+                        if (isStayMode) "숙소 체크인-체크아웃 선택" else "날짜 선택",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { onIntent(DateSelectionIntent.OnBackButtonClicked) }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(
+                            painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                            contentDescription = "뒤로가기",
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
@@ -140,6 +221,11 @@ fun DateSelectionScreen(
                         .navigationBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
+                    val buttonText = if (isStayMode) {
+                        selectedRangeLabel ?: "체크인-체크아웃 날짜를 선택해주세요"
+                    } else {
+                        "다음"
+                    }
                     Button(
                         onClick = { onIntent(DateSelectionIntent.OnNextButtonClicked) },
                         enabled = isNextEnabled,
@@ -152,7 +238,7 @@ fun DateSelectionScreen(
                             .fillMaxWidth()
                             .height(56.dp)
                     ) {
-                        Text("다음", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(buttonText, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -166,14 +252,31 @@ fun DateSelectionScreen(
             contentPadding = PaddingValues(vertical = 24.dp)
         ) {
             item {
-                Text(
-                    text = "언제 떠나시나요?",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 32.dp)
-                )
+                if (isStayMode) {
+                    Column(
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 32.dp)
+                    ) {
+                        Text(
+                            text = stayName,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "체크인-체크아웃 날짜를 선택해주세요.",
+                            fontSize = 15.sp,
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "언제 떠나시나요?",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 32.dp)
+                    )
+                }
             }
-
             items(calendarMonths) { monthModel ->
                 CalendarMonthView(
                     month = monthModel,
@@ -193,7 +296,6 @@ fun CalendarMonthView(
     onDateSelected: (LocalDate) -> Unit
 ) {
     val daysOfWeek = listOf("일", "월", "화", "수", "목", "금", "토")
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -208,7 +310,6 @@ fun CalendarMonthView(
                 .padding(bottom = 20.dp),
             textAlign = TextAlign.Center
         )
-
         Row(modifier = Modifier.fillMaxWidth()) {
             daysOfWeek.forEachIndexed { index, day ->
                 Text(
@@ -287,7 +388,6 @@ fun DateCell(
                     )
             )
         }
-
         Text(
             text = day.toString(),
             fontSize = 14.sp,
@@ -320,11 +420,13 @@ fun DateSelectionScreenPreview() {
             )
         )
     )
-
     DateSelectionScreen(
         state = DateSelectionState(),
         calendarMonths = listOf(dummyMonth),
         isNextEnabled = true,
+        isStayMode = true,
+        stayName = "거제 YAHO HOTEL",
+        selectedRangeLabel = "2026.08.30(일) - 2026.08.31(월) 선택",
         onIntent = {},
         onSharedIntent = {}
     )

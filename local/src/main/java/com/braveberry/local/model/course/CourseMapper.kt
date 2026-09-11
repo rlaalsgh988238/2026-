@@ -17,7 +17,8 @@ internal fun CourseDataModel.toLocalModel(): CourseLocalModel = CourseLocalModel
 internal fun DayPlanDataModel.toLocalModel(): DayPlanLocalModel = DayPlanLocalModel(
     dayNumber = dayNumber,
     date = date,
-    schedules = schedules.map { it.toLocalModel() }
+    schedules = schedules.map { it.toLocalModel() },
+    stay = stay?.toLocalModel()
 )
 
 internal fun ScheduleItemDataModel.toLocalModel(): ScheduleItemLocalModel = ScheduleItemLocalModel(

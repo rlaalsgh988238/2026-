@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
-import com.tourdataproject.domain.model.PlanBackup
 import com.tourdataproject.domain.usecase.course.GetCourseByIdUseCase
 import com.tourdataproject.domain.usecase.course.SaveCourseUseCase
 import com.tourdataproject.domain.usecase.plan.AddScheduleToDayUseCase
@@ -38,6 +37,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -54,6 +54,7 @@ class PlanSharedViewModel @Inject constructor(
     private val savePlanStateBackupUseCase: SavePlanStateBackupUseCase,
     private val clearPlanStateBackupUseCase: ClearPlanStateBackupUseCase
 ) : ViewModel() {
+
     private val TAG = "PlanSharedViewModel"
 
     private val _sharedState = MutableStateFlow(PlanSharedState())
@@ -88,8 +89,25 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.OnSaveCourse -> saveCourse()
             is PlanSharedIntent.OnStoreBackUp -> storeBackUp(intent.state)
             is PlanSharedIntent.OnClearBackUp -> clearBackUp()
+            is PlanSharedIntent.OnSetDraftStay -> setDraftStay(intent.place)
+            is PlanSharedIntent.OnConfirmStaySelection -> confirmStaySelection()
+            is PlanSharedIntent.OnClearDraftStay -> clearDraftStay()
+            is PlanSharedIntent.OnDeleteStay -> deleteStay(intent.scheduleId)
         }
     }
+
+    private fun deleteStay(scheduleId: String) {
+        _sharedState.update { currentState ->
+            val updatedDayPlans = currentState.course.dayPlans.map { dayPlan ->
+                if (dayPlan.stay.scheduleId == scheduleId) {
+                    dayPlan.copy(stay = ScheduleItemPresentationModel())
+                } else dayPlan
+            }
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDayPlans))
+        }
+        Log.d(TAG, "숙소 삭제: $scheduleId")
+    }
+
 
     private fun initializePlanState() {
         val requestedCourseId: String? = savedStateHandle["courseId"]
@@ -137,15 +155,9 @@ class PlanSharedViewModel @Inject constructor(
         viewModelScope.launch {
             _sharedState
                 .drop(1)
-                .debounce(500L)
+                .debounce(500L.milliseconds)
                 .collectLatest { state ->
-                    // UI State를 Domain Backup 모델로 변환하여 저장
-                    val backup = PlanBackup(
-                        course = state.course.toDomain(),
-                        currentAddingDayNumber = state.currentAddingDayNumber,
-                        draftStartDate = state.draftStartDate,
-                        draftEndDate = state.draftEndDate
-                    )
+                    val backup = state.toBackUp()
                     savePlanStateBackupUseCase(backup).collectDataResource(
                         onSuccess = { Log.d(TAG, "자동 백업 완료") },
                         onError = { Log.e(TAG, "자동 백업 실패: ${it.message}") }
@@ -160,13 +172,10 @@ class PlanSharedViewModel @Inject constructor(
                 Log.d(TAG, "🚨 코스저장 시도")
                 val currentCourse = _sharedState.value.course
                 saveCourseUseCase(currentCourse.toDomain())
-
-                // 🌟 코스 저장이 성공적으로 끝났으므로, 임시 백업 데이터를 삭제합니다.
                 clearPlanStateBackupUseCase().collectDataResource(
                     onSuccess = { Log.d(TAG, "백업 데이터 초기화 완료") },
                     onError = { Log.e(TAG, "백업 초기화 실패") }
                 )
-
                 _effect.emit(PlanSharedEffect.NavigateToHomeScreen)
             } catch (e: Exception) {
                 _effect.emit(PlanSharedEffect.ShowToast("코스 저장에 실패했습니다."))
@@ -255,6 +264,7 @@ class PlanSharedViewModel @Inject constructor(
         }
     }
 
+    // 코스 전체 여행 날짜 확정 (region_selection -> date_selection 흐름)
     private fun confirmDateSelection() {
         val state = _sharedState.value
         val startLong = state.draftStartDate ?: return
@@ -264,9 +274,9 @@ class PlanSharedViewModel @Inject constructor(
         val endDate = endLong.toLocalDate()
 
         val result = calculateCourseDatesUseCase(startDate, endDate)
+
         val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
         val datePeriodString = "${startDate.format(periodFormatter)} ~ ${endDate.format(periodFormatter)}"
-
         Log.d(TAG, datePeriodString)
 
         _sharedState.update { currentState ->
@@ -277,6 +287,40 @@ class PlanSharedViewModel @Inject constructor(
                     datePeriod = datePeriodString,
                     dayPlans = result.dayPlans.map { it.toUiModel() }
                 ),
+                draftStartDate = null,
+                draftEndDate = null
+            )
+        }
+    }
+
+    private fun confirmStaySelection() {
+        val currentState = _sharedState.value
+        val startLong = currentState.draftStartDate ?: return
+        val endLong = currentState.draftEndDate ?: return
+        val stay = currentState.draftStay ?: return
+
+        val checkInDate = startLong.toLocalDate()
+        val checkOutDate = endLong.toLocalDate()
+
+        // 체크아웃 당일은 숙박하는 날이 아니므로 checkInDate ~ checkOutDate 전날까지가 숙박일
+        val stayNights = generateSequence(checkInDate) { it.plusDays(1) }
+            .takeWhile { it.isBefore(checkOutDate) }
+            .toList()
+
+        Log.d(TAG, "숙소 확정: ${stay.scheduleName}, 체크인=${checkInDate}, 체크아웃=${checkOutDate}")
+
+        _sharedState.update { state ->
+            val updatedDayPlans = state.course.dayPlans.map { dayPlan ->
+                val dayDate = dayPlan.rawDate.toLocalDate()
+                if (dayDate in stayNights) {
+                    dayPlan.copy(stay = stay)
+                } else {
+                    dayPlan
+                }
+            }
+            state.copy(
+                course = state.course.copy(dayPlans = updatedDayPlans),
+                draftStay = null,
                 draftStartDate = null,
                 draftEndDate = null
             )
@@ -337,10 +381,12 @@ class PlanSharedViewModel @Inject constructor(
     private fun confirmAndAddSchedule(memoInput: String, accessibilityInfo: AccessibilityInfoPresentationModel?) {
         val currentState = _sharedState.value
         val draft = currentState.draftSchedule ?: return
+
         val finalSchedule = draft.copy(
             memo = memoInput,
             accessibilityInfo = accessibilityInfo ?: AccessibilityInfoPresentationModel()
         )
+
         addScheduleToDay(currentState.currentAddingDayNumber, finalSchedule)
         clearDraftSchedule()
     }
@@ -351,6 +397,28 @@ class PlanSharedViewModel @Inject constructor(
 
     private fun clearState(){
         _sharedState.update { PlanSharedState() }
+    }
+
+    private fun setDraftStay(stay: KakaoMapPresentationModel){
+        val draft = ScheduleItemPresentationModel(
+            scheduleId = UUID.randomUUID().toString(),
+            scheduleName = stay.placeName,
+            latitude = stay.y,
+            longitude = stay.x,
+            placeId = stay.id,
+            address = stay.address,
+            category = stay.category,
+            memo = ""
+        )
+        _sharedState.update {
+            it.copy(
+                draftStay = draft
+            )
+        }
+    }
+
+    private fun clearDraftStay() {
+        _sharedState.update { it.copy(draftStay = null, draftStartDate = null, draftEndDate = null) }
     }
 }
 

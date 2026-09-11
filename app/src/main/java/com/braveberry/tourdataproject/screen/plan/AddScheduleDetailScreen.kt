@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -135,8 +136,9 @@ fun AddScheduleDetailScreen(
                 ) {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로 가기"
+                            painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                            contentDescription = "뒤로 가기",
+                            modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))

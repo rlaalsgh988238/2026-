@@ -1,31 +1,18 @@
 package com.braveberry.tourdataproject.screen.main
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,24 +20,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.braveberry.tourdataproject.R
 import com.tourdataproject.presentation.viewmodel.course.courseList.CourseListViewModel
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
 
-// ================= 색상 정의 (이미지 기반 파스텔 톤) =================
+// 색상 정의
 val MintCardBg = Color(0xFFE4F2F1)
 val MintCardBorder = Color(0xFF26A69A)
 val PeachCardBg = Color(0xFFFCEBE9)
 val PeachCardBorder = Color(0xFFE57373)
 val YellowFabBg = Color(0xFFFFD54F)
-
 
 @Composable
 fun ListRoute(
@@ -59,7 +47,6 @@ fun ListRoute(
     onNavigateToCourseDetail: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {}
 ) {
-
     val uiState by listViewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -71,26 +58,18 @@ fun ListRoute(
             when (effect) {
                 is CourseListEffect.NavigateToCreatePlan -> onNavigateToCreateNewCourse()
                 is CourseListEffect.NavigateToRestroomGuide -> { /* TODO */ }
-                is CourseListEffect.NavigateToCourseDetail -> {
-                    onNavigateToCourseDetail(effect.courseId)
-                }
+                is CourseListEffect.NavigateToCourseDetail -> onNavigateToCourseDetail(effect.courseId)
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
             }
         }
     }
 
-    if (uiState.isError) {
-        LaunchedEffect(uiState.errorMessage) {
-            onShowToast(uiState.errorMessage ?: "오류가 발생했습니다.")
-        }
-    } else {
-        CourseListScreen(
-            state = uiState,
-            onAddClick = listViewModel::onCreatePlanClicked,
-            onCourseClick = { clickedCourseId -> listViewModel.onCourseClicked(clickedCourseId) },
-            onRestroomGuideClick = listViewModel::onRestroomGuideClicked
-        )
-    }
+    CourseListScreen(
+        state = uiState,
+        onAddClick = listViewModel::onCreatePlanClicked,
+        onCourseClick = { clickedCourseId -> listViewModel.onCourseClicked(clickedCourseId) },
+        onRestroomGuideClick = listViewModel::onRestroomGuideClicked
+    )
 }
 
 @Composable
@@ -100,51 +79,77 @@ fun CourseListScreen(
     onCourseClick: (String) -> Unit,
     onRestroomGuideClick: () -> Unit
 ) {
-    Scaffold(
-        containerColor = Color.White,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddClick,
-                containerColor = YellowFabBg,
-                contentColor = Color.Black,
-                shape = RoundedCornerShape(50),
-                modifier = Modifier.padding(bottom = 16.dp, end = 8.dp)
+    Scaffold(containerColor = Color.White) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(Icons.Default.Add, contentDescription = "플랜 만들기")
-                Spacer(Modifier.width(4.dp))
-                Text("플랜만들기", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
-            //TODO: 로고 자리
-            Box(modifier = Modifier.size(120.dp).background(Color.LightGray, RoundedCornerShape(50)))
+                // 로고 영역
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // 1. 앱 아이콘 로고
+                    Image(
+                        painter = painterResource(id = R.drawable.app_logo),
+                        contentDescription = "App Logo",
+                        modifier = Modifier.size(110.dp) // 아이콘도 살짝 키움
+                    )
 
-            Spacer(modifier = Modifier.height(40.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-
-                items(state.courses) { itemState ->
-                    CourseCardItem(
-                        itemState = itemState,
-                        onClick = { onCourseClick(itemState.courseId) }
+                    // 2. 로고 텍스트 (화면의 85%까지 차지하도록 확대)
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_string),
+                        contentDescription = "변수없길",
+                        // FillWidth를 주어야 이미지 안의 글자가 실제 영역만큼 커집니다.
+                        contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f) // 0.6에서 0.85로 대폭 상향
+                            .padding(top = 4.dp)
                     )
                 }
 
-                item {
-                    RestroomGuideButton(onClick = onRestroomGuideClick)
-                    Spacer(modifier = Modifier.height(100.dp))
+                Spacer(modifier = Modifier.height(30.dp))
+
+                // 필터 탭
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(text = "전체", selected = true)
+                    FilterChip(text = "예정된 여행", selected = false)
+                    FilterChip(text = "다녀온 여행", selected = false)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // 리스트 영역
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(state.courses) { itemState ->
+                        CourseCardItem(itemState = itemState, onClick = { onCourseClick(itemState.courseId) })
+                    }
+                    item { Spacer(modifier = Modifier.height(120.dp)) } // 하단 버튼 공간 확보
+                }
+            }
+
+            // 하단 고정 버튼 (이미지 1 스타일)
+            Column(
+                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 32.dp, end = 24.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                RestroomGuideButton(onClick = onRestroomGuideClick)
+
+                ExtendedFloatingActionButton(
+                    onClick = onAddClick,
+                    containerColor = Color(0xFFF7CD18),
+                    contentColor = Color.Black,
+                    shape = RoundedCornerShape(30.dp),
+                    elevation = FloatingActionButtonDefaults.elevation(4.dp),
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("일정 만들기", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             }
         }
@@ -152,10 +157,51 @@ fun CourseListScreen(
 }
 
 @Composable
-fun CourseCardItem(
-    itemState: CourseListItemState,
-    onClick: () -> Unit
-) {
+fun FilterChip(text: String, selected: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = if (selected) Color(0xFFE0F2F1) else Color.White,
+        border = BorderStroke(1.dp, if (selected) Color(0xFF26A69A) else Color.LightGray),
+        modifier = Modifier.clickable { }
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            fontSize = 14.sp,
+            color = if (selected) Color(0xFF26A69A) else Color.Gray
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RestroomGuideButton(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(30.dp),
+        color = PeachCardBg,
+        border = BorderStroke(1.dp, PeachCardBorder),
+        modifier = Modifier.height(50.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 이미지 속 느낌표(경고) 아이콘
+            Icon(
+                painter = painterResource(id = R.drawable.accessible), // 적절한 아이콘 리소스 확인 필요
+                contentDescription = null,
+                tint = Color.Red,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("긴급 화장실", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
+        }
+    }
+}
+
+@Composable
+fun CourseCardItem(itemState: CourseListItemState, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -166,105 +212,27 @@ fun CourseCardItem(
             .padding(16.dp)
     ) {
         Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(MintCardBorder, RoundedCornerShape(50))
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = itemState.dDayText,
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 14.sp
-                    )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.background(MintCardBorder, RoundedCornerShape(50)).padding(horizontal = 14.dp, vertical = 6.dp)) {
+                    Text(text = itemState.dDayText, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                 }
-
-                IconButton(
-                    onClick = { /* TODO: 옵션 메뉴 열기 */ },
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "더보기",
-                        tint = Color.DarkGray
-                    )
+                IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "더보기", tint = Color.DarkGray)
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = itemState.courseName,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-
+            Text(text = itemState.courseName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = itemState.datePeriod,
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
+            Text(text = itemState.datePeriod, fontSize = 12.sp, color = Color.Gray)
         }
     }
 }
 
-@Composable
-fun RestroomGuideButton(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(PeachCardBg)
-            .border(width = 1.dp, color = PeachCardBorder, shape = RoundedCornerShape(16.dp))
-            .clickable { onClick() }
-            .padding(vertical = 24.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Warning,
-            contentDescription = "주의 마크",
-            tint = Color.Red,
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "근처 화장실 안내",
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            color = Color.Black
-        )
-    }
-}
-
-// ----------------------------------------------------
-// 미리보기 (Preview)
-// ----------------------------------------------------
 @Preview(showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun CourseListScreenPreview() {
     CourseListScreen(
-        state = CourseListUiState(
-            isLoading = false,
-            courses = listOf(
-                CourseListItemState(
-                    courseId = "1",
-                    courseName = "거제 여행",
-                    datePeriod = "2026.08.30 ~ 2026.08.31",
-                    dDayText = "D-6"
-                )
-            )
-        ),
-        onAddClick = {},
-        onCourseClick = {},
-        onRestroomGuideClick = {}
+        state = CourseListUiState(courses = listOf(CourseListItemState("1", "거제 여행", "2026.08.30 ~ 2026.08.31", "D-6"))),
+        onAddClick = {}, onCourseClick = {}, onRestroomGuideClick = {}
     )
 }

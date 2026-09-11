@@ -14,9 +14,8 @@ if (localPropertiesFile.exists()) {
 }
 val kakaoApiKey = properties.getProperty("KAKAO_API_KEY") ?: ""
 
-
 android {
-    namespace = "com.tourdataproject.map_remote" //
+    namespace = "com.tourdataproject.map_remote"
 
     buildFeatures {
         buildConfig = true
@@ -32,7 +31,5 @@ dependencies {
     implementation(project(":map-data"))
     implementation(project(":data-resource"))
     implementation(libs.kotlinx.coroutines.core) // 버전은 프로젝트에 맞게!
-
-
 }
 

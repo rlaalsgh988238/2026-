@@ -1,5 +1,7 @@
+// 파일: DateSelectionUiState.kt
 package com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState
 
+import com.tourdataproject.presentation.viewmodel.base.BaseState
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -20,8 +22,17 @@ data class CalendarMonthPresentationModel(
 )
 
 data class DateSelectionState(
-    val targetMonths: List<YearMonth> = emptyList()
-)
+    val targetMonths: List<YearMonth> = emptyList(),
+    override val entryPoint: String? = null,
+    override val purpose: String? = null
+) : BaseState<DateSelectionState> {
+
+    override fun setEntryPoint(entryPoint: String?): DateSelectionState =
+        copy(entryPoint = entryPoint)
+
+    override fun setPurpose(purpose: String?): DateSelectionState =
+        copy(purpose = purpose)
+}
 
 sealed interface DateSelectionIntent {
     object OnLoadMoreMonths : DateSelectionIntent

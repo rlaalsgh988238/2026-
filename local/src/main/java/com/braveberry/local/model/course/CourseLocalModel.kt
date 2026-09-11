@@ -31,12 +31,14 @@ data class CourseLocalModel(
 data class DayPlanLocalModel(
     val dayNumber: Int,
     val date: Long,
-    val schedules: List<ScheduleItemLocalModel>
+    val schedules: List<ScheduleItemLocalModel>,
+    val stay: ScheduleItemLocalModel? = null
 ) : LocalMapper<DayPlanDataModel> {
     override fun toData(): DayPlanDataModel = DayPlanDataModel(
         dayNumber = dayNumber,
         date = date,
-        schedules = schedules.map { it.toData() }
+        schedules = schedules.map { it.toData() },
+        stay = stay?.toData()
     )
 }
 

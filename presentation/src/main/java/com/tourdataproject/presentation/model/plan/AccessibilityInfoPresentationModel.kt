@@ -15,8 +15,6 @@ data class AccessibilityInfoPresentationModel(
     val restroom: String? = null,
     val wheelchair: String? = null,
     val exit: String? = null
-) : UiMapper<AccessibilityInfo> {
-    val planBToiletId: String? = null
 ) : PresentationMapper<AccessibilityInfo> {
     override fun toDomain(): AccessibilityInfo {
         return AccessibilityInfo(

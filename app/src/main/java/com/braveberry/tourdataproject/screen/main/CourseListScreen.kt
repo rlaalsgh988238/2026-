@@ -1,5 +1,9 @@
 package com.braveberry.tourdataproject.screen.main
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,11 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.R
@@ -48,6 +54,21 @@ fun ListRoute(
     onShowToast: (String) -> Unit = {}
 ) {
     val uiState by listViewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val isGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (isGranted) {
+            listViewModel.onRestroomGuideClicked()
+        } else {
+            onShowToast("근처 긴급 화장실을 찾으려면 위치 권한이 필요합니다.")
+        }
+    }
 
     LaunchedEffect(Unit) {
         listViewModel.loadCourses()
@@ -57,7 +78,7 @@ fun ListRoute(
         listViewModel.effect.collect { effect ->
             when (effect) {
                 is CourseListEffect.NavigateToCreatePlan -> onNavigateToCreateNewCourse()
-                is CourseListEffect.NavigateToRestroomGuide -> { /* TODO */ }
+                is CourseListEffect.NavigateToRestroomGuide -> { /* TODO: 지도 화면 또는 화장실 리스트 화면으로 이동 */ }
                 is CourseListEffect.NavigateToCourseDetail -> onNavigateToCourseDetail(effect.courseId)
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
             }
@@ -68,9 +89,37 @@ fun ListRoute(
         state = uiState,
         onAddClick = listViewModel::onCreatePlanClicked,
         onCourseClick = { clickedCourseId -> listViewModel.onCourseClicked(clickedCourseId) },
-        onRestroomGuideClick = listViewModel::onRestroomGuideClicked
+        onRestroomGuideClick = {
+             val hasFineLocation = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (hasFineLocation || hasCoarseLocation) {
+                // 이미 권한이 있다면 바로 기능 실행
+                listViewModel.onRestroomGuideClicked()
+            } else {
+                // 권한이 없다면 시스템 팝업을 띄워 요청
+                locationPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            }
+        }
     )
 }
+
+
+
+
 
 @Composable
 fun CourseListScreen(

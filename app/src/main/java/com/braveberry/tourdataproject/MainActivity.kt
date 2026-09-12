@@ -22,6 +22,8 @@ import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
 import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
+import com.braveberry.tourdataproject.screen.toilet.NearbyToiletListRoute
+import com.braveberry.tourdataproject.screen.toilet.NearbyToiletListScreen
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
 import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -57,9 +59,20 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToCourseDetail = { courseId ->
                                 navController.navigate("make_course?courseId=$courseId&purpose=VIEW_EXISTING_COURSE")
+                            },
+                            onNavigateToNearbyToilet = {
+                                navController.navigate("nearby_toilet")
                             }
+
                         )
                     }
+
+                    composable(route = "nearby_toilet") {
+                        NearbyToiletListRoute(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
 
                     navigation(
                         startDestination = "region_selection?from={from}&purpose={purpose}",

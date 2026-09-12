@@ -51,6 +51,7 @@ fun ListRoute(
     listViewModel: CourseListViewModel = hiltViewModel(),
     onNavigateToCreateNewCourse: () -> Unit,
     onNavigateToCourseDetail: (String) -> Unit = {},
+    onNavigateToNearbyToilet: () -> Unit,
     onShowToast: (String) -> Unit = {}
 ) {
     val uiState by listViewModel.state.collectAsStateWithLifecycle()
@@ -78,7 +79,7 @@ fun ListRoute(
         listViewModel.effect.collect { effect ->
             when (effect) {
                 is CourseListEffect.NavigateToCreatePlan -> onNavigateToCreateNewCourse()
-                is CourseListEffect.NavigateToRestroomGuide -> { /* TODO: 지도 화면 또는 화장실 리스트 화면으로 이동 */ }
+                is CourseListEffect.NavigateToRestroomGuide -> { onNavigateToNearbyToilet()}
                 is CourseListEffect.NavigateToCourseDetail -> onNavigateToCourseDetail(effect.courseId)
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
             }

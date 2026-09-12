@@ -1,5 +1,7 @@
 package com.braveberry.tourdataproject.screen.toilet
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kakao.vectormap.KakaoMap
@@ -32,6 +36,9 @@ import com.kakao.vectormap.camera.CameraAnimation
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.tourdataproject.presentation.utility.Log
 import com.braveberry.tourdataproject.R
+import com.kakao.vectormap.label.LabelOptions
+import com.kakao.vectormap.label.LabelStyle
+import com.kakao.vectormap.label.LabelStyles
 import com.tourdataproject.presentation.viewmodel.toilet.NearbyToiletViewModel
 import com.tourdataproject.presentation.viewmodel.toilet.uiState.NearbyToiletEffect
 import com.tourdataproject.presentation.viewmodel.toilet.uiState.NearbyToiletIntent
@@ -53,6 +60,7 @@ fun NearbyToiletListRoute(
                 is NearbyToiletEffect.ShowToast -> {
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
+                //밖으로 내보냄
                 is NearbyToiletEffect.NavigateToExternalMap -> {
                     navigateToExternalMap(
                         context = context,
@@ -74,6 +82,8 @@ fun NearbyToiletListRoute(
         }
     )
 }
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +125,10 @@ fun NearbyToiletListScreen(
             sheetContent = {
                 // 바텀시트 내부 화장실 리스트
                 if (uiState.isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = Color(0xFF13B7A1))
                     }
                 } else {
@@ -143,8 +156,13 @@ fun NearbyToiletListScreen(
                         MapView(ctx).apply {
                             start(
                                 object : MapLifeCycleCallback() {
-                                    override fun onMapDestroy() { Log.d("KakaoMap", "지도 소멸됨") }
-                                    override fun onMapError(error: Exception?) { Log.e("KakaoMap", "에러: ${error?.message}") }
+                                    override fun onMapDestroy() {
+                                        Log.d("KakaoMap", "지도 소멸됨")
+                                    }
+
+                                    override fun onMapError(error: Exception?) {
+                                        Log.e("KakaoMap", "에러: ${error?.message}")
+                                    }
                                 },
                                 object : KakaoMapReadyCallback() {
                                     override fun onMapReady(kakaoMap: KakaoMap) {
@@ -159,28 +177,29 @@ fun NearbyToiletListScreen(
         }
     }
 
-    LaunchedEffect(uiState.currentLocation, mapInstance) {
+
+    LaunchedEffect(uiState.currentLocation, uiState.toilets, mapInstance) {
         val map = mapInstance
         val location = uiState.currentLocation
+
         if (location != null && map != null) {
             val position = LatLng.from(location.first, location.second)
 
             val cameraUpdate = CameraUpdateFactory.newCenterPosition(position)
             map.moveCamera(cameraUpdate, CameraAnimation.from(500))
 
-            //TODO: 라벨 안보여서 수정 해야함
             val layer = map.labelManager?.layer
             layer?.removeAll()
 
-            val style = com.kakao.vectormap.label.LabelStyles.from(
-                com.kakao.vectormap.label.LabelStyle.from(R.drawable.accessible)
-            )
-            val options = com.kakao.vectormap.label.LabelOptions.from(position).setStyles(style)
-            layer?.addLabel(options)
+            val myLocationBitmap = createBlueDotBitmap()
+            val myLocationStyle = com.kakao.vectormap.label.LabelStyle.from(myLocationBitmap)
+            val myLocationOptions = com.kakao.vectormap.label.LabelOptions.from(position).setStyles(myLocationStyle)
+            layer?.addLabel(myLocationOptions)
+
         }
     }
-}
 
+}
 @Composable
 fun ToiletListItem(
     toilet: ToiletItemPresentationModel,
@@ -274,3 +293,33 @@ fun NearbyToiletListScreenPreview() {
         onGuideClick = {}
     )
 }
+
+
+
+//TODO: 유저표시를 위해 (자꾸 이미지는 꺠진다 왜지)
+fun createBlueDotBitmap(): android.graphics.Bitmap {
+    val size = 50
+    val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+
+
+    val strokePaint = android.graphics.Paint().apply {
+        color = android.graphics.Color.WHITE
+        style = android.graphics.Paint.Style.FILL
+        isAntiAlias = true
+    }
+
+
+    val fillPaint = android.graphics.Paint().apply {
+        color = android.graphics.Color.parseColor("#1A73E8")
+        style = android.graphics.Paint.Style.FILL
+        isAntiAlias = true
+    }
+
+    val center = size / 2f
+    canvas.drawCircle(center, center, center, strokePaint)
+    canvas.drawCircle(center, center, center - 6f, fillPaint)
+
+    return bitmap
+}
+

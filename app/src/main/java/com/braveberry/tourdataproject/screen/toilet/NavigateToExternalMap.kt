@@ -13,7 +13,8 @@ fun navigateToExternalMap(
     destLat: Double,
     destLng: Double
 ) {
-    // 카카오맵 도보 길찾기 URI
+    // 여기에 넣은 이유 -> Context, Intent 같은 안드로이드 프레임 워크 종속적인 함수이기 때문
+    //viewModel의 역할과 다르다고 생각한다
     val url = "kakaomap://route?sp=$startLat,$startLng&ep=$destLat,$destLng&by=FOOT"
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
         addCategory(Intent.CATEGORY_BROWSABLE)

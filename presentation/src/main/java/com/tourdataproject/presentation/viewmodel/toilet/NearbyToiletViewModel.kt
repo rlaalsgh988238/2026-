@@ -52,6 +52,7 @@ class NearbyToiletViewModel @Inject constructor(
                 val currentLocation = _state.value.currentLocation
                 if (currentLocation != null) {
                     viewModelScope.launch {
+                        //외부로 보낼 정보
                         _effect.emit(
                             NearbyToiletEffect.NavigateToExternalMap(
                                 startLat = currentLocation.first,
@@ -90,7 +91,7 @@ class NearbyToiletViewModel @Inject constructor(
                         it.copy(currentLocation = Pair(location.latitude, location.longitude))
                     }
 
-                    // 위치 기반으로 화장실 리스트 조회 실행
+                    //위치 기반 조회
                     loadToiletsFromLocation(location.latitude, location.longitude)
                 },
                 onError = { error ->
@@ -116,28 +117,25 @@ class NearbyToiletViewModel @Inject constructor(
                 onSuccess = { domainToilets ->
                     Log.d(TAG, "화장실 정보 로드 성공: 총 ${domainToilets.size}개 발견")
 
-                    // 1. 유저 위치와 화장실 위치 간의 거리를 계산하여 (화장실, 거리) 묶음으로 생성
+                    // 거리 계산
                     val toiletsWithDistance = domainToilets.map { toilet ->
                         val results = FloatArray(1)
-                        // 안드로이드 기본 Location 클래스를 사용하여 두 좌표 간의 실제 거리(미터) 계산
                         Location.distanceBetween(
                             lat, lng,
                             toilet.latitude, toilet.longitude,
                             results
                         )
-                        toilet to results[0] // Pair(화장실 객체, 계산된 거리) 반환
+                        toilet to results[0]
                     }
 
-                    // 2. 계산된 거리를 기준으로 오름차순 정렬 (가장 가까운 화장실이 위로 오도록)
                     val sortedToilets = toiletsWithDistance.sortedBy { it.second }
 
-                    // 3. UI 모델로 변환
+
                     val uiModels = sortedToilets.map { (toilet, distance) ->
                         ToiletItemPresentationModel(
-                            name = toilet.toiletName, // name -> toiletName 수정
-                            // 도로명 주소를 우선 사용하고, 없으면 지번 주소, 둘 다 없으면 "주소 미상" 처리
+                            name = toilet.toiletName,
                             address = toilet.roadAddress ?: toilet.lotAddress ?: "주소 미상",
-                            distance = "${distance.toInt()}m", // 소수점 버리고 정수(예: 120m)로 표기
+                            distance = "${distance.toInt()}m",
                             lat = toilet.latitude,
                             lng = toilet.longitude
                         )

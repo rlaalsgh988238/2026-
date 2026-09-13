@@ -48,5 +48,7 @@ dependencies {
     implementation(project(":presentation"))
     implementation(project(":map-data"))
     implementation(project(":map-remote"))
+    implementation(project(":tourdata-data"))
+    implementation(project(":tourdata-remote"))
     implementation(project(":local"))
 }

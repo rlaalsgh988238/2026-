@@ -10,7 +10,7 @@ import dagger.Module
 
 @Module
 @InstallIn(SingletonComponent::class)
-internal abstract class TourRepositoryModule {
+abstract class TourRepositoryModule {
 
     @Binds
     @Singleton

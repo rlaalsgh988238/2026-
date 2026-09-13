@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,8 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,9 +44,9 @@ import com.braveberry.tourdataproject.R
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.KakaoMapReadyCallback
+import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.MapLifeCycleCallback
 import com.kakao.vectormap.MapView
-import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
@@ -77,17 +76,14 @@ fun ScheduleEditRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
 
-    // 공유 뷰모델의 상태를 계속 바라보며 독립 뷰모델 동기화
     LaunchedEffect(sharedState.course.dayPlans) {
         val dayPlan = sharedState.course.dayPlans.find { it.rawDayNumber == viewModel.dayNum }
         if (dayPlan != null) {
-            // stay가 기본값(scheduleId 비어있음)이면 아직 지정 안 된 것으로 취급
             val stay = dayPlan.stay.takeIf { it.scheduleId.isNotBlank() }
             viewModel.onIntent(ScheduleEditIntent.OnInit(dayPlan.dateLabel, dayPlan.schedules, stay))
         }
     }
 
-    // Effect 관찰
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -135,7 +131,7 @@ fun ScheduleEditScreen(
                 navigationIcon = {
                     IconButton(onClick = { onIntent(ScheduleEditIntent.OnBackClicked) }) {
                         Icon(
-                            painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                            painter = painterResource(R.drawable.arrow_circle_left),
                             contentDescription = "뒤로가기",
                             modifier = Modifier.fillMaxSize()
                         )
@@ -160,10 +156,13 @@ fun ScheduleEditScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
+                // ScheduleEditScreen에서는 카메라 포커스 불필요 → null 고정
                 KakaoMapSection(
                     focusedSchedules = schedules,
                     stay = stay,
-                    draggedId = dragDropState.draggedId
+                    draggedId = dragDropState.draggedId,
+                    cameraFocusLatLng = null,
+                    onCameraFocusConsumed = {}
                 )
             }
 
@@ -190,7 +189,9 @@ fun ScheduleEditScreen(
 fun KakaoMapSection(
     focusedSchedules: List<ScheduleItemScreenModel>,
     stay: ScheduleItemScreenModel? = null,
-    draggedId: String? = null
+    draggedId: String? = null,
+    cameraFocusLatLng: Pair<Double, Double>? = null,
+    onCameraFocusConsumed: () -> Unit = {}
 ) {
     var mapInstance by remember { mutableStateOf<KakaoMap?>(null) }
     val context = LocalContext.current
@@ -216,7 +217,7 @@ fun KakaoMapSection(
         }
     )
 
-    // 일정 및 숙소 변경 시 마커 및 라인 업데이트
+    // 마커 및 라인 업데이트
     LaunchedEffect(focusedSchedules, stay, mapInstance, context) {
         val map = mapInstance ?: return@LaunchedEffect
         if (focusedSchedules.isEmpty() && stay == null) return@LaunchedEffect
@@ -229,7 +230,6 @@ fun KakaoMapSection(
 
         val points = mutableListOf<LatLng>()
 
-        // 일반 일정: 순번 마커
         focusedSchedules.forEachIndexed { index, schedule ->
             val latLng = LatLng.from(schedule.latitude, schedule.longitude)
             points.add(latLng)
@@ -244,7 +244,6 @@ fun KakaoMapSection(
             labelManager?.layer?.addLabel(options)
         }
 
-        // 숙소: schedules와 분리된 별도 마커(집 아이콘), 항상 노란색
         if (stay != null) {
             val stayLatLng = LatLng.from(stay.latitude, stay.longitude)
             points.add(stayLatLng)
@@ -266,30 +265,42 @@ fun KakaoMapSection(
             routeLineManager?.layer?.addRouteLine(options)
         }
 
-        // 초기 진입 시에만 기본 줌(10)으로 이동
         if (!isInitialFocusDone) {
-            val firstPoint = focusedSchedules.firstOrNull()?.let { LatLng.from(it.latitude, it.longitude) }
+            val firstPoint = focusedSchedules.firstOrNull()
+                ?.let { LatLng.from(it.latitude, it.longitude) }
                 ?: stay?.let { LatLng.from(it.latitude, it.longitude) }
             if (firstPoint != null) {
-                val cameraUpdate = CameraUpdateFactory.newCenterPosition(firstPoint, 10)
-                map.moveCamera(cameraUpdate)
+                map.moveCamera(CameraUpdateFactory.newCenterPosition(firstPoint, 10))
                 isInitialFocusDone = true
             }
         }
     }
 
-    // 드래그 중인 아이템으로 카메라 이동 시 줌 레벨 유지
+    // 외부에서 요청한 좌표로 카메라 이동
+    LaunchedEffect(cameraFocusLatLng) {
+        val map = mapInstance ?: return@LaunchedEffect
+        cameraFocusLatLng ?: return@LaunchedEffect
+        val (lat, lng) = cameraFocusLatLng
+        val currentZoom = map.cameraPosition?.zoomLevel ?: 15
+        map.moveCamera(
+            CameraUpdateFactory.newCenterPosition(LatLng.from(lat, lng), currentZoom)
+        )
+        onCameraFocusConsumed()
+    }
+
+    // 드래그 중 카메라 이동
     LaunchedEffect(draggedId, mapInstance) {
         val map = mapInstance ?: return@LaunchedEffect
         if (draggedId != null) {
             val targetSchedule = focusedSchedules.find { it.scheduleId == draggedId }
             if (targetSchedule != null) {
                 val currentZoom = map.cameraPosition?.zoomLevel ?: 10
-                val cameraUpdate = CameraUpdateFactory.newCenterPosition(
-                    LatLng.from(targetSchedule.latitude, targetSchedule.longitude),
-                    currentZoom
+                map.moveCamera(
+                    CameraUpdateFactory.newCenterPosition(
+                        LatLng.from(targetSchedule.latitude, targetSchedule.longitude),
+                        currentZoom
+                    )
                 )
-                map.moveCamera(cameraUpdate)
             }
         }
     }
@@ -318,7 +329,6 @@ fun ScheduleListSection(
             ScheduleListHeader(dayLabel = dayLabel, dateLabel = dateLabel)
         }
 
-        // schedules에는 더 이상 숙소가 섞여있지 않음. 전부 일반 일정으로 취급, 전부 드래그 가능
         itemsIndexed(items = schedules, key = { _, schedule -> schedule.scheduleId }) { _, schedule ->
             val isDragging = dragDropState.draggedId == schedule.scheduleId
             val translation = if (isDragging) dragDropState.dragOffsetY else 0f
@@ -403,12 +413,11 @@ private fun ScheduleListItem(
             .graphicsLayer { this.translationY = translationY }
             .then(if (isDragging) Modifier else modifier)
     ) {
-        IconButton(
-            onClick = onDelete,
-            modifier = Modifier.size(32.dp)
-        ) {
+        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Box(
-                modifier = Modifier.size(22.dp).background(Color.Red, CircleShape),
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(Color.Red, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Box(modifier = Modifier.width(10.dp).height(2.dp).background(Color.White))
@@ -425,14 +434,11 @@ private fun ScheduleListItem(
                 .background(if (isDragging) Color.LightGray.copy(alpha = 0.8f) else Color.White)
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Text(
-                text = schedule.scheduleName,
-                fontSize = 15.sp,
-                color = Color.Black
-            )
+            Text(text = schedule.scheduleName, fontSize = 15.sp, color = Color.Black)
         }
 
         Spacer(modifier = Modifier.width(8.dp))
+
         Icon(
             imageVector = Icons.Default.Menu,
             contentDescription = "순서 변경",
@@ -456,11 +462,15 @@ private fun ScheduleListItem(
 private fun StayListItem(stay: ScheduleItemScreenModel, onDelete: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
     ) {
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Box(
-                modifier = Modifier.size(22.dp).background(Color.Red, CircleShape),
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(Color.Red, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Box(modifier = Modifier.width(10.dp).height(2.dp).background(Color.White))
@@ -481,7 +491,7 @@ private fun StayListItem(stay: ScheduleItemScreenModel, onDelete: () -> Unit) {
                 Text(stay.scheduleName, fontSize = 15.sp, color = Color.Black)
             }
         }
-        Spacer(modifier = Modifier.width(40.dp)) // 드래그 핸들 자리 인덴트 유지
+        Spacer(modifier = Modifier.width(40.dp))
     }
 }
 
@@ -500,24 +510,15 @@ private fun createCustomMarkerBitmap(context: Context, text: String, isAccommoda
     if (isAccommodation) {
         val drawable = ContextCompat.getDrawable(context, R.drawable.stay_icon)
         if (drawable != null) {
-            // 1. 아이콘 크기 설정:
-            // 마커 전체 크기(size)와 동일하게 하거나, 아주 살짝 작게(예: 2dp 여백) 설정
             val padding = (2 * density).toInt()
             val iconSize = size - (padding * 2)
-
             val left = (size - iconSize) / 2
             val top = (size - iconSize) / 2
-
             drawable.setBounds(left, top, left + iconSize, top + iconSize)
-
-            // 2. 틴트 제거:
-            // SVG 내부의 노란색(#F7CD18)과 흰색 집 모양이 그대로 나오도록 틴트를 null로 설정
             drawable.setTintList(null)
-
             drawable.draw(canvas)
         }
     } else {
-        // 일반 숫자 마커 로직 (기존 유지)
         paint.color = android.graphics.Color.WHITE
         paint.textSize = 13 * density
         paint.textAlign = Paint.Align.CENTER
@@ -605,6 +606,8 @@ fun rememberScheduleDragDropState(
     }
 }
 
+// ===================== Preview =====================
+
 @Preview(showBackground = true)
 @Composable
 fun ScheduleEditScreenPreview() {
@@ -614,7 +617,10 @@ fun ScheduleEditScreenPreview() {
         ScheduleItemPresentationModel(scheduleId = "3", order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
         ScheduleItemPresentationModel(scheduleId = "4", order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623)
     )
-    val stayItem = ScheduleItemPresentationModel(scheduleId = "stay1", order = 0, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
+    val stayItem = ScheduleItemPresentationModel(
+        scheduleId = "stay1", order = 0, scheduleName = "거제 YAHO HOTEL",
+        latitude = 34.880, longitude = 128.621
+    )
 
     ScheduleEditScreen(
         state = ScheduleEditState(

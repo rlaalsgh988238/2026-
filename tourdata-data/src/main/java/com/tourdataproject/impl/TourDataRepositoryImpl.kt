@@ -9,8 +9,9 @@ import com.tourdataproject.mapper.toDomainModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import javax.inject.Inject
 
-class TourDataRepositoryImpl(
+class TourDataRepositoryImpl @Inject constructor(
     private val tourDataSource: TourDataSource
 ) : TourRepository {
     override fun getContentId(

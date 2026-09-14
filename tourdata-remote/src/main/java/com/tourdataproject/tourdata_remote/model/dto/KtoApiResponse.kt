@@ -27,3 +27,5 @@ data class KtoApiBody<T>(
 data class KtoApiItems<T>(
     @SerializedName("item") val item: List<T> // 진짜 우리가 원하는 알맹이 데이터 리스트!
 )
+
+

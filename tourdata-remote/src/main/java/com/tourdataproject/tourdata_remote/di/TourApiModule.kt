@@ -1,5 +1,10 @@
 package com.tourdataproject.tourdata_remote.di
 
+import com.tourdataproject.dataSource.TourDataSource
+import com.tourdataproject.tourdata_remote.api.TourApiService
+import com.tourdataproject.tourdata_remote.api.factory.TourApiFactory
+import com.tourdataproject.tourdata_remote.impl.TourDataSourceImpl
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -10,20 +15,31 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
+abstract class TourDataSourceModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindTourDataSource(
+        impl: TourDataSourceImpl
+    ): TourDataSource
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
 object TourApiModule {
-/*
+
     @Singleton
     @Provides
-    @Named("TourApiRetrofit") // 카카오 맵 Retrofit과 헷갈리지 않게 이름표(Named) 부착
+    @Named("TourApi")
     fun provideTourRetrofit(): Retrofit {
         return TourApiFactory.createRetrofit()
     }
 
     @Singleton
     @Provides
-    fun provideTourApi(
-        @Named("TourApiRetrofit") retrofit: Retrofit
-    ): TourApi {
-        return retrofit.create(TourApi::class.java)
-    }*/
+    fun provideTourApiService(
+        @Named("TourApi") retrofit: Retrofit
+    ): TourApiService {
+        return retrofit.create(TourApiService::class.java)
+    }
 }

@@ -307,36 +307,130 @@ fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit,
 
 @Composable
 fun ScheduleItemView(schedule: MakeCourseScheduleState) {
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top // 높이가 길어질 수 있으므로 Top으로 정렬
+    ) {
+        // 좌측 순서 번호
         Surface(shape = CircleShape, color = Mint100, modifier = Modifier.size(28.dp)) {
             Box(contentAlignment = Alignment.Center) {
-                Text(text = schedule.order.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = schedule.order.toString(),
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
+
         Spacer(modifier = Modifier.width(12.dp))
-        Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Mint100), color = Color.White) {
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = schedule.placeName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    if (schedule.memo.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = schedule.memo, fontSize = 12.sp, color = Color.DarkGray)
+
+        // 우측 메인 카드
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Mint100),
+            color = Color.White
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // 1. 상단 영역 (장소명, 메모, 상태 아이콘)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = schedule.placeName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        if (schedule.memo.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = schedule.memo, fontSize = 12.sp, color = Color.DarkGray)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    val iconColor = when (schedule.accessibilityInfo?.status) {
+                        AccessibilityStatusPresentationModel.GOOD -> Green
+                        AccessibilityStatusPresentationModel.WARNING -> Yellow
+                        AccessibilityStatusPresentationModel.BAD -> Red
+                        else -> Color.Gray
+                    }
+                    Surface(shape = CircleShape, color = iconColor, modifier = Modifier.size(36.dp)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.accessible),
+                                contentDescription = "접근성 아이콘",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                val iconColor = when (schedule.accessibilityInfo?.status) {
-                    AccessibilityStatusPresentationModel.GOOD -> Green
-                    AccessibilityStatusPresentationModel.WARNING -> Yellow
-                    AccessibilityStatusPresentationModel.BAD -> Red
-                    else -> Color.Gray
-                }
-                Surface(shape = CircleShape, color = iconColor, modifier = Modifier.size(36.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(imageVector = ImageVector.vectorResource(id = R.drawable.accessible), contentDescription = "접근성 아이콘", tint = Color.White, modifier = Modifier.size(20.dp))
+
+                val info = schedule.accessibilityInfo
+                if (info != null) {
+                    // 빈 문자열이 아닌 항목들만 필터링하여 Pair(아이콘 리소스, 표시할 텍스트) 리스트로 생성
+                    val featureList = listOfNotNull(
+                        if (!info.elevator.isNullOrBlank()) Pair(R.drawable.elevator_icon, "엘리베이터") else null,
+                        if (!info.restroom.isNullOrBlank()) Pair(R.drawable.wc, "장애인화장실") else null,
+                        if (!info.route.isNullOrBlank()) Pair(R.drawable.wheel_chair_ramp, "입구 경사로") else null,
+                        if (!info.parking.isNullOrBlank()) Pair(R.drawable.parking, "장애인 주차시설") else null,
+                        if (!info.wheelchair.isNullOrBlank()) Pair(R.drawable.accessible, "휠체어 대여") else null
+                    )
+
+                    if (featureList.isNotEmpty()) {
+                        // 구분선
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = Color(0xFFEEEEEE),
+                            thickness = 1.dp
+                        )
+
+                        // 2열 그리드로 무장애 정보 배치
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            featureList.chunked(2).forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = if (rowItems == featureList.chunked(2).last()) 0.dp else 8.dp)
+                                ) {
+                                    rowItems.forEach { item ->
+                                        Row(
+                                            modifier = Modifier.weight(1f),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(id = item.first),
+                                                contentDescription = null,
+                                                tint = Color.Black,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = item.second,
+                                                fontSize = 12.sp,
+                                                color = Color.Black
+                                            )
+                                        }
+                                    }
+                                    // 홀수 개일 경우 우측 빈 공간을 채워주기 위한 투명 뷰
+                                    if (rowItems.size == 1) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

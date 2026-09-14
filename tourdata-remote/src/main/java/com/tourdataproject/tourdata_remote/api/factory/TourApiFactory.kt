@@ -1,10 +1,13 @@
 
 package com.tourdataproject.tourdata_remote.api.factory
 
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.tourdataproject.tourdata_remote.BuildConfig
+import com.tourdataproject.tourdata_remote.model.dto.KtoApiItems
+import com.tourdataproject.tourdata_remote.model.dto.KtoApiItemsDeserializer
 import okhttp3.logging.HttpLoggingInterceptor
 
 object TourApiFactory {
@@ -31,20 +34,20 @@ object TourApiFactory {
 
                 val newRequest = originalRequest.newBuilder()
                     .url(newUrl)
-                    .header("Connection", "close") //이거 없으면 터짐;
+                    .header("Connection", "close")
                     .build()
 
-                val finalUrlString = newRequest.url.toString().replace("https://", "http://")
-                val finalRequest = newRequest.newBuilder().url(finalUrlString).build()
-
-                chain.proceed(finalRequest)
+                chain.proceed(newRequest) // ✅ 원본(https) 요청 그대로 진행
             }
             .build()
+        val gson = GsonBuilder()
+            .registerTypeAdapter(KtoApiItems::class.java, KtoApiItemsDeserializer())
+            .create()
 
         return Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 }

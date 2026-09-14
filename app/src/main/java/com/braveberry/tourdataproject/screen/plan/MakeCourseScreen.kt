@@ -255,7 +255,7 @@ fun MakeCourseTopBar(
             }
             // 인포 아이콘 크기 확대 적용
             IconButton(
-                onClick = { /* 기능 추가 불필요 */ },
+                onClick =  onInfoClick,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(

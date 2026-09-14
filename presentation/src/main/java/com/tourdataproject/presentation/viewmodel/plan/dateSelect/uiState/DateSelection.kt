@@ -1,25 +1,43 @@
+// 파일: DateSelectionUiState.kt
 package com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState
 
+import com.tourdataproject.presentation.viewmodel.base.BaseState
 import java.time.LocalDate
 import java.time.YearMonth
 
+data class CalendarDayPresentationModel(
+    val date: LocalDate?,
+    val dayNumber: Int,
+    val isStart: Boolean = false,
+    val isEnd: Boolean = false,
+    val isInRange: Boolean = false,
+    val isWeekend: Boolean = false,
+    val isPast: Boolean = false
+)
+
+data class CalendarMonthPresentationModel(
+    val yearMonth: YearMonth,
+    val title: String,
+    val weeks: List<List<CalendarDayPresentationModel>>
+)
+
 data class DateSelectionState(
-    val startDate: LocalDate? = null,
-    val endDate: LocalDate? = null,
-    // 무한 스크롤을 위해 ViewModel이 관리하는 달 목록
-    val targetMonths: List<YearMonth> = (0..11).map { YearMonth.now().plusMonths(it.toLong()) }
-) {
-    val isNextButtonEnabled: Boolean
-        get() = startDate != null && endDate != null
+    val targetMonths: List<YearMonth> = emptyList(),
+    override val entryPoint: String? = null,
+    override val purpose: String? = null
+) : BaseState<DateSelectionState> {
+
+    override fun setEntryPoint(entryPoint: String?): DateSelectionState =
+        copy(entryPoint = entryPoint)
+
+    override fun setPurpose(purpose: String?): DateSelectionState =
+        copy(purpose = purpose)
 }
 
-sealed interface DateSelectionEvent {
-    // 탭으로 날짜 선택
-    data class OnDateSelected(val date: LocalDate) : DateSelectionEvent
-    // 무한 스크롤: 다음 달들 추가 로드
-    object OnLoadMoreMonths : DateSelectionEvent
-    object OnNextButtonClicked : DateSelectionEvent
-    object OnBackButtonClicked : DateSelectionEvent
+sealed interface DateSelectionIntent {
+    object OnLoadMoreMonths : DateSelectionIntent
+    object OnNextButtonClicked : DateSelectionIntent
+    object OnBackButtonClicked : DateSelectionIntent
 }
 
 sealed interface DateSelectionEffect {

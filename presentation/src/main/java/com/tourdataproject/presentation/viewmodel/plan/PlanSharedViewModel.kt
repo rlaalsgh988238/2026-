@@ -1,227 +1,379 @@
 package com.tourdataproject.presentation.viewmodel.plan
 
-import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.collectDataResource
+import com.tourdataproject.domain.usecase.course.GetCourseByIdUseCase
+import com.tourdataproject.domain.usecase.course.SaveCourseUseCase
+import com.tourdataproject.domain.usecase.plan.AddScheduleToDayUseCase
+import com.tourdataproject.domain.usecase.plan.CalculateCourseDatesUseCase
+import com.tourdataproject.domain.usecase.plan.backUp.ClearPlanStateBackupUseCase
+import com.tourdataproject.domain.usecase.plan.DeleteScheduleUseCase
 import com.tourdataproject.domain.usecase.plan.GetRegionPositionUseCase
-import com.tourdataproject.presentation.model.KakaoMapUiModel
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
-import com.tourdataproject.presentation.model.course.DayPlanUiModel
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.domain.usecase.plan.backUp.GetRestoredPlanStateUseCase
+import com.tourdataproject.domain.usecase.plan.ReorderSchedulesUseCase
+import com.tourdataproject.domain.usecase.plan.backUp.SavePlanStateBackupUseCase
+import com.tourdataproject.domain.usecase.tourData.GetContentIdUseCase // 🌟 추가됨
+import com.tourdataproject.domain.usecase.tourData.GetTourDataToiletInfoUseCase // 🌟 추가됨
+import com.tourdataproject.presentation.mapper.toUiModel
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityStatusPresentationModel
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
+import com.tourdataproject.presentation.utility.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.Boolean
-import kotlin.String
-import kotlin.collections.List
+import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class PlanSharedViewModel @Inject constructor(
-    private val getRegionPositionUseCase: GetRegionPositionUseCase
+    private val savedStateHandle: SavedStateHandle,
+    private val getRegionPositionUseCase: GetRegionPositionUseCase,
+    private val getCourseByIdUseCase: GetCourseByIdUseCase,
+    private val calculateCourseDatesUseCase: CalculateCourseDatesUseCase,
+    private val addScheduleToDayUseCase: AddScheduleToDayUseCase,
+    private val deleteScheduleUseCase: DeleteScheduleUseCase,
+    private val reorderSchedulesUseCase: ReorderSchedulesUseCase,
+    private val saveCourseUseCase: SaveCourseUseCase,
+    private val getRestoredPlanStateUseCase: GetRestoredPlanStateUseCase,
+    private val savePlanStateBackupUseCase: SavePlanStateBackupUseCase,
+    private val clearPlanStateBackupUseCase: ClearPlanStateBackupUseCase,
+    // 🌟 1. UseCase 2개 의존성 주입
+    private val getContentIdUseCase: GetContentIdUseCase,
+    private val getTourDataToiletInfoUseCase: GetTourDataToiletInfoUseCase
 ) : ViewModel() {
 
     private val TAG = "PlanSharedViewModel"
 
-    private val _courseState = MutableStateFlow(TravelCourseUiModel())
-    val courseState = _courseState.asStateFlow()
+    private val _sharedState = MutableStateFlow(PlanSharedState())
+    val sharedState = _sharedState.asStateFlow()
 
-    // ================= 이벤트 진입점 =================
+    private val _effect = MutableSharedFlow<PlanSharedEffect>()
+    val effect: SharedFlow<PlanSharedEffect> = _effect.asSharedFlow()
 
-    fun setEvent(event: PlanSharedEvent) {
-        when (event) {
-            is PlanSharedEvent.OnCitySelected -> handleCitySelected(event.cityName)
-            is PlanSharedEvent.OnDateSelected -> handleDateSelected(event.startDate, event.endDate)
-            is PlanSharedEvent.OnDateSelected -> {
-                Log.d(
-                    TAG,
-                    "Event: OnDateSelected - startDate: ${event.startDate}, endDate: ${event.endDate}"
-                )
+    init {
+        backUpData()
+        initializePlanState()
+        observeAndBackupState()
+    }
 
-                // LocalDate를 Long(Epoch Milliseconds)으로 변환하여 업데이트
-                val startMillis =
-                    event.startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                val endMillis =
-                    event.endDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-                updateDates(startMillis, endMillis)
-            }
-
-            is PlanSharedEvent.OnCourseNameChanged -> updateCourseName(event.newName)
-            is PlanSharedEvent.OnAddScheduleToDay -> addScheduleToDay(
-                event.targetDay,
-                event.newPlace
-            )
-
-            is PlanSharedEvent.OnDeleteSchedule -> deleteSchedule(
-                event.targetDay,
-                event.scheduleIdToRemove
-            )
-
-            is PlanSharedEvent.OnReorderSchedules -> reorderSchedules(
-                event.targetDay,
-                event.reorderedSchedules
-            )
-
-            is PlanSharedEvent.OnSetAddingDayNumber -> currentAddingDayNumber.value =
-                event.dayNumber
-
-            is PlanSharedEvent.OnSetDraftSchedule -> setDraftSchedule(event.place)
-            is PlanSharedEvent.OnConfirmAndAddSchedule -> confirmAndAddSchedule(
-                event.memoInput,
-                event.accessibilityInfo
-            )
-
-            PlanSharedEvent.OnClearDraftSchedule -> clearDraftSchedule()
+    fun onIntent(intent: PlanSharedIntent) {
+        when (intent) {
+            is PlanSharedIntent.OnCitySelected -> handleCitySelected(intent.cityName)
+            is PlanSharedIntent.OnCityDeselected -> handleCityDeselected()
+            is PlanSharedIntent.OnGetCityPosition -> fetchRegionPosition(intent.cityName)
+            is PlanSharedIntent.OnCourseNameChanged -> updateCourseName(intent.newName)
+            is PlanSharedIntent.OnAddScheduleToDay -> addScheduleToDay(intent.targetDay, intent.newPlace)
+            is PlanSharedIntent.OnDeleteSchedule -> deleteSchedule(intent.targetDay, intent.scheduleIdToRemove)
+            is PlanSharedIntent.OnReorderSchedules -> reorderSchedules(intent.targetDay, intent.reorderedSchedules)
+            is PlanSharedIntent.OnSetAddingDayNumber -> updateAddingDayNumber(intent.dayNumber)
+            is PlanSharedIntent.OnSetDraftSchedule -> setDraftSchedule(intent.place)
+            is PlanSharedIntent.OnConfirmAndAddSchedule -> confirmAndAddSchedule(intent.memoInput, intent.accessibilityInfo)
+            is PlanSharedIntent.OnLoadCourseById -> loadCourseById(intent.courseId)
+            is PlanSharedIntent.OnClearDraftSchedule -> clearDraftSchedule()
+            is PlanSharedIntent.ClearPlanState -> clearState()
+            is PlanSharedIntent.OnCalendarDateTapped -> handleCalendarDateTapped(intent.date)
+            is PlanSharedIntent.OnConfirmDateSelection -> confirmDateSelection()
+            is PlanSharedIntent.OnSaveCourse -> saveCourse()
+            is PlanSharedIntent.OnStoreBackUp -> storeBackUp(intent.state)
+            is PlanSharedIntent.OnClearBackUp -> clearBackUp()
+            is PlanSharedIntent.OnSetDraftStay -> setDraftStay(intent.place)
+            is PlanSharedIntent.OnConfirmStaySelection -> confirmStaySelection()
+            is PlanSharedIntent.OnClearDraftStay -> clearDraftStay()
+            is PlanSharedIntent.OnDeleteStay -> deleteStay(intent.scheduleId)
         }
     }
 
-    // 지역명 저장 + 좌표 조회를 한 번에 처리
-    private fun handleCitySelected(cityName: String) {
-        Log.d(TAG, "OnCitySelected: $cityName")
-        updateRegion(cityName)
+    private fun deleteStay(scheduleId: String) {
+        _sharedState.update { currentState ->
+            val updatedDayPlans = currentState.course.dayPlans.map { dayPlan ->
+                if (dayPlan.stay.scheduleId == scheduleId) {
+                    dayPlan.copy(stay = ScheduleItemPresentationModel())
+                } else dayPlan
+            }
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDayPlans))
+        }
+        Log.d(TAG, "숙소 삭제: $scheduleId")
+    }
+
+    private fun initializePlanState() {
+        val requestedCourseId: String? = savedStateHandle["courseId"]
+        if (requestedCourseId != null) {
+            onIntent(PlanSharedIntent.OnLoadCourseById(requestedCourseId))
+        }
+    }
+
+    private fun backUpData(){
+        viewModelScope.launch {
+            getRestoredPlanStateUseCase().collectDataResource(
+                onSuccess = { backup ->
+                    if (backup != null && backup != PlanSharedState()) {
+                        val restoredState = PlanSharedState(
+                            course = backup.course.toUiModel(),
+                            currentAddingDayNumber = backup.currentAddingDayNumber,
+                            draftStartDate = backup.draftStartDate,
+                            draftEndDate = backup.draftEndDate
+                        )
+                        onIntent(PlanSharedIntent.OnStoreBackUp(restoredState))
+                        Log.d(TAG, "프로세스 데스 복구 완료")
+                    } else{
+                        Log.d(TAG, "백업데이터 없음")
+                    }
+                },
+                onError = { Log.e(TAG, "백업 확인 실패: ${it.message}") }
+            )
+        }
+    }
+
+    private fun clearBackUp(){
+        viewModelScope.launch {
+            clearPlanStateBackupUseCase().collectDataResource(
+                onSuccess = {Log.d(TAG, "백업 데이터 삭제 성공")},
+                onError = {Log.d(TAG, "백업 데이터 삭제 실패")}
+            )
+        }
+    }
+
+    private fun storeBackUp(state: PlanSharedState){
+        _sharedState.value = state
+    }
+
+    private fun observeAndBackupState() {
+        viewModelScope.launch {
+            _sharedState
+                .drop(1)
+                .debounce(500L.milliseconds)
+                .collectLatest { state ->
+                    val backup = state.toBackUp()
+                    savePlanStateBackupUseCase(backup).collectDataResource(
+                        onSuccess = { Log.d(TAG, "자동 백업 완료") },
+                        onError = { Log.e(TAG, "자동 백업 실패: ${it.message}") }
+                    )
+                }
+        }
+    }
+
+    private fun saveCourse() {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "🚨 코스저장 시도")
+                val currentCourse = _sharedState.value.course
+                saveCourseUseCase(currentCourse.toDomain())
+                clearPlanStateBackupUseCase().collectDataResource(
+                    onSuccess = { Log.d(TAG, "백업 데이터 초기화 완료") },
+                    onError = { Log.e(TAG, "백업 초기화 실패") }
+                )
+                _effect.emit(PlanSharedEffect.NavigateToHomeScreen)
+            } catch (e: Exception) {
+                _effect.emit(PlanSharedEffect.ShowToast("코스 저장에 실패했습니다."))
+                Log.e(TAG, "코스 저장 에러: ${e.message}")
+            }
+        }
+    }
+
+    private fun loadCourseById(courseId: String) {
+        viewModelScope.launch {
+            getCourseByIdUseCase(courseId).collectDataResource(
+                onSuccess = { domainCourse ->
+                    if (domainCourse != null) {
+                        val uiModel = domainCourse.toUiModel()
+                        _sharedState.update { currentState ->
+                            currentState.copy(
+                                course = uiModel
+                            )
+                        }
+                    }
+                },
+                onError = { Log.e(TAG, "코스 불러오기 에러: ${it.message}") }
+            )
+        }
+    }
+
+    private fun fetchRegionPosition(cityName: String) {
 
         viewModelScope.launch {
             getRegionPositionUseCase(cityName).collectDataResource(
                 onSuccess = { location ->
-                    Log.d(TAG, "position success: $location")
-                    updateRegionPosition(location.longitude, location.latitude)
+                    _sharedState.update {
+                        it.copy(
+                            course = it.course.copy(
+                                destinationLatitude = location.latitude,
+                                destinationLongitude = location.longitude
+                            )
+                        )
+                    }
+                    Log.d(TAG, "좌표: ${location.latitude},${location.longitude}")
                 },
-                onError = { error ->
-                    Log.e(TAG, "position error: ${error.message}")
-                },
-                onLoading = {
-                    Log.d(TAG, "position loading...")
-                }
+                onError = { Log.e(TAG, "좌표 복구 에러: ${it.message}") }
             )
         }
     }
 
-
-    private fun handleDateSelected(startDate: LocalDate, endDate: LocalDate) {
-        Log.d(TAG, "OnDateSelected: $startDate ~ $endDate")
-        val zone = ZoneId.systemDefault()
-        val startMillis = startDate.atStartOfDay(zone).toInstant().toEpochMilli()
-        val endMillis = endDate.atStartOfDay(zone).toInstant().toEpochMilli()
-        updateDates(startMillis, endMillis)
-    }
-
-    // ================= 상태 갱신 (내부 전용) =================
-
-    private fun updateRegion(regionName: String) {
-        _courseState.update { current ->
+    private fun handleCitySelected(cityName: String) {
+        _sharedState.update { current ->
+            val newCourseId = if (current.course.courseId.isBlank()) UUID.randomUUID().toString() else current.course.courseId
             current.copy(
-                destination = regionName,
-                courseName = "${regionName} 여행"
+                course = current.course.copy(
+                    courseId = newCourseId,
+                    destination = cityName,
+                    courseName = "${cityName} 여행"
+                )
+            )
+        }
+        fetchRegionPosition(cityName)
+        Log.d(TAG, cityName)
+    }
+
+    private fun handleCityDeselected() {
+        _sharedState.update { current ->
+            current.copy(course = current.course.copy(destination = "", courseName = ""))
+        }
+    }
+
+    private fun handleCalendarDateTapped(clickedDate: LocalDate) {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        if (clickedDate.isBefore(today)) return
+
+        _sharedState.update { current ->
+            val start = current.draftStartDate?.toLocalDate()
+            val end = current.draftEndDate?.toLocalDate()
+
+            val (newStart, newEnd) = when {
+                start == null || (start != null && end != null) -> clickedDate to null
+                clickedDate.isBefore(start) -> clickedDate to null
+                clickedDate == start -> null to null
+                else -> start to clickedDate
+            }
+
+            Log.d(TAG, "날짜 선택됨: 시작일=${newStart ?: "미선택"}, 종료일=${newEnd ?: "미선택"}")
+
+            current.copy(
+                draftStartDate = newStart?.toEpochMillis(),
+                draftEndDate = newEnd?.toEpochMillis()
             )
         }
     }
 
+    private fun confirmDateSelection() {
+        val state = _sharedState.value
+        val startLong = state.draftStartDate ?: return
+        val endLong = state.draftEndDate ?: return
 
-    fun updateDates(
-        startDate: Long,
-        endDate: Long
-    ) {
-        Log.d(TAG, "updateDates: startDate=$startDate, endDate=$endDate")
+        val startDate = startLong.toLocalDate()
+        val endDate = endLong.toLocalDate()
 
-        // 1. Long(밀리초) 타임스탬프를 LocalDate로 변환
-        val startLocalDate = Instant.ofEpochMilli(startDate).atZone(ZoneId.systemDefault()).toLocalDate()
-        val endLocalDate = Instant.ofEpochMilli(endDate).atZone(ZoneId.systemDefault()).toLocalDate()
+        val result = calculateCourseDatesUseCase(startDate, endDate)
 
-        // 2. datePeriod 포맷팅 ("yyyy.MM.dd ~ yyyy.MM.dd")
         val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
-        val datePeriodString = "${startLocalDate.format(periodFormatter)} ~ ${endLocalDate.format(periodFormatter)}"
+        val datePeriodString = "${startDate.format(periodFormatter)} ~ ${endDate.format(periodFormatter)}"
+        Log.d(TAG, datePeriodString)
 
-        // 3. 총 여행 일수 계산 (예: 시작일과 종료일이 같으면 1일차 하나만, 차이가 2일이면 총 3일)
-        val totalDays = ChronoUnit.DAYS.between(startLocalDate, endLocalDate).toInt() + 1
-
-        // 4. dayPlans 리스트 동적 생성
-        val dateLabelFormatter = DateTimeFormatter.ofPattern("M/dd") // "9/01" 형태로 출력
-        val generatedDayPlans = (0 until totalDays).map { i ->
-            val currentDate = startLocalDate.plusDays(i.toLong())
-            DayPlanUiModel(
-                dayLabel = "${i + 1}일차",
-                dateLabel = currentDate.format(dateLabelFormatter),
-                rawDayNumber = i + 1,
-                schedules = emptyList() // 초기화 시점에는 빈 리스트
-            )
-        }
-
-        // 5. State 업데이트
-        _courseState.update { currentState ->
+        _sharedState.update { currentState ->
             currentState.copy(
-                rawStartDate = startDate,
-                rawEndDate = endDate,
-                datePeriod = datePeriodString,
-                dayPlans = generatedDayPlans
+                course = currentState.course.copy(
+                    rawStartDate = result.startMillis,
+                    rawEndDate = result.endMillis,
+                    datePeriod = datePeriodString,
+                    dayPlans = result.dayPlans.map { it.toUiModel() }
+                ),
+                draftStartDate = null,
+                draftEndDate = null
             )
         }
     }
 
-    // ================= 코스 이름 수정 =================
+    private fun confirmStaySelection() {
+        val currentState = _sharedState.value
+        val startLong = currentState.draftStartDate ?: return
+        val endLong = currentState.draftEndDate ?: return
+        val stay = currentState.draftStay ?: return
 
-    private fun updateRegionPosition(longitude: Double, latitude: Double) {
-        _courseState.update {
-            it.copy(destinationLatitude = latitude, destinationLongitude = longitude)
+        val checkInDate = startLong.toLocalDate()
+        val checkOutDate = endLong.toLocalDate()
+
+        val stayNights = generateSequence(checkInDate) { it.plusDays(1) }
+            .takeWhile { it.isBefore(checkOutDate) }
+            .toList()
+
+        Log.d(TAG, "숙소 확정: ${stay.scheduleName}, 체크인=${checkInDate}, 체크아웃=${checkOutDate}")
+
+        _sharedState.update { state ->
+            val updatedDayPlans = state.course.dayPlans.map { dayPlan ->
+                val dayDate = dayPlan.rawDate.toLocalDate()
+                if (dayDate in stayNights) {
+                    dayPlan.copy(stay = stay)
+                } else {
+                    dayPlan
+                }
+            }
+            state.copy(
+                course = state.course.copy(dayPlans = updatedDayPlans),
+                draftStay = null,
+                draftStartDate = null,
+                draftEndDate = null
+            )
         }
     }
 
     private fun updateCourseName(newName: String) {
-        Log.d(TAG, "updateCourseName: $newName")
-        _courseState.update { it.copy(courseName = newName) }
+        _sharedState.update { it.copy(course = it.course.copy(courseName = newName)) }
+        Log.d(TAG, "${newName}으로 수정")
     }
 
-    private fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemUiModel) {
-        _courseState.update { currentState ->
-            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
-                if (dayPlan.rawDayNumber == targetDay) {
-                    dayPlan.copy(schedules = dayPlan.schedules + newPlace)
-                } else dayPlan
-            }
-            currentState.copy(dayPlans = updatedDayPlans)
+    private fun addScheduleToDay(targetDay: Int, newPlace: ScheduleItemPresentationModel) {
+        _sharedState.update { currentState ->
+            val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
+            val updatedDomainPlans = addScheduleToDayUseCase(currentDomainPlans, targetDay, newPlace.toDomain())
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
+        Log.d(TAG, "${newPlace.scheduleId} 추가")
     }
 
-    fun deleteSchedule(targetDay: Int, scheduleIdToRemove: String) {
-        _courseState.update { currentState ->
-            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
-                if (dayPlan.rawDayNumber == targetDay) {
-                    dayPlan.copy(schedules = dayPlan.schedules.filterNot { it.scheduleId == scheduleIdToRemove })
-                } else dayPlan
-            }
-            currentState.copy(dayPlans = updatedDayPlans)
+    private fun deleteSchedule(targetDay: Int, scheduleIdToRemove: String) {
+        _sharedState.update { currentState ->
+            val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
+            val updatedDomainPlans = deleteScheduleUseCase(currentDomainPlans, targetDay, scheduleIdToRemove)
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
+        Log.d(TAG, "${scheduleIdToRemove} 삭제")
     }
 
-    fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemUiModel>) {
-        _courseState.update { currentState ->
-            val updatedDayPlans = currentState.dayPlans.map { dayPlan ->
-                if (dayPlan.rawDayNumber == targetDay) {
-                    dayPlan.copy(schedules = reorderedSchedules)
-                } else dayPlan
-            }
-            currentState.copy(dayPlans = updatedDayPlans)
+    private fun reorderSchedules(targetDay: Int, reorderedSchedules: List<ScheduleItemPresentationModel>) {
+        _sharedState.update { currentState ->
+            val currentDomainPlans = currentState.course.dayPlans.map { it.toDomain() }
+            val domainReordered = reorderedSchedules.map { it.toDomain() }
+            val updatedDomainPlans = reorderSchedulesUseCase(currentDomainPlans, targetDay, domainReordered)
+            currentState.copy(course = currentState.course.copy(dayPlans = updatedDomainPlans.map { it.toUiModel() }))
         }
+        Log.d(TAG, "스케줄 재정렬")
     }
-    // ================= 스케줄 임시 저장(Draft) =================
 
-    val currentAddingDayNumber = MutableStateFlow(1)
-    private val _draftSchedule = MutableStateFlow<ScheduleItemUiModel?>(null)
-    val draftSchedule = _draftSchedule.asStateFlow()
+    private fun updateAddingDayNumber(dayNumber: Int) {
+        _sharedState.update { it.copy(currentAddingDayNumber = dayNumber) }
+    }
 
-    fun setDraftSchedule(place: KakaoMapUiModel) {
-        _draftSchedule.value = ScheduleItemUiModel(
-            scheduleId = UUID.randomUUID().toString(),
+    private fun setDraftSchedule(place: KakaoMapPresentationModel) {
+        val newScheduleId = UUID.randomUUID().toString()
+        val draft = ScheduleItemPresentationModel(
+            scheduleId = newScheduleId,
             scheduleName = place.placeName,
             latitude = place.y,
             longitude = place.x,
@@ -230,70 +382,117 @@ class PlanSharedViewModel @Inject constructor(
             category = place.category,
             memo = ""
         )
+        _sharedState.update { it.copy(draftSchedule = draft) }
+
+
+        fetchAccessibilityInfo(place.y, place.x, newScheduleId, isStay = false)
     }
 
-    private fun confirmAndAddSchedule(
-        memoInput: String,
-        accessibilityInfo: AccessibilityInfoUiModel?
-    ) {
-        val draft = _draftSchedule.value ?: return
+    private fun setDraftStay(stay: KakaoMapPresentationModel){
+        val newScheduleId = UUID.randomUUID().toString()
+        val draft = ScheduleItemPresentationModel(
+            scheduleId = newScheduleId,
+            scheduleName = stay.placeName,
+            latitude = stay.y,
+            longitude = stay.x,
+            placeId = stay.id,
+            address = stay.address,
+            category = stay.category,
+            memo = ""
+        )
+        _sharedState.update { it.copy(draftStay = draft) }
+
+        fetchAccessibilityInfo(stay.y, stay.x, newScheduleId, isStay = true)
+    }
+
+    private fun fetchAccessibilityInfo(lat: Double, lng: Double, targetDraftId: String, isStay: Boolean) {
+        Log.d(TAG, "▶️ [1단계] API 호출 시작 - 좌표: lat=$lat, lng=$lng")
+        viewModelScope.launch {
+            getContentIdUseCase(lat, lng, 1000).collectDataResource(
+                onSuccess = { contentId ->
+                    if (!contentId.isNullOrBlank()) {
+                        Log.d(TAG, "✅ [2단계] Content ID 획득 성공: $contentId (이제 무장애 정보 API 호출)")
+                        viewModelScope.launch {
+                            getTourDataToiletInfoUseCase(contentId).collectDataResource(
+                                onSuccess = { domainInfo ->
+                                    if (domainInfo != null) {
+                                        Log.d(TAG, "✅ [3단계] 무장애 정보 획득 완료!")
+                                        Log.d(TAG, "   - 상태(status): ${domainInfo.status}")
+                                        Log.d(TAG, "   - 엘리베이터: ${domainInfo.elevator}")
+                                        Log.d(TAG, "   - 주차장: ${domainInfo.parking}")
+                                        Log.d(TAG, "   - 장애인화장실: ${domainInfo.restroom}")
+                                        _sharedState.update { state ->
+                                            if (isStay) {
+                                                val currentStay = state.draftStay
+                                                  if (currentStay != null && currentStay.scheduleId == targetDraftId) {
+                                                    state.copy(draftStay = currentStay.copy(accessibilityInfo = domainInfo.toUiModel()))
+                                                } else state
+                                            } else {
+                                                val currentDraft = state.draftSchedule
+                                                if (currentDraft != null && currentDraft.scheduleId == targetDraftId) {
+                                                    state.copy(draftSchedule = currentDraft.copy(accessibilityInfo = domainInfo.toUiModel()))
+                                                } else state
+                                            }
+                                        }
+                                        Log.d(TAG, "무장애/화장실 정보 획득 완료 (ContentId: $contentId)")
+                                    }
+                                },
+                                onError = { Log.e(TAG, "무장애 정보 로드 실패: ${it.message}") }
+                            )
+                        }
+                    } else {
+                        Log.d(TAG, "반경 50m 내에 매칭되는 Tour API 장소가 없습니다.")
+                    }
+                },
+                onError = { Log.e(TAG, "Content ID 로드 실패: ${it.message}") }
+            )
+        }
+    }
+
+    private fun confirmAndAddSchedule(memoInput: String, intentAccessibilityInfo: AccessibilityInfoPresentationModel?) {
+        val currentState = _sharedState.value
+        val draft = currentState.draftSchedule ?: return
+
+        val draftInfo = draft.accessibilityInfo ?: AccessibilityInfoPresentationModel()
+        val uiInfo = intentAccessibilityInfo ?: AccessibilityInfoPresentationModel()
+
+        val mergedInfo = AccessibilityInfoPresentationModel(
+
+            status = if (uiInfo.status != AccessibilityStatusPresentationModel.UNKNOWN) uiInfo.status else draftInfo.status,
+            safetyScore = uiInfo.safetyScore ?: draftInfo.safetyScore,
+            planAToiletId = uiInfo.planAToiletId ?: draftInfo.planAToiletId,
+            planBToiletId = uiInfo.planBToiletId ?: draftInfo.planBToiletId,
+            parking = draftInfo.parking ?: uiInfo.parking,
+            route = draftInfo.route ?: uiInfo.route,
+            elevator = draftInfo.elevator ?: uiInfo.elevator,
+            restroom = draftInfo.restroom ?: uiInfo.restroom,
+            wheelchair = draftInfo.wheelchair ?: uiInfo.wheelchair,
+            exit = draftInfo.exit ?: uiInfo.exit
+        )
 
         val finalSchedule = draft.copy(
             memo = memoInput,
-            accessibilityInfo = accessibilityInfo ?: AccessibilityInfoUiModel()
+            accessibilityInfo = mergedInfo
         )
 
-        val currentCourse = _courseState.value
-        val targetDayNum = currentAddingDayNumber.value
-
-        val updatedDayPlans = currentCourse.dayPlans.map { dayPlan ->
-            if (dayPlan.rawDayNumber == targetDayNum) {
-                dayPlan.copy(
-                    schedules = dayPlan.schedules + finalSchedule.copy(order = dayPlan.schedules.size + 1)
-                )
-            } else dayPlan
-        }
-
-        _courseState.value = currentCourse.copy(dayPlans = updatedDayPlans)
-        _draftSchedule.value = null
+        addScheduleToDay(currentState.currentAddingDayNumber, finalSchedule)
+        clearDraftSchedule()
     }
-
     private fun clearDraftSchedule() {
-        _draftSchedule.value = null
+        _sharedState.update { it.copy(draftSchedule = null) }
     }
 
+    private fun clearState(){
+        _sharedState.update { PlanSharedState() }
+    }
+
+    private fun clearDraftStay() {
+        _sharedState.update { it.copy(draftStay = null, draftStartDate = null, draftEndDate = null) }
+    }
 }
 
+private fun Long.toLocalDate(): LocalDate =
+    Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
 
-data class PlanSharedState(
-    val course: TravelCourseUiModel = TravelCourseUiModel(),
-    val currentAddingDayNumber: Int = 1,
-    val draftSchedule: ScheduleItemUiModel? = null,
-    val isLoading: Boolean = false
-)
-
-sealed interface PlanSharedEvent {
-    data class OnCourseNameChanged(val newName: String) : PlanSharedEvent
-    data class OnAddScheduleToDay(val targetDay: Int, val newPlace: ScheduleItemUiModel) :
-        PlanSharedEvent
-
-    data class OnDeleteSchedule(val targetDay: Int, val scheduleIdToRemove: String) :
-        PlanSharedEvent
-
-    data class OnReorderSchedules(
-        val targetDay: Int,
-        val reorderedSchedules: List<ScheduleItemUiModel>
-    ) : PlanSharedEvent
-
-    data class OnSetAddingDayNumber(val dayNumber: Int) : PlanSharedEvent
-    data class OnSetDraftSchedule(val place: KakaoMapUiModel) : PlanSharedEvent
-    data class OnConfirmAndAddSchedule(
-        val memoInput: String,
-        val accessibilityInfo: AccessibilityInfoUiModel?
-    ) : PlanSharedEvent
-
-    data class OnCitySelected(val cityName: String) : PlanSharedEvent
-    data class OnDateSelected(val startDate: LocalDate, val endDate: LocalDate) : PlanSharedEvent
-
-    object OnClearDraftSchedule : PlanSharedEvent
-}
+private fun LocalDate.toEpochMillis(): Long =
+    this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()

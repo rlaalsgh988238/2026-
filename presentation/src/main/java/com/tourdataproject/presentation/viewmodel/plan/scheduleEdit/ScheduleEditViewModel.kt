@@ -1,11 +1,11 @@
 package com.tourdataproject.presentation.viewmodel.plan.scheduleEdit
 
-import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
+import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
-import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEvent
+import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditIntent
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -16,13 +16,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class ScheduleEditViewModel @Inject constructor(
-    // TODO: UseCase 주입 필요
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    private val TAG = "ScheduleEditViewModel"
 
     private val _state = MutableStateFlow(ScheduleEditState())
     val state: StateFlow<ScheduleEditState> = _state.asStateFlow()
@@ -30,39 +30,64 @@ class ScheduleEditViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<ScheduleEditEffect>()
     val effect: SharedFlow<ScheduleEditEffect> = _effect.asSharedFlow()
 
+    val dayNum: Int = checkNotNull(savedStateHandle["dayNum"])
+
     init {
-        loadDummyData()
+        Log.d(TAG, "편집 중인 날짜 번호: $dayNum")
+        setDayNum(dayNum)
     }
 
-    fun setEvent(event: ScheduleEditEvent) {
-        when (event) {
-            is ScheduleEditEvent.OnBackClicked -> {
+    fun onIntent(intent: ScheduleEditIntent) {
+        when (intent) {
+            is ScheduleEditIntent.OnInit -> {
+                _state.update {
+                    it.copy(
+                        dateLabel = intent.dateLabel,
+                        schedules = intent.schedules,
+                        stay = intent.stay
+                    )
+                }
+            }
+            is ScheduleEditIntent.OnBackClicked -> {
                 viewModelScope.launch { _effect.emit(ScheduleEditEffect.NavigateBack) }
             }
-            is ScheduleEditEvent.OnSaveClicked -> {
+            is ScheduleEditIntent.OnSaveClicked -> {
                 saveCourse()
             }
-            is ScheduleEditEvent.OnScheduleDeleted -> {
-                deleteSchedule(event.scheduleId)
+            is ScheduleEditIntent.OnScheduleDeleted -> {
+                deleteSchedule(intent.scheduleId)
             }
-            is ScheduleEditEvent.OnScheduleMoved -> {
-                moveSchedule(event.fromIndex, event.toIndex)
+            is ScheduleEditIntent.OnScheduleMoved -> {
+                moveSchedule(intent.fromIndex, intent.toIndex)
             }
-            is ScheduleEditEvent.OnScheduleMoveFinished -> {
+            is ScheduleEditIntent.OnScheduleMoveFinished -> {
                 reorderSchedules()
             }
+
+            is ScheduleEditIntent.OnStayDeleted -> deleteStay()
         }
     }
 
+    private fun setDayNum(dayNum: Int){
+        _state.update { currentState ->
+            currentState.copy(dayNumber = dayNum)
+        }
+    }
+
+    private fun deleteStay() {
+        val stayId = _state.value.stay?.scheduleId ?: return
+        _state.update { it.copy(stay = null) }
+        viewModelScope.launch {
+            _effect.emit(ScheduleEditEffect.DeleteStayFromShared(stayId))
+        }
+    }
+
+    // 숙소는 이제 schedules 리스트에 섞여있지 않으므로,
+    // 마지막 인덱스를 이동 금지시키던 예외 처리를 제거하고 전부 이동 가능하게 처리
     private fun moveSchedule(fromIndex: Int, toIndex: Int) {
         Log.d("ScheduleEditVM", "일정 이동 요청: fromIndex=$fromIndex, toIndex=$toIndex")
         _state.update { currentState ->
             val mutableSchedules = currentState.schedules.toMutableList()
-
-            // 숙소(마지막 아이템)는 이동 불가, 다른 아이템이 숙소 자리로 가는 것도 불가
-            if (fromIndex == mutableSchedules.lastIndex || toIndex == mutableSchedules.lastIndex) {
-                return@update currentState
-            }
 
             if (fromIndex in mutableSchedules.indices && toIndex in mutableSchedules.indices) {
                 val item = mutableSchedules.removeAt(fromIndex)
@@ -95,28 +120,13 @@ class ScheduleEditViewModel @Inject constructor(
     private fun saveCourse() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            // TODO: SharedViewModel 또는 DB에 저장 로직 추가
+
+            // stay는 이 화면에서 순서를 건드리지 않으므로 schedules만 공유 뷰모델에 반영
+            _effect.emit(ScheduleEditEffect.SaveToShared(_state.value.dayNumber, _state.value.schedules))
 
             _state.update { it.copy(isLoading = false) }
             _effect.emit(ScheduleEditEffect.ShowToast("일정이 저장되었습니다."))
             _effect.emit(ScheduleEditEffect.NavigateBack)
         }
-    }
-
-    private fun loadDummyData() {
-        val dummySchedules = listOf(
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 1, scheduleName = "가덕휴게소", latitude = 35.024, longitude = 128.825),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 2, scheduleName = "매미성", latitude = 34.975, longitude = 128.718),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 3, scheduleName = "바람의 언덕", latitude = 34.761, longitude = 128.659),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 4, scheduleName = "거제 파노라마 케이블카", latitude = 34.801, longitude = 128.623),
-            ScheduleItemUiModel(scheduleId = UUID.randomUUID().toString(), order = 5, scheduleName = "거제 YAHO HOTEL", latitude = 34.880, longitude = 128.621)
-        )
-
-        _state.value = ScheduleEditState(
-            dayNumber = 1,
-            dayLabel = "Day 1",
-            dateLabel = "8/30 (일)",
-            schedules = dummySchedules
-        )
     }
 }

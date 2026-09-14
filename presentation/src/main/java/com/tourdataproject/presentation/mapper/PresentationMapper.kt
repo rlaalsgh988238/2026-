@@ -6,6 +6,6 @@ inline fun <UiModel, DomainModel> List<UiModel>.mapListToDomain(toDomain: (UiMod
     return this.map(toDomain)
 }
 
-internal interface UiMapper<DomainModel> {
+internal interface PresentationMapper<DomainModel> {
     fun toDomain(): DomainModel
 }

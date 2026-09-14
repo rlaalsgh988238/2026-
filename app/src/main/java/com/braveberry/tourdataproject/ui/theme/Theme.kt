@@ -35,20 +35,12 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun TourDataProjectTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = false,
+    dynamicColor: Boolean = false, // 다이나믹 컬러도 끄는 것이 디자인 일관성에 좋습니다.
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    // 다크모드나 다이나믹 컬러 조건에 상관없이 항상 LightColorScheme을 사용하도록 고정
+    val colorScheme = LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

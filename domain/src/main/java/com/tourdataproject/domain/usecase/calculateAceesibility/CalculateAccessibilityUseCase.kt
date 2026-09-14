@@ -46,7 +46,13 @@ class CalculateAccessibilityUseCase @Inject constructor(
                 status = AccessibilityStatus.BAD, // 또는 BAD에 해당하는 상태값
                 safetyScore = 0,
                 planAToiletId = null,
-                planBToiletId = null
+                planBToiletId = null,
+                parking = null,
+                route = null,
+                elevator = null,
+                restroom = null,
+                wheelchair = null,
+                exit = null,
             )
         }
 
@@ -67,7 +73,13 @@ class CalculateAccessibilityUseCase @Inject constructor(
             status = finalStatus,
             safetyScore = finalScore,
             planAToiletId = planA.first.id.toString(),
-            planBToiletId = planB?.first?.id?.toString()
+            planBToiletId = planB?.first?.id?.toString(),
+            parking = null,
+            route = null,
+            elevator = null,
+            restroom = null,
+            wheelchair = null,
+            exit = null
         )
     }
 }

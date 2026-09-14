@@ -21,21 +21,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.ui.theme.BackgroundGray
 import com.braveberry.tourdataproject.ui.theme.DisabledGray
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.braveberry.tourdataproject.screen.pop.LoadingPopUp
-import com.tourdataproject.presentation.model.RegionUiModel
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionPresentationModel
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEffect
-import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionEvent
+import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionIntent
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.uiState.RegionSelectionState
 import com.tourdataproject.presentation.viewmodel.plan.regionSelect.RegionSelectionViewModel
 
@@ -46,17 +49,12 @@ fun RegionSelectionRoute(
     onNavigateToDateSelection: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { currentEffect ->
             when (currentEffect) {
-                is RegionSelectionEffect.NavigateToDateSelection -> {
-                    sharedViewModel.setEvent(
-                        PlanSharedEvent.OnCitySelected(currentEffect.regionName)
-                    )
-                    onNavigateToDateSelection()
-                }
                 is RegionSelectionEffect.NavigateBack -> onNavigateBack()
             }
         }
@@ -64,7 +62,10 @@ fun RegionSelectionRoute(
 
     RegionSelectionScreen(
         state = state,
-        onEvent = viewModel::setEvent
+        sharedState = sharedState,
+        onSharedIntent = sharedViewModel::onIntent,
+        onIntent = viewModel::onIntent,
+        onNavigateNext = onNavigateToDateSelection
     )
 }
 
@@ -72,10 +73,14 @@ fun RegionSelectionRoute(
 @Composable
 fun RegionSelectionScreen(
     state: RegionSelectionState,
-    onEvent: (RegionSelectionEvent) -> Unit
+    sharedState: PlanSharedState,
+    onSharedIntent: (PlanSharedIntent) -> Unit,
+    onIntent: (RegionSelectionIntent) -> Unit,
+    onNavigateNext: () -> Unit
 ) {
-    // 키보드 컨트롤러 가져오기
     val keyboardController = LocalSoftwareKeyboardController.current
+    val selectedDestination = sharedState.course.destination
+    val isCitySelected = selectedDestination.isNotBlank()
 
     if (state.isLoading) {
         LoadingPopUp(message = "도시 정보를 가져오고 있습니다")
@@ -83,6 +88,7 @@ fun RegionSelectionScreen(
 
     Scaffold(
         containerColor = Color.White,
+        contentWindowInsets = WindowInsets.ime,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -94,10 +100,10 @@ fun RegionSelectionScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        keyboardController?.hide() // 뒤로가기 시 키보드 닫기
-                        onEvent(RegionSelectionEvent.OnBackButtonClicked)
+                        keyboardController?.hide()
+                        onIntent(RegionSelectionIntent.OnBackButtonClicked)
                     }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left), contentDescription = "뒤로가기")
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -110,10 +116,12 @@ fun RegionSelectionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .imePadding()
                     .navigationBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                if (state.selectedCity != null) {
+                if (isCitySelected) {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         border = BorderStroke(1.dp, PrimaryTeal),
@@ -123,11 +131,11 @@ fun RegionSelectionScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clickable { onEvent(RegionSelectionEvent.OnCityDeselected) }
+                                .clickable { onSharedIntent(PlanSharedIntent.OnCityDeselected) }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = state.selectedCity!!.shortName,
+                                text = sharedState.course.destination,
                                 color = PrimaryTeal,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -145,10 +153,11 @@ fun RegionSelectionScreen(
 
                 Button(
                     onClick = {
-                        keyboardController?.hide() // 다음 단계 이동 시 키보드 닫기
-                        onEvent(RegionSelectionEvent.OnNextButtonClicked)
+                        keyboardController?.hide()
+                        onSharedIntent(PlanSharedIntent.OnGetCityPosition(sharedState.course.destination))
+                        onNavigateNext()
                     },
-                    enabled = state.isNextButtonEnabled,
+                    enabled = isCitySelected,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryTeal,
                         disabledContainerColor = DisabledGray
@@ -187,15 +196,15 @@ fun RegionSelectionScreen(
 
             TextField(
                 value = state.searchQuery,
-                onValueChange = { onEvent(RegionSelectionEvent.OnSearchQueryChanged(it)) },
+                onValueChange = { onIntent(RegionSelectionIntent.OnSearchQueryChanged(it)) },
                 placeholder = {
                     Text("도시 이름을 입력해주세요", color = Color.Gray, fontSize = 14.sp)
                 },
                 trailingIcon = {
                     if (state.searchQuery.isNotBlank()) {
                         IconButton(onClick = {
-                            keyboardController?.hide() // 검색어 지울 때 키보드 닫기
-                            onEvent(RegionSelectionEvent.OnSearchQueryChanged(""))
+                            keyboardController?.hide()
+                            onIntent(RegionSelectionIntent.OnSearchQueryChanged(""))
                         }) {
                             Icon(Icons.Default.Close, contentDescription = "지우기", tint = Color.Gray)
                         }
@@ -217,25 +226,28 @@ fun RegionSelectionScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 검색어 유무에 따라 화면 분기
-            if (state.isSearchMode) {
-                SearchResultList(
-                    results = state.searchResults,
-                    isSearching = state.isSearching,
-                    onCityClick = {
-                        keyboardController?.hide() // 검색 결과에서 도시 선택 시 키보드 닫기
-                        onEvent(RegionSelectionEvent.OnCitySelected(it))
-                    }
-                )
-            } else {
-                PopularCityGrid(
-                    cities = state.popularCities,
-                    selectedCity = state.selectedCity,
-                    onCityClick = {
-                        keyboardController?.hide() // 인기 도시 선택 시 키보드 닫기
-                        onEvent(RegionSelectionEvent.OnCitySelected(it))
-                    }
-                )
+            Box(modifier = Modifier.weight(1f)) {
+                if (state.isSearchMode) {
+                    SearchResultList(
+                        results = state.searchResults,
+                        isSearching = state.isSearching,
+                        onCityClick = { region ->
+                            keyboardController?.hide()
+                            onSharedIntent(PlanSharedIntent.OnCitySelected(region.exactName))
+                            onIntent(RegionSelectionIntent.OnSearchQueryChanged(""))
+                        }
+                    )
+                } else {
+                    PopularCityGrid(
+                        cities = state.popularCities,
+                        selectedCity = selectedDestination,
+                        onCityClick = { region ->
+                            keyboardController?.hide()
+                            onSharedIntent(PlanSharedIntent.OnCitySelected(region.exactName))
+                            onIntent(RegionSelectionIntent.OnSearchQueryChanged(""))
+                        }
+                    )
+                }
             }
         }
     }
@@ -243,9 +255,9 @@ fun RegionSelectionScreen(
 
 @Composable
 private fun SearchResultList(
-    results: List<RegionUiModel>,
+    results: List<RegionPresentationModel>,
     isSearching: Boolean,
-    onCityClick: (RegionUiModel) -> Unit
+    onCityClick: (RegionPresentationModel) -> Unit
 ) {
     when {
         isSearching && results.isEmpty() -> {
@@ -291,7 +303,7 @@ private fun SearchResultList(
                             }
                         }
                     }
-                    Divider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+                    HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
                 }
             }
         }
@@ -300,9 +312,9 @@ private fun SearchResultList(
 
 @Composable
 private fun PopularCityGrid(
-    cities: List<RegionUiModel>,
-    selectedCity: RegionUiModel?,
-    onCityClick: (RegionUiModel) -> Unit
+    cities: List<RegionPresentationModel>,
+    selectedCity: String?,
+    onCityClick: (RegionPresentationModel) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
@@ -311,7 +323,7 @@ private fun PopularCityGrid(
         modifier = Modifier.fillMaxSize()
     ) {
         items(cities) { region ->
-            val isSelected = selectedCity == region
+            val isSelected = selectedCity == region.exactName
 
             Surface(
                 shape = CircleShape,
@@ -346,14 +358,16 @@ fun RegionSelectionScreenPreview() {
         "서울", "대전", "청주", "인천", "수원", "대구",
         "부산", "전주", "광주", "나주", "제주", "거제"
     ).mapIndexed { index, name ->
-        RegionUiModel(code = (index + 1).toString(), province = name)
+        RegionPresentationModel(code = (index + 1).toString(), province = name)
     }
 
     RegionSelectionScreen(
         state = RegionSelectionState(
-            popularCities = dummyCities,
-            selectedCity = dummyCities[11]
+            popularCities = dummyCities
         ),
-        onEvent = {}
+        sharedState = PlanSharedState(),
+        onSharedIntent = {},
+        onIntent = {},
+        onNavigateNext = {}
     )
 }

@@ -1,0 +1,32 @@
+package com.tourdataproject.presentation.model.plan
+
+import com.tourdataproject.domain.model.course.TravelCourse
+import com.tourdataproject.presentation.mapper.PresentationMapper
+import com.tourdataproject.presentation.mapper.mapListToDomain
+
+data class TravelCoursePresentationModel(
+    val courseId: String = "",    //고유값
+    val destination: String = "", // 여기 기준으로 검색 필터링 (필요하다면?)
+    val destinationLatitude: Double = 0.0,
+    val destinationLongitude: Double = 0.0,
+    val courseName: String = "",  //여행 이름
+    val datePeriod: String = "", //n박n일
+    val rawStartDate: Long = 0,
+    val rawEndDate: Long = 0,
+    val dayPlans: List<DayPlanPresentationModel> = emptyList()
+) : PresentationMapper<TravelCourse> {
+
+    override fun toDomain(): TravelCourse {
+        return TravelCourse(
+            courseId = this.courseId,
+            destination = this.destination,
+            destinationLatitude = this.destinationLatitude,
+            destinationLongitude = this.destinationLongitude,
+            courseName = this.courseName,
+            startDate = this.rawStartDate,
+            endDate = this.rawEndDate,
+            dayPlans = this.dayPlans.mapListToDomain { it.toDomain() }
+        )
+    }
+}
+

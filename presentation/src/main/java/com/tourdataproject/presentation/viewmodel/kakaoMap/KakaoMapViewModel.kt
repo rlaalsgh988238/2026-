@@ -1,14 +1,16 @@
 package com.tourdataproject.presentation.viewmodel.kakaoMap
 
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.braveberry.data_resource.DataResource
 import com.tourdataproject.domain.usecase.SearchNearbyPlacesUseCase
 import com.tourdataproject.presentation.KakaoMapEffect
-import com.tourdataproject.presentation.KakaoMapEvent
+import com.tourdataproject.presentation.KakaoMapIntent
 import com.tourdataproject.presentation.KakaoMapState
 import com.tourdataproject.presentation.mapper.toUiModel
-import com.tourdataproject.presentation.model.KakaoMapUiModel
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.utility.Log
+import com.tourdataproject.presentation.viewmodel.base.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,24 +28,27 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class KakaoMapViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val searchNearbyPlacesUseCase: SearchNearbyPlacesUseCase
-) : ViewModel(), ContainerHost<KakaoMapState, KakaoMapEffect> {
+) : BaseViewModel<KakaoMapState>(
+    savedStateHandle = savedStateHandle,
+    initialState = KakaoMapState()
+), ContainerHost<KakaoMapState, KakaoMapEffect> {
 
     override val container = container<KakaoMapState, KakaoMapEffect>(KakaoMapState())
-
     private val queryFlow = MutableStateFlow("")
 
     init {
         observeQueryForAutoComplete()
     }
 
-    fun onEvent(event: KakaoMapEvent) {
-        android.util.Log.d("KakaoMapDebug", "Event received: $event")
+    fun onIntent(event: KakaoMapIntent) {
+        Log.d("KakaoMapDebug", "Event received: $event")
         when (event) {
-            is KakaoMapEvent.OnSearchQueryChanged -> updateSearchQuery(event.query)
-            is KakaoMapEvent.OnSearchClicked -> searchPlaces(event.query)
-            is KakaoMapEvent.OnPlaceItemClicked -> selectPlace(event.place)
-            is KakaoMapEvent.OnInitLocation -> intent {
+            is KakaoMapIntent.OnSearchQueryChanged -> updateSearchQuery(event.query)
+            is KakaoMapIntent.OnSearchClicked -> searchPlaces(event.query)
+            is KakaoMapIntent.OnPlaceItemClicked -> selectPlace(event.place)
+            is KakaoMapIntent.OnInitLocation -> intent {
                 reduce {
                     state.copy(targetCoordinate = Pair(event.latitude, event.longitude))
                 }
@@ -81,7 +86,7 @@ class KakaoMapViewModel @Inject constructor(
             query = query,
             longitude = currentLng,
             latitude = currentLat,
-            radius = null,
+            radius = 20000,
             page = 1
         ).collect { resource ->
             if (resource is DataResource.Success) {
@@ -97,24 +102,23 @@ class KakaoMapViewModel @Inject constructor(
             return@intent
         }
 
-        // 🌟 2. 매개변수로 안 넘어왔으면 state에서 꺼냄
+
         val targetLng = longitude ?: state.targetCoordinate?.second
         val targetLat = latitude ?: state.targetCoordinate?.first
 
-        // 🌟 3. 둘 다 없으면 강제 종료
         if (targetLng == null || targetLat == null) {
             postSideEffect(KakaoMapEffect.ShowToast("여행지 위치 정보가 없습니다. 이전 화면에서 다시 시도해주세요."))
             return@intent
         }
 
-        android.util.Log.d("KakaoMapDebug", "1. searchPlaces 시작: query = $query")
+        Log.d("KakaoMapDebug", "1. searchPlaces 시작: query = $query")
         reduce { state.copy(isLoading = true, errorMessage = null) }
         val radius = 20000
 
         try {
-            android.util.Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
+            Log.d("KakaoMapDebug", "2. UseCase 호출 직전")
 
-            // 🌟 4. 확실하게 null이 아님이 보장된(스마트 캐스팅) 좌표로 UseCase 호출
+            
             searchNearbyPlacesUseCase(
                 query = query,
                 longitude = targetLng,
@@ -152,7 +156,7 @@ class KakaoMapViewModel @Inject constructor(
             postSideEffect(KakaoMapEffect.ShowToast("통신 중 예외가 발생했습니다."))
         }
     }
-    private fun selectPlace(place: KakaoMapUiModel) = intent {
+    private fun selectPlace(place: KakaoMapPresentationModel) = intent {
         postSideEffect(KakaoMapEffect.NavigateNextScreen(place))
     }
 }

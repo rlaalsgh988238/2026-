@@ -14,6 +14,8 @@ fun CourseDataModel.toDomain(): TravelCourse {
     return TravelCourse(
         courseId = this.courseId,
         destination = this.destination,
+        destinationLatitude = this.destinationLatitude,
+        destinationLongitude = this.destinationLongitude,
         courseName = this.courseName,
         startDate = this.startDate,
         endDate = this.endDate,
@@ -25,7 +27,8 @@ fun DayPlanDataModel.toDomain(): DayPlan {
     return DayPlan(
         dayNumber = this.dayNumber,
         date = this.date,
-        schedules = this.schedules.map { it.toDomain() }
+        schedules = this.schedules.map { it.toDomain() },
+        stay = this.stay?.toDomain()
     )
 }
 
@@ -41,7 +44,8 @@ fun ScheduleItemDataModel.toDomain(): ScheduleItem {
         placeId = this.placeId,
         address = this.address,
         category = this.category,
-        accessibilityInfo = this.accessibilityInfo.toDomain()
+        accessibilityInfo = this.accessibilityInfo.toDomain(),
+        contentId = this.contentId
     )
 }
 
@@ -52,7 +56,13 @@ fun AccessibilityInfoDataModel.toDomain(): AccessibilityInfo {
             .getOrDefault(AccessibilityStatus.BAD),
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
-        planBToiletId = this.planBToiletId
+        planBToiletId = this.planBToiletId,
+        parking = this.parking,
+        route = this.route,
+        elevator = this.elevator,
+        restroom = this.restroom,
+        wheelchair = this.wheelchair,
+        exit = this.exit
     )
 }
 
@@ -63,6 +73,8 @@ fun TravelCourse.toDataModel(): CourseDataModel {
     return CourseDataModel(
         courseId = this.courseId,
         destination = this.destination,
+        destinationLatitude = destinationLatitude,
+        destinationLongitude = destinationLongitude,
         courseName = this.courseName,
         startDate = this.startDate,
         endDate = this.endDate,
@@ -74,7 +86,8 @@ fun DayPlan.toDataModel(): DayPlanDataModel {
     return DayPlanDataModel(
         dayNumber = this.dayNumber,
         date = this.date,
-        schedules = this.schedules.map { it.toDataModel() }
+        schedules = this.schedules.map { it.toDataModel() },
+        stay = this.stay?.toDataModel()
     )
 }
 
@@ -90,7 +103,8 @@ fun ScheduleItem.toDataModel(): ScheduleItemDataModel {
         placeId = this.placeId,
         address = this.address,
         category = this.category,
-        accessibilityInfo = this.accessibilityInfo.toDataModel()
+        accessibilityInfo = this.accessibilityInfo.toDataModel(),
+        contentId = this.contentId
     )
 }
 
@@ -99,6 +113,12 @@ fun AccessibilityInfo.toDataModel(): AccessibilityInfoDataModel {
         status = this.status.name, // Enum -> String 변환
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
-        planBToiletId = this.planBToiletId
+        planBToiletId = this.planBToiletId,
+        parking = this.parking,
+        route = this.route,
+        elevator = this.elevator,
+        restroom = this.restroom,
+        wheelchair = this.wheelchair,
+        exit = this.exit
     )
 }

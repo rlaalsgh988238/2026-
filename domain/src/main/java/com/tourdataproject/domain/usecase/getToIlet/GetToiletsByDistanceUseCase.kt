@@ -16,13 +16,14 @@ class GetToiletsByDistanceUseCase @Inject constructor(
 ) {
     operator fun invoke(
         distance: Float,
-        longitude: Double,
-        latitude: Double
-    ) = toiletRepository.getToiletsByDistance(distance, longitude, latitude)
-        .onSuccess {
+        latitude: Double,
+        longitude: Double
+    ): Flow<DataResource<List<Toilet>>> =
+        toiletRepository.getToiletsByDistance(distance, latitude, longitude)
+            .onSuccess {
 
-        }
-        .onError {
+            }
+            .onError {
 
-        }
+            }
 }

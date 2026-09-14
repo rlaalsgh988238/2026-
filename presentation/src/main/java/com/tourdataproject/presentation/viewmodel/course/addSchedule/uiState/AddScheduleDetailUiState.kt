@@ -1,6 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState
 
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
 
 data class AddScheduleDetailUiState(
     val isSaving: Boolean = false,
@@ -10,7 +10,7 @@ data class AddScheduleDetailUiState(
     val longitude: Double = 0.0,
     val memo: String = "",
     // 계산된 결과가 담길 곳 (초기값은 null)
-    val accessibilityInfo: AccessibilityInfoUiModel? = null
+    val accessibilityInfo: AccessibilityInfoPresentationModel? = null
 ) {
     val isValid: Boolean
         get() = placeName.isNotBlank() && !isSaving
@@ -23,7 +23,7 @@ sealed interface AddScheduleDetailEffect {
         val latitude: Double,
         val longitude: Double,
         val memo: String,
-        val accessibilityInfo: AccessibilityInfoUiModel?
+        val accessibilityInfo: AccessibilityInfoPresentationModel?
     ) : AddScheduleDetailEffect
 
     object NavigateBack : AddScheduleDetailEffect

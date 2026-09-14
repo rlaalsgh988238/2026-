@@ -7,6 +7,7 @@ import com.braveberry.local.permission.PermissionChecker
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -23,22 +24,24 @@ internal class LocalLocationProvider @Inject constructor(
             callbackFlow {
                 trySend(DataResource.loading())
 
-                val callback = object : LocationCallback() {
-                    override fun onLocationResult(locationResult: LocationResult) {
-                        locationResult.lastLocation?.let{
+                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener { location ->
+                        if (location != null) {
                             val model = LocationLocalModel(
-                                latitude = it.latitude,
-                                longitude = it.longitude
+                                latitude = location.latitude,
+                                longitude = location.longitude
                             )
                             trySend(DataResource.success(model))
-                        } ?: run {
-                            trySend(DataResource.error(Exception("GPS 오류")))
+                        } else {
+                            trySend(DataResource.error(Exception("GPS 오류: 위치를 찾을 수 없음")))
                         }
+                        close()
                     }
-                }
-                awaitClose {
-                    fusedLocationClient.removeLocationUpdates(callback)
-                }
+                    .addOnFailureListener { exception ->
+                        trySend(DataResource.error(exception))
+                        close()
+                    }
+                awaitClose { }
             }
         else {
             flowOf(DataResource.error(Exception("권한 거부")))

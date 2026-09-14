@@ -56,7 +56,26 @@ class CourseDatabaseTest {
                             planBToiletId = null
                         )
                     )
+                ),
+                stay = ScheduleItemLocalModel(
+                    scheduleId = "sch_1",
+                    order = 1,
+                    scheduleName = "공항 도착 및 렌트카",
+                    visitTime = "10:00",
+                    memo = "차량 사진 찍기",
+                    latitude = 33.5104,
+                    longitude = 126.4913,
+                    placeId = "place_1",
+                    address = "제주국제공항",
+                    category = "교통",
+                    accessibilityInfo = AccessibilityInfoLocalModel(
+                        status = "GOOD",
+                        safetyScore = 100,
+                        planAToiletId = "toilet_1",
+                        planBToiletId = null
+                    )
                 )
+
             )
         )
     )

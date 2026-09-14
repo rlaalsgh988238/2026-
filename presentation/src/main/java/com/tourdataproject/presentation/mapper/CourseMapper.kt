@@ -5,16 +5,19 @@ import com.tourdataproject.domain.model.course.AccessibilityStatus
 import com.tourdataproject.domain.model.course.DayPlan
 import com.tourdataproject.domain.model.course.ScheduleItem
 import com.tourdataproject.domain.model.course.TravelCourse
-import com.tourdataproject.presentation.model.course.AccessibilityInfoUiModel
-import com.tourdataproject.presentation.model.course.AccessibilityStatusUiModel
-import com.tourdataproject.presentation.model.course.DayPlanUiModel
-import com.tourdataproject.presentation.model.course.ScheduleItemUiModel
-import com.tourdataproject.presentation.model.course.TravelCourseUiModel
+import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
+import com.tourdataproject.presentation.model.plan.AccessibilityStatusPresentationModel
+import com.tourdataproject.presentation.model.plan.DayPlanPresentationModel
+import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
+import com.tourdataproject.presentation.model.plan.TravelCoursePresentationModel
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
-fun ScheduleItem.toUiModel(): ScheduleItemUiModel = ScheduleItemUiModel(
+fun ScheduleItem.toUiModel(): ScheduleItemPresentationModel = ScheduleItemPresentationModel(
     scheduleId = this.scheduleId,
     order = this.order,
     scheduleName = this.scheduleName,
@@ -25,45 +28,79 @@ fun ScheduleItem.toUiModel(): ScheduleItemUiModel = ScheduleItemUiModel(
     placeId = this.placeId,
     address = this.address,
     category = this.category,
-    accessibilityInfo = this.accessibilityInfo.toUiModel()
+    accessibilityInfo = this.accessibilityInfo.toUiModel(),
+    contentId = this.contentId
 )
 
-fun DayPlan.toUiModel(): DayPlanUiModel {
+fun DayPlan.toUiModel(): DayPlanPresentationModel {
     val dateFormat = SimpleDateFormat("M/d", Locale.KOREA)
-    return DayPlanUiModel(
+    return DayPlanPresentationModel(
         dayLabel = "${this.dayNumber}일차",
         dateLabel = dateFormat.format(Date(this.date)),
         rawDayNumber = this.dayNumber,
         rawDate = this.date,
-        schedules = this.schedules.map { it.toUiModel() }
-    )
-}
-//TODO: 기획에 맞게 수정
-fun TravelCourse.toUiModel(): TravelCourseUiModel {
-    val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
-    return TravelCourseUiModel(
-        courseId = this.courseId,
-        destination = this.destination,
-        courseName = this.courseName,
-        datePeriod = "${dateFormat.format(Date(this.startDate))} ~ ${dateFormat.format(Date(this.endDate))}",
-        rawStartDate = this.startDate,
-        rawEndDate = this.endDate,
-        dayPlans = this.dayPlans.map { it.toUiModel() }
+        schedules = this.schedules.map { it.toUiModel() },
+        stay = this.stay?.toUiModel() ?: ScheduleItemPresentationModel()
     )
 }
 
-fun AccessibilityInfo.toUiModel(): AccessibilityInfoUiModel {
-    return AccessibilityInfoUiModel(
+//TODO: 기획에 맞게 수정
+fun TravelCourse.toUiModel(): TravelCoursePresentationModel {
+    // 1. 전체 시작일과 종료일을 꺼냅니다.
+    val startLocalDate = Instant.ofEpochMilli(this.startDate).atZone(ZoneId.systemDefault()).toLocalDate()
+    val endLocalDate = Instant.ofEpochMilli(this.endDate).atZone(ZoneId.systemDefault()).toLocalDate()
+
+    val dateLabelFormatter = DateTimeFormatter.ofPattern("M/dd")
+
+    // 🌟 2. 상단 바에 보여줄 datePeriod ("yyyy.MM.dd ~ yyyy.MM.dd")를 다시 만듭니다!
+    val periodFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+    val generatedDatePeriod = "${startLocalDate.format(periodFormatter)} ~ ${endLocalDate.format(periodFormatter)}"
+
+    return TravelCoursePresentationModel(
+        courseId = this.courseId,
+        destination = this.destination,
+        destinationLatitude = this.destinationLatitude,
+        destinationLongitude = this.destinationLongitude,
+        courseName = this.courseName,
+        rawStartDate = this.startDate,
+        rawEndDate = this.endDate,
+
+        datePeriod = generatedDatePeriod,
+
+        dayPlans = this.dayPlans.map { domainDayPlan ->
+            val currentDayDate = startLocalDate.plusDays((domainDayPlan.dayNumber - 1).toLong())
+
+            DayPlanPresentationModel(
+                dayLabel = "${domainDayPlan.dayNumber}일차",
+                dateLabel = currentDayDate.format(dateLabelFormatter),
+                rawDayNumber = domainDayPlan.dayNumber,
+                rawDate = currentDayDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                schedules = domainDayPlan.schedules.map { it.toUiModel() },
+                stay = domainDayPlan.stay?.toUiModel() ?: ScheduleItemPresentationModel()
+            )
+        }
+    )
+}
+
+fun AccessibilityInfo.toUiModel(): AccessibilityInfoPresentationModel {
+    return AccessibilityInfoPresentationModel(
         status = this.status.toUiModel(),
         safetyScore = this.safetyScore,
         planAToiletId = this.planAToiletId,
-        planBToiletId = this.planBToiletId
+        planBToiletId = this.planBToiletId,
+        parking = this.parking,
+        route = this.route,
+        elevator = this.elevator,
+        restroom = this.restroom,
+        wheelchair = this.wheelchair,
+        exit = this.exit
+
     )
 }
 
-fun AccessibilityStatus.toUiModel(): AccessibilityStatusUiModel = when (this) {
-    AccessibilityStatus.GOOD -> AccessibilityStatusUiModel.GOOD
-    AccessibilityStatus.WARNING -> AccessibilityStatusUiModel.WARNING
-    AccessibilityStatus.BAD -> AccessibilityStatusUiModel.BAD
-    AccessibilityStatus.UNKNOWN -> TODO()
+fun AccessibilityStatus.toUiModel(): AccessibilityStatusPresentationModel = when (this) {
+    AccessibilityStatus.GOOD -> AccessibilityStatusPresentationModel.GOOD
+    AccessibilityStatus.WARNING -> AccessibilityStatusPresentationModel.WARNING
+    AccessibilityStatus.BAD -> AccessibilityStatusPresentationModel.BAD
+    AccessibilityStatus.UNKNOWN -> AccessibilityStatusPresentationModel.UNKNOWN
 }

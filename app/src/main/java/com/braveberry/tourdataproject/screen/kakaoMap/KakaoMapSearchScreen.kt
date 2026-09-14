@@ -31,48 +31,56 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tourdataproject.presentation.KakaoMapEffect
-import com.tourdataproject.presentation.KakaoMapEvent
-import com.tourdataproject.presentation.model.KakaoMapUiModel
+import com.tourdataproject.presentation.KakaoMapIntent
+import com.tourdataproject.presentation.model.KakaoMapPresentationModel
+import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedEvent // 🌟 이벤트 임포트
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun KakaoMapSearchRoute(
-    sharedViewModel: PlanSharedViewModel,
+    sharedViewModel: PlanSharedViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     viewModel: KakaoMapViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    onNavigateToNext: () -> Unit
+    onNavigateToNext: () -> Unit,
+    onNavigateToDateSelect: (purpose: String) -> Unit
 ) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val uiState by viewModel.container.stateFlow.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(""))
+        viewModel.onIntent(KakaoMapIntent.OnSearchQueryChanged(""))
 
-        // 🌟 SharedViewModel에서 저장해둔 목적지 좌표를 꺼내서 카카오맵 뷰모델로 주입!
-        val courseState = sharedViewModel.courseState.value
-        val lat = courseState.destinationLatitude
-        val lng = courseState.destinationLongitude
+        val courseState = sharedViewModel.sharedState.value
+        val lat = courseState.course.destinationLatitude
+        val lng = courseState.course.destinationLongitude
 
-        // 🌟 좌표가 정상적으로 있다면 카카오맵 뷰모델 초기화 이벤트 발송
         if (lat != 0.0 && lng != 0.0) {
-            viewModel.onEvent(KakaoMapEvent.OnInitLocation(lat, lng))
+            viewModel.onIntent(KakaoMapIntent.OnInitLocation(lat, lng))
         } else {
-            // (선택 사항) 만약 좌표가 0.0이면 에러 처리 로직 추가 가능
+
         }
     }
 
@@ -83,15 +91,23 @@ fun KakaoMapSearchRoute(
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
                 }
                 is KakaoMapEffect.NavigateNextScreen -> {
-                    sharedViewModel.setEvent(PlanSharedEvent.OnSetDraftSchedule(effect.place))
-                    onNavigateToNext()
+                    when(state.purpose){
+                        ScreenPurpose.ADD_STAY -> {
+                            sharedViewModel.onIntent(PlanSharedIntent.OnSetDraftStay(effect.place))
+                            onNavigateToDateSelect(ScreenPurpose.ADD_STAY)
+                        }
+                        ScreenPurpose.ADD_SCHEDULE -> {
+                            sharedViewModel.onIntent(PlanSharedIntent.OnSetDraftSchedule(effect.place))
+                            onNavigateToNext()
+                        }
+                    }
                 }
             }
         }
     }
 
     val handleBackClick = {
-        sharedViewModel.setEvent(PlanSharedEvent.OnClearDraftSchedule)
+        sharedViewModel.onIntent(PlanSharedIntent.OnClearDraftSchedule)
         onBackClick()
     }
 
@@ -101,9 +117,11 @@ fun KakaoMapSearchRoute(
         isLoading = uiState.isLoading,
         searchResults = uiState.searchResults,
         autoCompleteResults = uiState.autoCompleteResults,
-        onQueryChanged = { viewModel.onEvent(KakaoMapEvent.OnSearchQueryChanged(it)) },
-        onSearch = { query -> viewModel.onEvent(KakaoMapEvent.OnSearchClicked(query)) },
-        onPlaceClick = { place -> viewModel.onEvent(KakaoMapEvent.OnPlaceItemClicked(place)) },
+        onQueryChanged = { viewModel.onIntent(KakaoMapIntent.OnSearchQueryChanged(it)) },
+        onSearch = { query -> viewModel.onIntent(KakaoMapIntent.OnSearchClicked(query)) },
+        onPlaceClick = { place ->
+            viewModel.onIntent(KakaoMapIntent.OnPlaceItemClicked(place))
+       },
         onBackClick = handleBackClick
     )
 }
@@ -113,14 +131,19 @@ fun KakaoMapSearchScreen(
     modifier: Modifier = Modifier,
     searchQuery: String,
     isLoading: Boolean,
-    searchResults: List<KakaoMapUiModel>,
-    autoCompleteResults: List<KakaoMapUiModel>,
+    searchResults: List<KakaoMapPresentationModel>,
+    autoCompleteResults: List<KakaoMapPresentationModel>,
     onQueryChanged: (String) -> Unit,
     onSearch: (String) -> Unit,
-    onPlaceClick: (KakaoMapUiModel) -> Unit,
+    onPlaceClick: (KakaoMapPresentationModel) -> Unit,
     onBackClick: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(100.milliseconds)
+        focusRequester.requestFocus()
+    }
 
     BackHandler {
         onBackClick()
@@ -140,7 +163,12 @@ fun KakaoMapSearchScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로 가기")
+                Icon(
+                    painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                    contentDescription = "뒤로가기",
+                    tint = Color.Unspecified, // 원본 색상 유지 시
+                    modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
+                )
             }
 
             OutlinedTextField(
@@ -148,7 +176,8 @@ fun KakaoMapSearchScreen(
                 onValueChange = onQueryChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(end = 8.dp),
+                    .padding(end = 8.dp)
+                    .focusRequester(focusRequester),
                 placeholder = { Text("장소를 검색하세요") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -202,7 +231,7 @@ fun KakaoMapSearchScreen(
 }
 
 @Composable
-fun PlaceItem(place: KakaoMapUiModel, onClick: () -> Unit) {
+fun PlaceItem(place: KakaoMapPresentationModel, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -213,10 +242,6 @@ fun PlaceItem(place: KakaoMapUiModel, onClick: () -> Unit) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = place.address, color = Color.Gray, fontSize = 14.sp)
 
-        if (place.distanceText.isNotBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = place.distanceText, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
-        }
     }
     HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
 }
@@ -228,7 +253,7 @@ fun KakaoMapSearchScreenPreview() {
         searchQuery = "서울역",
         isLoading = false,
         searchResults = listOf(
-            KakaoMapUiModel(
+            KakaoMapPresentationModel(
                 id = "1",
                 placeName = "서울역",
                 address = "서울 용산구 한강대로 405",

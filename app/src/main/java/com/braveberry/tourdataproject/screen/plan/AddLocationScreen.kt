@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -78,41 +80,37 @@ fun AddLocationScreen(
         containerColor = Color.White,
         topBar = {
             Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .background(Color.White)
-                        .padding(horizontal = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = onBackClick) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = state.title,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.size(40.dp) // 터치 영역 표준 48dp
+                        ) {
                             Icon(
                                 painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
                                 contentDescription = "뒤로 가기",
-                                tint = Color.Black,
-                                modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
+                                modifier = Modifier.fillMaxSize(), // 버튼에 꽉 채움
+                                tint = Color.Unspecified
                             )
                         }
-                    }
-
-                    Text(
-                        text = state.title,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp) // 좌우 미세 여백 조정
+                )
                 HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
             }
         }
+
     ) { paddingValues ->
         Column(
             modifier = Modifier

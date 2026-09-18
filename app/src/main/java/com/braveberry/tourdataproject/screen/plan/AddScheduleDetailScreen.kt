@@ -1,6 +1,7 @@
 package com.braveberry.tourdataproject.screen.plan
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,6 +114,7 @@ fun AddScheduleDetailRoute(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddScheduleDetailScreen(
     placeName: String,
@@ -128,27 +131,34 @@ fun AddScheduleDetailScreen(
             .imePadding(),
         topBar = {
             Column {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
-                            contentDescription = "뒤로 가기",
-                            modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "일정 정보 추가",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "일정 정보 추가",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.size(40.dp) // 위와 동일하게 48dp
+                        ) {
+                            Icon(
+                                painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                                contentDescription = "뒤로 가기",
+                                modifier = Modifier.fillMaxSize(), // 버튼에 꽉 채움
+                                tint = Color.Unspecified
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp) // 위와 동일한 여백
+                )
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
             }
         },
         bottomBar = {

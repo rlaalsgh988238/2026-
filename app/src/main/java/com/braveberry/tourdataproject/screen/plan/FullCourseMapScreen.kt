@@ -1,5 +1,6 @@
 package com.braveberry.tourdataproject.screen.plan
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -119,7 +120,6 @@ fun FullCourseMapRoute(
     )
 }
 
-// ===================== Screen =====================
 
 @Composable
 fun FullCourseMapScreen(
@@ -168,21 +168,33 @@ fun FullCourseMapScreen(
                 Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .background(Color.White)
+                        // 일정 편집(표준 바)의 아이콘 위치와 100% 일치시키기 위한 설정
+                        .padding(start = 8.dp, end = 4.dp)
                 ) {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.size(40.dp)
+                    ) {
                         Icon(
                             painter = painterResource(R.drawable.arrow_circle_left),
                             contentDescription = "뒤로가기",
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            tint = Color.Unspecified
                         )
                     }
-                    Column {
-                        Text(course.courseName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text(course.datePeriod, fontSize = 13.sp, color = Color.Gray)
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = course.courseName, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Text(text = course.datePeriod, fontSize = 13.sp, color = Color.Gray)
                     }
                 }
-                HorizontalDivider()
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
             }
         }
     ) { padding ->
@@ -191,6 +203,10 @@ fun FullCourseMapScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            val screenHeight = maxHeight  // 스코프 속성 사용
+
+            // 예: 화면 높이에 따라 바텀시트 비율 조정
+            val sheetHeightFraction = if (screenHeight < 600.dp) 0.4f else 0.35f
             // 지도: 전체 영역 차지
             KakaoMap(
                 focusedSchedules = allPlaces.map { it.toScreen() },

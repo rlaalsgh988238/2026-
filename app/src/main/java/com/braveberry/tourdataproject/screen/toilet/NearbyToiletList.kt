@@ -102,16 +102,40 @@ fun NearbyToiletListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("최단거리 화장실 안내", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "뒤로 가기")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-            )
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "최단거리 화장실 안내",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                                contentDescription = "뒤로 가기",
+                                modifier = Modifier.fillMaxSize(),
+                                tint = Color.Unspecified
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    // 좌측 패딩을 10.dp로 통일
+                    modifier = Modifier.padding(start = 10.dp, end = 4.dp)
+                )
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+            }
         }
+
+
     ) { paddingValues ->
         BottomSheetScaffold(
             modifier = Modifier

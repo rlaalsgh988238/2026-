@@ -233,42 +233,47 @@ fun MakeCourseTopBar(
     onInfoClick: () -> Unit
 ) {
     Column {
+        Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp) // 아이콘이 커지므로 높이를 약간 여유 있게(56->64) 조정해도 좋습니다.
+                .height(64.dp)
                 .background(Color.White)
-                .padding(end = 8.dp),
+                // 일정 편집(표준 바)의 아이콘 위치와 100% 일치시키기 위한 설정
+                .padding(start = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBackClick) {
+            // 뒤로가기 버튼 (40dp 고정)
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.size(40.dp)
+            ) {
                 Icon(
                     painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
                     contentDescription = "뒤로가기",
-                    modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
+                    modifier = Modifier.fillMaxSize(),
+                    tint = Color.Unspecified
                 )
             }
-            Spacer(modifier = Modifier.width(4.dp))
+
+            // 표준 바의 타이틀 위치와 맞추기 위해 12dp 간격 적용
+            Spacer(modifier = Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = courseName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                Text(text = datePeriod, fontSize = 15.sp, color = Color.Gray)
+                Text(text = courseName, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(text = datePeriod, fontSize = 13.sp, color = Color.Gray)
             }
-            // 인포 아이콘 크기 확대 적용
+
             IconButton(
-                onClick =  onInfoClick,
-                modifier = Modifier.size(48.dp)
+                onClick = onInfoClick,
+                modifier = Modifier.size(40.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = "정보",
-                    tint = Color.Black,
-                    modifier = Modifier.size(28.dp) // 여기서 크기를 결정합니다.
-                )
+                Icon(imageVector = Icons.Outlined.Info, contentDescription = "정보", tint = Color.Black, modifier = Modifier.size(35.dp))
             }
         }
+        HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
     }
 }
-
 
 @Composable
 fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit, onEditClick: () -> Unit = {}) {

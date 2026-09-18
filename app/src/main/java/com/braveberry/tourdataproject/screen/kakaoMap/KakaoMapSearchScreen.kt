@@ -4,34 +4,14 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -47,12 +27,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.tourdataproject.presentation.KakaoMapEffect
 import com.tourdataproject.presentation.KakaoMapIntent
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
 import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.kakaoMap.KakaoMapViewModel
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트
+import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -72,15 +53,11 @@ fun KakaoMapSearchRoute(
 
     LaunchedEffect(Unit) {
         viewModel.onIntent(KakaoMapIntent.OnSearchQueryChanged(""))
-
         val courseState = sharedViewModel.sharedState.value
         val lat = courseState.course.destinationLatitude
         val lng = courseState.course.destinationLongitude
-
         if (lat != 0.0 && lng != 0.0) {
             viewModel.onIntent(KakaoMapIntent.OnInitLocation(lat, lng))
-        } else {
-
         }
     }
 
@@ -121,11 +98,12 @@ fun KakaoMapSearchRoute(
         onSearch = { query -> viewModel.onIntent(KakaoMapIntent.OnSearchClicked(query)) },
         onPlaceClick = { place ->
             viewModel.onIntent(KakaoMapIntent.OnPlaceItemClicked(place))
-       },
+        },
         onBackClick = handleBackClick
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KakaoMapSearchScreen(
     modifier: Modifier = Modifier,
@@ -140,6 +118,7 @@ fun KakaoMapSearchScreen(
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
+
     LaunchedEffect(Unit) {
         delay(100.milliseconds)
         focusRequester.requestFocus()
@@ -155,31 +134,44 @@ fun KakaoMapSearchScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 1. 상단 검색바 영역
+        // 1. 상단 검색바 영역 (아이콘 위치를 일정 편집 화면과 일치시킴)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .height(64.dp)
+                .background(Color.White)
+                .padding(start = 8.dp, end = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBackClick) {
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.size(40.dp)
+            ) {
                 Icon(
                     painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
                     contentDescription = "뒤로가기",
-                    tint = Color.Unspecified, // 원본 색상 유지 시
-                    modifier = Modifier.fillMaxSize() // 버튼 영역에 꽉 채움
+                    tint = Color.Unspecified,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
 
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onQueryChanged,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 8.dp)
+                    .weight(1f)
+                    .height(52.dp)
                     .focusRequester(focusRequester),
-                placeholder = { Text("장소를 검색하세요") },
+                placeholder = { Text("장소를 검색하세요", fontSize = 15.sp) },
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PrimaryTeal,
+                    unfocusedBorderColor = Color(0xFFE0E0E0),
+                    cursorColor = PrimaryTeal
+                ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
@@ -188,39 +180,24 @@ fun KakaoMapSearchScreen(
                     }
                 )
             )
-            Button(
-                onClick = {
-                    onSearch(searchQuery)
-                    focusManager.clearFocus()
-                },
-                modifier = Modifier.height(56.dp)
-            ) {
-                Text("검색")
-            }
+
+            Spacer(modifier = Modifier.width(12.dp))
         }
+
+        HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (autoCompleteResults.isNotEmpty()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryTeal)
+            } else {
+                val displayResults = if (autoCompleteResults.isNotEmpty()) autoCompleteResults else searchResults
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(autoCompleteResults, key = { it.id }) { place ->
+                    items(displayResults, key = { it.id }) { place ->
                         PlaceItem(
                             place = place,
                             onClick = {
                                 onPlaceClick(place)
                                 focusManager.clearFocus()
-                            }
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(searchResults, key = { it.id }) { place ->
-                        PlaceItem(
-                            place = place,
-                            onClick = {
-                                onPlaceClick(place)
                             }
                         )
                     }
@@ -236,14 +213,13 @@ fun PlaceItem(place: KakaoMapPresentationModel, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(16.dp)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        Text(text = place.placeName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(text = place.placeName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = place.address, color = Color.Gray, fontSize = 14.sp)
-
     }
-    HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+    HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)

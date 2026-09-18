@@ -46,7 +46,6 @@ import com.tourdataproject.presentation.viewmodel.plan.addLocation.AddLocationVi
 import com.tourdataproject.presentation.viewmodel.plan.addLocation.uiState.AddLocationState
 import com.tourdataproject.presentation.viewmodel.plan.addLocation.uiState.AddLocationViewMode
 
-//TODO 여기 튕겼다가 다시 들어오면 검색 안됨
 @Composable
 fun AddLocationRoute(
     viewModel: AddLocationViewModel = hiltViewModel(),

@@ -28,7 +28,6 @@ import com.tourdataproject.presentation.viewmodel.course.addSchedule.uiState.Add
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent // 🌟 이벤트 임포트 추가
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 
-// TODO 여기 튕겼다가 들어오면 아무것도 안뜸
 data class AddScheduleInitModel(
     val placeName: String = "",
     val address: String = "",

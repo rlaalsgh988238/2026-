@@ -1,44 +1,50 @@
 package com.braveberry.tourdataproject.screen.plan
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,22 +59,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.R
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
 import com.kakao.vectormap.KakaoMap
@@ -91,8 +98,14 @@ import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
 import com.tourdataproject.presentation.model.plan.TravelCoursePresentationModel
 import com.tourdataproject.presentation.utility.Log
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
+private val SheetItemBackground = Color(0xFFF6F6F6)
+private val SheetDividerColor = Color(0xFFE5E5E5)
+private val SheetSecondaryText = Color(0xFF888888)
 
 // ===================== Route =====================
 
@@ -102,24 +115,54 @@ fun FullCourseMapRoute(
     onNavigateBack: () -> Unit
 ) {
     val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
-    val dayPlans = sharedState.course.dayPlans
+    val course = sharedState.course
+    val dayPlans = course.dayPlans
 
-    var selectedDayNumber by remember(dayPlans) {
+    var selectedDayNumber by remember(course.courseId) {
         mutableIntStateOf(dayPlans.firstOrNull()?.rawDayNumber ?: 1)
     }
-    var selectedScheduleId by remember { mutableStateOf<String?>(null) }
+    var selectedScheduleId by remember(course.courseId) {
+        mutableStateOf<String?>(null)
+    }
+
+    // 데이터가 늦게 들어오거나 일차가 변경된 경우 선택값 보정
+    LaunchedEffect(dayPlans, selectedDayNumber, selectedScheduleId) {
+        val selectedDay = dayPlans.find {
+            it.rawDayNumber == selectedDayNumber
+        }
+
+        if (selectedDay == null) {
+            selectedDayNumber = dayPlans.firstOrNull()?.rawDayNumber ?: 1
+            selectedScheduleId = null
+        } else if (
+            selectedScheduleId != null &&
+            selectedDay.schedules.none {
+                it.scheduleId == selectedScheduleId
+            }
+        ) {
+            selectedScheduleId = null
+        }
+    }
 
     FullCourseMapScreen(
-        course = sharedState.course,
+        course = course,
         selectedDayNumber = selectedDayNumber,
         selectedScheduleId = selectedScheduleId,
-        onDaySelected = { selectedDayNumber = it; selectedScheduleId = null },
-        onPlaceSelected = { selectedScheduleId = it },
-        onDetailClosed = { selectedScheduleId = null },
+        onDaySelected = {
+            selectedDayNumber = it
+            selectedScheduleId = null
+        },
+        onPlaceSelected = {
+            selectedScheduleId = it
+        },
+        onDetailClosed = {
+            selectedScheduleId = null
+        },
         onBackClick = onNavigateBack
     )
 }
 
+// ===================== Screen =====================
 
 @Composable
 fun FullCourseMapScreen(
@@ -131,243 +174,386 @@ fun FullCourseMapScreen(
     onDetailClosed: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    val currentDayPlan = course.dayPlans.find { it.rawDayNumber == selectedDayNumber }
-    val allPlaces = currentDayPlan?.schedules ?: emptyList()
-    val selectedPlace = allPlaces.find { it.scheduleId == selectedScheduleId }
-    val selectedIndex = allPlaces.indexOfFirst { it.scheduleId == selectedScheduleId }
-
-    val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-
-    // 바텀시트 드래그 오프셋
-    // 0 = EXPANDED(완전히 올라옴), maxOffset = COLLAPSED(peek만 보임)
-    val offsetAnim = remember { Animatable(0f) }
-    val maxOffsetRef = remember { mutableFloatStateOf(0f) }
-    val isSheetMeasured = remember { mutableStateOf(false) }
-
-    val navBarPx = with(density) {
-        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding().toPx()
+    val currentDayPlan = course.dayPlans.find {
+        it.rawDayNumber == selectedDayNumber
     }
-    // peek = 드래그핸들(28dp) + 탭행(48dp) + 구분선(1dp) + 네비바
-    val peekPx = with(density) { (28 + 48 + 1).dp.toPx() } + navBarPx
-
-    var focusedLatLng by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-
-    fun animCollapse() = scope.launch {
-        offsetAnim.animateTo(maxOffsetRef.floatValue, tween(300))
+    val allPlaces = currentDayPlan?.schedules.orEmpty()
+    val selectedIndex = allPlaces.indexOfFirst {
+        it.scheduleId == selectedScheduleId
     }
-    fun animExpand() = scope.launch {
-        offsetAnim.animateTo(0f, tween(300))
+    val selectedPlace = allPlaces.getOrNull(selectedIndex)
+
+    var focusedLatLng by remember {
+        mutableStateOf<Pair<Double, Double>?>(null)
+    }
+
+    val selectedLatitude = selectedPlace?.latitude
+    val selectedLongitude = selectedPlace?.longitude
+
+    LaunchedEffect(
+        selectedDayNumber,
+        selectedScheduleId,
+        selectedLatitude,
+        selectedLongitude
+    ) {
+        focusedLatLng = if (
+            selectedLatitude != null &&
+            selectedLongitude != null
+        ) {
+            selectedLatitude to selectedLongitude
+        } else {
+            null
+        }
     }
 
     Scaffold(
         containerColor = Color.White,
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            Column {
-                Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .background(Color.White)
-                        // 일정 편집(표준 바)의 아이콘 위치와 100% 일치시키기 위한 설정
-                        .padding(start = 8.dp, end = 4.dp)
-                ) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_circle_left),
-                            contentDescription = "뒤로가기",
-                            modifier = Modifier.fillMaxSize(),
-                            tint = Color.Unspecified
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = course.courseName, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text(text = course.datePeriod, fontSize = 13.sp, color = Color.Gray)
-                    }
-                }
-                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
-            }
+            CourseMapTopBar(
+                courseName = course.courseName,
+                datePeriod = course.datePeriod,
+                onBackClick = onBackClick
+            )
         }
-    ) { padding ->
-        BoxWithConstraints(
+    ) { paddingValues ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(paddingValues)
+                .clipToBounds()
         ) {
-            val screenHeight = maxHeight  // 스코프 속성 사용
-
-            // 예: 화면 높이에 따라 바텀시트 비율 조정
-            val sheetHeightFraction = if (screenHeight < 600.dp) 0.4f else 0.35f
-            // 지도: 전체 영역 차지
             KakaoMap(
                 focusedSchedules = allPlaces.map { it.toScreen() },
-                stay = currentDayPlan?.stay?.takeIf { it.scheduleId.isNotBlank() }?.toScreen(),
+                stay = currentDayPlan?.stay
+                    ?.takeIf { it.scheduleId.isNotBlank() }
+                    ?.toScreen(),
                 selectedScheduleId = selectedScheduleId,
                 cameraFocusLatLng = focusedLatLng,
-                onCameraFocusConsumed = { focusedLatLng = null }
+                onCameraFocusConsumed = {
+                    focusedLatLng = null
+                }
             )
 
-            // 바텀시트: 높이 35% 고정
-            // fillMaxHeight(0.35f) → 콘텐츠 변화와 무관하게 항상 동일한 높이
-            // offset으로 COLLAPSED(peek) ↔ EXPANDED(0) 전환
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.35f)
-                    .onGloballyPositioned { coords ->
-                        // 최초 1회만: 실제 시트 높이로 maxOffset 계산 후 COLLAPSED 위치로 snap
-                        if (!isSheetMeasured.value && coords.size.height > 0) {
-                            isSheetMeasured.value = true
-                            val sheetH = coords.size.height.toFloat()
-                            val newMax = maxOf(0f, sheetH - peekPx)
-                            maxOffsetRef.floatValue = newMax
-                            scope.launch { offsetAnim.snapTo(newMax) }
-                        }
+            CourseMapBottomSheet(
+                dayPlans = course.dayPlans,
+                selectedDayNumber = selectedDayNumber,
+                places = allPlaces,
+                selectedPlace = selectedPlace,
+                selectedIndex = selectedIndex,
+                onDaySelected = onDaySelected,
+                onPlaceSelected = {
+                    onPlaceSelected(it.scheduleId)
+                },
+                onPrev = {
+                    allPlaces.getOrNull(selectedIndex - 1)?.let {
+                        onPlaceSelected(it.scheduleId)
                     }
-                    .offset { IntOffset(0, offsetAnim.value.roundToInt()) },
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                shadowElevation = 16.dp,
-                color = Color.White
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
+                },
+                onNext = {
+                    allPlaces.getOrNull(selectedIndex + 1)?.let {
+                        onPlaceSelected(it.scheduleId)
+                    }
+                },
+                onDetailClosed = onDetailClosed
+            )
+        }
+    }
+}
 
-                    // 드래그 핸들 (28dp 고정)
+@Composable
+private fun CourseMapTopBar(
+    courseName: String,
+    datePeriod: String,
+    onBackClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+    ) {
+        Spacer(
+            Modifier.windowInsetsTopHeight(WindowInsets.statusBars)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .padding(start = 8.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.arrow_circle_left),
+                    contentDescription = "뒤로가기",
+                    modifier = Modifier.fillMaxSize(),
+                    tint = Color.Unspecified
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = courseName,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = datePeriod,
+                    fontSize = 12.sp,
+                    color = SheetSecondaryText
+                )
+            }
+        }
+
+        HorizontalDivider(
+            color = Color(0xFFF0F0F0),
+            thickness = 1.dp
+        )
+    }
+}
+
+// ===================== Bottom Sheet =====================
+
+@Composable
+private fun CourseMapBottomSheet(
+    dayPlans: List<DayPlanPresentationModel>,
+    selectedDayNumber: Int,
+    places: List<ScheduleItemPresentationModel>,
+    selectedPlace: ScheduleItemPresentationModel?,
+    selectedIndex: Int,
+    onDaySelected: (Int) -> Unit,
+    onPlaceSelected: (ScheduleItemPresentationModel) -> Unit,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onDetailClosed: () -> Unit
+) {
+    val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
+
+    var sheetOffsetPx by remember { mutableFloatStateOf(0f) }
+    var settleJob by remember { mutableStateOf<Job?>(null) }
+
+    val navigationBarPadding = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // 목록은 낮게, 상세는 편의시설을 볼 수 있도록 높게 표시
+        val desiredHeight = if (selectedPlace == null) {
+            248.dp
+        } else {
+            380.dp
+        }
+
+        val targetHeight = (desiredHeight + navigationBarPadding)
+            .coerceAtMost(maxHeight * 0.85f)
+
+        val sheetHeight by animateDpAsState(
+            targetValue = targetHeight,
+            animationSpec = tween(250),
+            label = "course_sheet_height"
+        )
+
+        val peekHeight = 76.dp + navigationBarPadding
+
+        val maxOffsetPx = with(density) {
+            (sheetHeight - peekHeight)
+                .coerceAtLeast(0.dp)
+                .toPx()
+        }
+
+        val velocityThreshold = with(density) {
+            700.dp.toPx()
+        }
+
+        fun settleSheet(target: Float) {
+            settleJob?.cancel()
+            settleJob = scope.launch {
+                animate(
+                    initialValue = sheetOffsetPx.coerceIn(0f, maxOffsetPx),
+                    targetValue = target.coerceIn(0f, maxOffsetPx),
+                    animationSpec = tween(220)
+                ) { value, _ ->
+                    sheetOffsetPx = value
+                }
+            }
+        }
+
+        // 일차 또는 장소가 바뀌면 내용을 볼 수 있도록 펼침
+        LaunchedEffect(selectedDayNumber, selectedPlace?.scheduleId) {
+            settleJob?.cancel()
+            sheetOffsetPx = 0f
+        }
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(sheetHeight)
+                .offset {
+                    IntOffset(
+                        x = 0,
+                        y = sheetOffsetPx
+                            .coerceIn(0f, maxOffsetPx)
+                            .roundToInt()
+                    )
+                },
+            shape = RoundedCornerShape(
+                topStart = 28.dp,
+                topEnd = 28.dp
+            ),
+            color = Color.White,
+            border = BorderStroke(1.dp, SheetDividerColor),
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // 드래그 핸들: 탭으로도 접기/펼치기 가능
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp)
+                        .draggable(
+                            state = rememberDraggableState { delta ->
+                                sheetOffsetPx = (sheetOffsetPx + delta)
+                                    .coerceIn(0f, maxOffsetPx)
+                            },
+                            orientation = Orientation.Vertical,
+                            onDragStarted = {
+                                settleJob?.cancel()
+                            },
+                            onDragStopped = { velocity ->
+                                val shouldCollapse = when {
+                                    velocity > velocityThreshold -> true
+                                    velocity < -velocityThreshold -> false
+                                    else -> sheetOffsetPx > maxOffsetPx / 2f
+                                }
+
+                                settleSheet(
+                                    if (shouldCollapse) maxOffsetPx else 0f
+                                )
+                            }
+                        )
+                        .clickable {
+                            settleSheet(
+                                if (sheetOffsetPx > maxOffsetPx / 2f) {
+                                    0f
+                                } else {
+                                    maxOffsetPx
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(28.dp)
-                            .pointerInput(Unit) {
-                                detectVerticalDragGestures(
-                                    onDragStart = {
-                                        scope.launch { offsetAnim.stop() }
-                                    },
-                                    onVerticalDrag = { _, dy ->
-                                        scope.launch {
-                                            offsetAnim.snapTo(
-                                                (offsetAnim.value + dy)
-                                                    .coerceIn(0f, maxOffsetRef.floatValue)
-                                            )
-                                        }
-                                    },
-                                    onDragEnd = {
-                                        if (offsetAnim.value < maxOffsetRef.floatValue / 2f) animExpand()
-                                        else animCollapse()
-                                    },
-                                    onDragCancel = {
-                                        if (offsetAnim.value < maxOffsetRef.floatValue / 2f) animExpand()
-                                        else animCollapse()
+                            .width(64.dp)
+                            .height(4.dp)
+                            .background(
+                                color = Color(0xFFABABAB),
+                                shape = RoundedCornerShape(2.dp)
+                            )
+                    )
+                }
+
+                DayTabRow(
+                    dayPlans = dayPlans,
+                    selectedDayNumber = selectedDayNumber,
+                    onDaySelected = { dayNumber ->
+                        settleJob?.cancel()
+                        sheetOffsetPx = 0f
+                        onDaySelected(dayNumber)
+
+                        // 현재 일차 탭을 눌러도 상세에서 목록으로 복귀
+                        if (selectedPlace != null) {
+                            onDetailClosed()
+                        }
+                    }
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                when {
+                    selectedPlace != null -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 16.dp + navigationBarPadding
+                            )
+                        ) {
+                            item {
+                                PlaceDetailSection(
+                                    place = selectedPlace,
+                                    hasPrev = selectedIndex > 0,
+                                    hasNext = selectedIndex < places.lastIndex,
+                                    onPrev = onPrev,
+                                    onNext = onNext,
+                                    onClose = onDetailClosed
+                                )
+                            }
+                        }
+                    }
+
+                    places.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(bottom = navigationBarPadding),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "등록된 일정이 없습니다",
+                                color = SheetSecondaryText,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 4.dp,
+                                bottom = 16.dp + navigationBarPadding
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            itemsIndexed(
+                                items = places,
+                                key = { _, place -> place.scheduleId }
+                            ) { index, place ->
+                                CoursePlaceRow(
+                                    number = index + 1,
+                                    placeName = place.scheduleName,
+                                    onClick = {
+                                        onPlaceSelected(place)
                                     }
                                 )
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            Modifier
-                                .width(36.dp)
-                                .height(4.dp)
-                                .background(Color(0xFFDDDDDD), RoundedCornerShape(2.dp))
-                        )
-                    }
-
-                    // 탭 행 (48dp 고정)
-                    Box(modifier = Modifier.height(48.dp)) {
-                        DayTabRow(
-                            dayPlans = course.dayPlans,
-                            selectedDayNumber = selectedDayNumber,
-                            onDaySelected = { day -> onDaySelected(day) }
-                        )
-                    }
-
-                    HorizontalDivider(color = Color(0xFFF0F0F0))
-
-                    // 콘텐츠 영역: 남은 공간 전부 차지 + LazyColumn 스크롤
-                    Box(modifier = Modifier.weight(1f)) {
-                        when {
-                            selectedPlace != null -> {
-                                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    item {
-                                        PlaceDetailSection(
-                                            place = selectedPlace,
-                                            dayLabel = currentDayPlan?.dayLabel ?: "",
-                                            hasPrev = selectedIndex > 0,
-                                            hasNext = selectedIndex < allPlaces.lastIndex,
-                                            onPrev = {
-                                                allPlaces[selectedIndex - 1].let {
-                                                    onPlaceSelected(it.scheduleId)
-                                                    focusedLatLng = it.latitude to it.longitude
-                                                }
-                                            },
-                                            onNext = {
-                                                allPlaces[selectedIndex + 1].let {
-                                                    onPlaceSelected(it.scheduleId)
-                                                    focusedLatLng = it.latitude to it.longitude
-                                                }
-                                            },
-                                            onClose = onDetailClosed
-                                        )
-                                    }
-                                    item {
-                                        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-                                    }
-                                }
-                            }
-                            allPlaces.isEmpty() -> {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        "등록된 일정이 없습니다",
-                                        fontSize = 14.sp,
-                                        color = Color.LightGray
-                                    )
-                                }
-                            }
-                            else -> {
-                                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    itemsIndexed(allPlaces) { index, place ->
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    onPlaceSelected(place.scheduleId)
-                                                    focusedLatLng = place.latitude to place.longitude
-                                                }
-                                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                                        ) {
-                                            Surface(
-                                                shape = CircleShape,
-                                                color = PrimaryTeal,
-                                                modifier = Modifier.size(24.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Text(
-                                                        "${index + 1}",
-                                                        color = Color.White,
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold
-                                                    )
-                                                }
-                                            }
-                                            Spacer(Modifier.width(12.dp))
-                                            Text(place.scheduleName, fontSize = 15.sp)
-                                        }
-                                    }
-                                    item {
-                                        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-                                    }
-                                }
                             }
                         }
                     }
@@ -376,8 +562,6 @@ fun FullCourseMapScreen(
         }
     }
 }
-
-// ===================== Sub Composables =====================
 
 @Composable
 private fun DayTabRow(
@@ -388,22 +572,51 @@ private fun DayTabRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(40.dp)
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         dayPlans.forEach { dayPlan ->
-            val isSelected = dayPlan.rawDayNumber == selectedDayNumber
+            val selected = dayPlan.rawDayNumber == selectedDayNumber
+
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = if (isSelected) PrimaryTeal.copy(alpha = 0.15f) else Color(0xFFF2F2F2),
-                modifier = Modifier.clickable { onDaySelected(dayPlan.rawDayNumber) }
+                onClick = {
+                    onDaySelected(dayPlan.rawDayNumber)
+                },
+                shape = RoundedCornerShape(10.dp),
+                color = if (selected) {
+                    PrimaryTeal.copy(alpha = 0.16f)
+                } else {
+                    Color(0xFFE2E2E2)
+                },
+                border = if (selected) {
+                    BorderStroke(
+                        width = 1.dp,
+                        color = PrimaryTeal.copy(alpha = 0.45f)
+                    )
+                } else {
+                    null
+                }
             ) {
                 Text(
                     text = dayPlan.dayLabel,
-                    color = if (isSelected) PrimaryTeal else Color.Gray,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 8.dp
+                    ),
+                    color = if (selected) {
+                        PrimaryTeal
+                    } else {
+                        SheetSecondaryText
+                    },
+                    fontSize = 12.sp,
+                    fontWeight = if (selected) {
+                        FontWeight.SemiBold
+                    } else {
+                        FontWeight.Normal
+                    }
                 )
             }
         }
@@ -411,78 +624,285 @@ private fun DayTabRow(
 }
 
 @Composable
+private fun CoursePlaceRow(
+    number: Int,
+    placeName: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(24.dp),
+            shape = CircleShape,
+            color = PrimaryTeal
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = number.toString(),
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Spacer(Modifier.width(10.dp))
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 36.dp)
+                .background(
+                    color = SheetItemBackground,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(
+                    horizontal = 12.dp,
+                    vertical = 8.dp
+                ),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = placeName,
+                fontSize = 14.sp,
+                color = Color(0xFF222222),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// ===================== Place Detail =====================
+
+@Composable
 private fun PlaceDetailSection(
     place: ScheduleItemPresentationModel,
-    dayLabel: String,
     hasPrev: Boolean,
     hasNext: Boolean,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onClose: () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPrev, enabled = hasPrev) {
-                Icon(
-                    painter = painterResource(id = R.drawable.arrow_forward_ios),
-                    contentDescription = "이전",
-                    modifier = Modifier
-                        .size(16.dp)
-                        .graphicsLayer { rotationZ = 180f }
-                )
-            }
-            Text(
-                text = place.scheduleName,
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
+    val accessibility = place.accessibilityInfo
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PlaceNavigationButton(
+                isPrevious = true,
+                enabled = hasPrev,
+                onClick = onPrev
             )
-            IconButton(onClick = onNext, enabled = hasNext) {
-                Icon(
-                    painter = painterResource(id = R.drawable.arrow_forward_ios),
-                    contentDescription = "다음",
-                    modifier = Modifier.size(16.dp)
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = place.scheduleName,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = place.address
+                        .orEmpty()
+                        .ifBlank { "주소 정보 없음" },
+                    fontSize = 11.sp,
+                    color = SheetSecondaryText,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+
+            PlaceNavigationButton(
+                isPrevious = false,
+                enabled = hasNext,
+                onClick = onNext
+            )
         }
-        Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.Top) {
-            Box(
+
+        Spacer(Modifier.height(10.dp))
+
+        HorizontalDivider(
+            color = SheetDividerColor,
+            thickness = 1.dp
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "편의시설 정보",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF333333)
+            )
+
+            Text(
+                text = "목록 보기",
+                fontSize = 12.sp,
+                color = PrimaryTeal,
                 modifier = Modifier
-                    .size(width = 140.dp, height = 100.dp)
-                    .background(Color(0xFFF2F2F2), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("사진", color = Color.Gray, fontSize = 13.sp)
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AccessibilityRow(icon = R.drawable.elevator_icon, label = "엘리베이터")
-                AccessibilityRow(icon = R.drawable.wheel_chair, label = "입구 경사로")
-                AccessibilityRow(icon = R.drawable.wc, label = "장애인화장실 (남/여)")
-                AccessibilityRow(icon = R.drawable.parking, label = "장애인 주차시설")
-            }
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable(onClick = onClose)
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            )
         }
-        Spacer(Modifier.height(8.dp))
+
+        // 실제 저장된 정보 표시. 값이 없으면 시설이 있다고 단정하지 않음.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AccessibilityCard(
+                icon = R.drawable.elevator_icon,
+                label = "엘리베이터",
+                description = accessibilityDescription(accessibility?.elevator),
+                modifier = Modifier.weight(1f)
+            )
+
+            AccessibilityCard(
+                icon = R.drawable.wc,
+                label = "장애인 화장실",
+                description = accessibilityDescription(accessibility?.restroom),
+                modifier = Modifier.weight(1f)
+            )
+
+            AccessibilityCard(
+                icon = R.drawable.wheel_chair,
+                label = "입구 경사로",
+                description = accessibilityDescription(accessibility?.exit),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AccessibilityCard(
+                icon = R.drawable.parking,
+                label = "장애인 주차시설",
+                description = accessibilityDescription(accessibility?.parking),
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
+        }
     }
 }
 
 @Composable
-private fun AccessibilityRow(icon: Int, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun PlaceNavigationButton(
+    isPrevious: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.size(40.dp)
+    ) {
         Icon(
-            painter = painterResource(id = icon),
-            contentDescription = label,
-            tint = PrimaryTeal,
-            modifier = Modifier.size(16.dp)
+            painter = painterResource(R.drawable.arrow_forward_ios),
+            contentDescription = if (isPrevious) "이전 장소" else "다음 장소",
+            tint = if (enabled) {
+                PrimaryTeal
+            } else {
+                Color(0xFFCACACA)
+            },
+            modifier = Modifier
+                .size(18.dp)
+                .graphicsLayer {
+                    rotationZ = if (isPrevious) 180f else 0f
+                }
         )
-        Spacer(Modifier.width(6.dp))
-        Text(label, fontSize = 13.sp, color = Color.DarkGray)
     }
 }
 
-// ===================== KakaoMap =====================
+@Composable
+private fun AccessibilityCard(
+    icon: Int,
+    label: String,
+    description: String?,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .background(
+                color = SheetItemBackground,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.size(30.dp),
+            tint = if (description != null) {
+                Color(0xFF242424)
+            } else {
+                Color(0xFFAAAAAA)
+            }
+        )
+
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF333333),
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            text = description ?: "정보 없음",
+            fontSize = 10.sp,
+            lineHeight = 14.sp,
+            color = SheetSecondaryText,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+private fun accessibilityDescription(value: Any?): String? {
+    return value
+        ?.toString()
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+}
+
+// ===================== Kakao Map =====================
 
 @Composable
 fun KakaoMap(
@@ -493,10 +913,26 @@ fun KakaoMap(
     cameraFocusLatLng: Pair<Double, Double>? = null,
     onCameraFocusConsumed: () -> Unit = {}
 ) {
-    var mapInstance by remember { mutableStateOf<KakaoMap?>(null) }
+    // Android Studio 프리뷰에서 실제 지도 SDK를 초기화하지 않음
+    if (LocalInspectionMode.current) {
+        MapPreviewBackground(
+            placeCount = focusedSchedules.size,
+            selectedIndex = focusedSchedules.indexOfFirst {
+                it.scheduleId == selectedScheduleId
+            },
+            hasStay = stay != null
+        )
+        return
+    }
+
+    var mapInstance by remember {
+        mutableStateOf<KakaoMap?>(null)
+    }
+
     val context = LocalContext.current
-    val bitmapCache = remember { mutableMapOf<String, Bitmap>() }
-    var isInitialFocusDone by remember { mutableStateOf(false) }
+    val bitmapCache = remember {
+        mutableMapOf<String, Bitmap>()
+    }
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
@@ -504,88 +940,182 @@ fun KakaoMap(
             MapView(ctx).apply {
                 start(
                     object : MapLifeCycleCallback() {
-                        override fun onMapDestroy() { Log.d("KakaoMap", "지도 소멸됨") }
-                        override fun onMapError(error: Exception?) { Log.e("KakaoMap", "지도 에러: ${error?.message}") }
+                        override fun onMapDestroy() {
+                            Log.d("KakaoMap", "지도 소멸됨")
+                        }
+
+                        override fun onMapError(error: Exception?) {
+                            Log.e(
+                                "KakaoMap",
+                                "지도 에러: ${error?.message}"
+                            )
+                        }
                     },
                     object : KakaoMapReadyCallback() {
-                        override fun onMapReady(kakaoMap: KakaoMap) { mapInstance = kakaoMap }
+                        override fun onMapReady(kakaoMap: KakaoMap) {
+                            mapInstance = kakaoMap
+                        }
                     }
                 )
             }
         }
     )
 
-    LaunchedEffect(focusedSchedules, stay, mapInstance, context, selectedScheduleId) {
+    // 일정 또는 선택 상태가 변경되면 마커 갱신
+    LaunchedEffect(
+        focusedSchedules,
+        stay,
+        mapInstance,
+        selectedScheduleId
+    ) {
         val map = mapInstance ?: return@LaunchedEffect
-        if (focusedSchedules.isEmpty() && stay == null) return@LaunchedEffect
+        val labelLayer = map.labelManager?.layer
+        val routeLayer = map.routeLineManager?.layer
 
-        val labelManager = map.labelManager
-        val routeLineManager = map.routeLineManager
-        labelManager?.layer?.removeAll()
-        routeLineManager?.layer?.removeAll()
+        // 빈 일차에서도 이전 마커가 남지 않도록 먼저 삭제
+        labelLayer?.removeAll()
+        routeLayer?.removeAll()
 
         val points = mutableListOf<LatLng>()
 
         focusedSchedules.forEachIndexed { index, schedule ->
-            val latLng = LatLng.from(schedule.latitude, schedule.longitude)
-            points.add(latLng)
+            val number = index + 1
+            val latLng = LatLng.from(
+                schedule.latitude,
+                schedule.longitude
+            )
             val isSelected = schedule.scheduleId == selectedScheduleId
-            val cacheKey = if (isSelected) "selected_${schedule.scheduleId}" else "${index + 1}"
-            val bitmap = bitmapCache.getOrPut(cacheKey) {
-                if (isSelected) createLocationOnMarkerBitmap(context)
-                else createCustomMarkerBitmap(context, "${index + 1}", isAccommodation = false)
+
+            points.add(latLng)
+
+            val cacheKey = if (isSelected) {
+                "selected_$number"
+            } else {
+                "normal_$number"
             }
-            val anchorY = if (isSelected) 1.0f else 0.5f
-            val style = LabelStyles.from(LabelStyle.from(bitmap).setAnchorPoint(0.5f, anchorY))
-            labelManager?.layer?.addLabel(LabelOptions.from(latLng).setStyles(style))
+
+            val bitmap = bitmapCache.getOrPut(cacheKey) {
+                if (isSelected) {
+                    createSelectedMarkerBitmap(
+                        context = context,
+                        text = number.toString()
+                    )
+                } else {
+                    createCustomMarkerBitmap(
+                        context = context,
+                        text = number.toString(),
+                        isAccommodation = false
+                    )
+                }
+            }
+
+            val style = LabelStyles.from(
+                LabelStyle.from(bitmap)
+                    .setAnchorPoint(
+                        0.5f,
+                        if (isSelected) 1f else 0.5f
+                    )
+            )
+
+            labelLayer?.addLabel(
+                LabelOptions.from(latLng).setStyles(style)
+            )
         }
 
-        stay?.let {
-            val stayLatLng = LatLng.from(it.latitude, it.longitude)
-            points.add(stayLatLng)
+        stay?.let { accommodation ->
+            val latLng = LatLng.from(
+                accommodation.latitude,
+                accommodation.longitude
+            )
+
+            points.add(latLng)
+
             val bitmap = bitmapCache.getOrPut("accommodation") {
-                createCustomMarkerBitmap(context, "", isAccommodation = true)
+                createCustomMarkerBitmap(
+                    context = context,
+                    text = "",
+                    isAccommodation = true
+                )
             }
-            val style = LabelStyles.from(LabelStyle.from(bitmap).setAnchorPoint(0.5f, 0.5f))
-            labelManager?.layer?.addLabel(LabelOptions.from(stayLatLng).setStyles(style))
+
+            val style = LabelStyles.from(
+                LabelStyle.from(bitmap)
+                    .setAnchorPoint(0.5f, 0.5f)
+            )
+
+            labelLayer?.addLabel(
+                LabelOptions.from(latLng).setStyles(style)
+            )
         }
 
         if (points.size > 1) {
-            points.add(points.first())
-            val routeStyle = RouteLineStyle.from(4f, android.graphics.Color.parseColor("#888888"))
-            val stylesSet = RouteLineStylesSet.from("route", RouteLineStyles.from(routeStyle))
-            val segment = RouteLineSegment.from(points).setStyles(stylesSet.getStyles(0))
-            routeLineManager?.layer?.addRouteLine(RouteLineOptions.from(segment))
-        }
+            // 마지막 장소를 첫 장소와 강제로 연결하지 않음
+            val routeStyle = RouteLineStyle.from(
+                4f,
+                android.graphics.Color.parseColor("#888888")
+            )
 
-        if (!isInitialFocusDone) {
-            val firstPoint = focusedSchedules.firstOrNull()
-                ?.let { LatLng.from(it.latitude, it.longitude) }
-                ?: stay?.let { LatLng.from(it.latitude, it.longitude) }
-            firstPoint?.let {
-                map.moveCamera(CameraUpdateFactory.newCenterPosition(it, 10))
-                isInitialFocusDone = true
-            }
+            val stylesSet = RouteLineStylesSet.from(
+                "route",
+                RouteLineStyles.from(routeStyle)
+            )
+
+            val segment = RouteLineSegment
+                .from(points)
+                .setStyles(stylesSet.getStyles(0))
+
+            routeLayer?.addRouteLine(
+                RouteLineOptions.from(segment)
+            )
         }
     }
 
-    LaunchedEffect(cameraFocusLatLng) {
+    // 일정 구성이 바뀌면 해당 일차의 첫 장소로 이동
+    val schedulePositions = focusedSchedules.map {
+        Triple(it.scheduleId, it.latitude, it.longitude)
+    }
+    val stayPosition = stay?.let {
+        Triple(it.scheduleId, it.latitude, it.longitude)
+    }
+
+    LaunchedEffect(schedulePositions, stayPosition, mapInstance) {
         val map = mapInstance ?: return@LaunchedEffect
-        cameraFocusLatLng ?: return@LaunchedEffect
-        val (lat, lng) = cameraFocusLatLng
+
+        val firstPoint = focusedSchedules.firstOrNull()?.let {
+            LatLng.from(it.latitude, it.longitude)
+        } ?: stay?.let {
+            LatLng.from(it.latitude, it.longitude)
+        }
+
+        firstPoint?.let {
+            map.moveCamera(
+                CameraUpdateFactory.newCenterPosition(it, 10)
+            )
+        }
+    }
+
+    // 지도 준비 전에 들어온 선택 요청도 준비 완료 후 처리
+    LaunchedEffect(cameraFocusLatLng, mapInstance) {
+        val map = mapInstance ?: return@LaunchedEffect
+        val target = cameraFocusLatLng ?: return@LaunchedEffect
+
         map.moveCamera(
             CameraUpdateFactory.newCenterPosition(
-                LatLng.from(lat, lng),
-                map.cameraPosition?.zoomLevel ?: 15
+                LatLng.from(target.first, target.second),
+                15
             )
         )
+
         onCameraFocusConsumed()
     }
 
-    LaunchedEffect(draggedId, mapInstance) {
+    LaunchedEffect(draggedId, mapInstance, focusedSchedules) {
         val map = mapInstance ?: return@LaunchedEffect
-        draggedId ?: return@LaunchedEffect
-        focusedSchedules.find { it.scheduleId == draggedId }?.let {
+        val targetId = draggedId ?: return@LaunchedEffect
+
+        focusedSchedules.find {
+            it.scheduleId == targetId
+        }?.let {
             map.moveCamera(
                 CameraUpdateFactory.newCenterPosition(
                     LatLng.from(it.latitude, it.longitude),
@@ -598,36 +1128,123 @@ fun KakaoMap(
 
 // ===================== Bitmap Helpers =====================
 
-private fun createLocationOnMarkerBitmap(context: Context): Bitmap {
+private fun createSelectedMarkerBitmap(
+    context: Context,
+    text: String
+): Bitmap {
     val density = context.resources.displayMetrics.density
-    val sizePx = (36 * density).toInt()
-    val drawable = ContextCompat.getDrawable(context, R.drawable.location_on)
-        ?: return Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    drawable.setBounds(0, 0, sizePx, sizePx)
-    drawable.draw(Canvas(bitmap))
-    return bitmap
-}
+    val width = (36 * density).roundToInt().coerceAtLeast(1)
+    val height = (46 * density).roundToInt().coerceAtLeast(1)
 
-private fun createCustomMarkerBitmap(context: Context, text: String, isAccommodation: Boolean): Bitmap {
-    val density = context.resources.displayMetrics.density
-    val size = (24 * density).toInt()
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val bitmap = Bitmap.createBitmap(
+        width,
+        height,
+        Bitmap.Config.ARGB_8888
+    )
+
     val canvas = Canvas(bitmap)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    paint.color = if (isAccommodation) android.graphics.Color.parseColor("#FFC107")
-    else android.graphics.Color.parseColor("#14B8A6")
+    val centerX = width / 2f
+    val circleY = 17 * density
+    val radius = 15 * density
+
+    val path = android.graphics.Path().apply {
+        moveTo(centerX - 12 * density, 25 * density)
+
+        cubicTo(
+            centerX - 9 * density,
+            32 * density,
+            centerX - 3 * density,
+            40 * density,
+            centerX,
+            44 * density
+        )
+
+        cubicTo(
+            centerX + 3 * density,
+            40 * density,
+            centerX + 9 * density,
+            32 * density,
+            centerX + 12 * density,
+            25 * density
+        )
+
+        close()
+    }
+
+    paint.color = android.graphics.Color.parseColor("#14B8A6")
     paint.style = Paint.Style.FILL
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+
+    canvas.drawPath(path, paint)
+    canvas.drawCircle(centerX, circleY, radius, paint)
+
+    paint.color = android.graphics.Color.WHITE
+    paint.textSize = 17 * density
+    paint.typeface = Typeface.DEFAULT_BOLD
+    paint.textAlign = Paint.Align.CENTER
+
+    val baseline = circleY -
+            (paint.fontMetrics.ascent + paint.fontMetrics.descent) / 2f
+
+    canvas.drawText(
+        text,
+        centerX,
+        baseline,
+        paint
+    )
+
+    return bitmap
+}
+
+private fun createCustomMarkerBitmap(
+    context: Context,
+    text: String,
+    isAccommodation: Boolean
+): Bitmap {
+    val density = context.resources.displayMetrics.density
+    val size = (24 * density).roundToInt().coerceAtLeast(1)
+
+    val bitmap = Bitmap.createBitmap(
+        size,
+        size,
+        Bitmap.Config.ARGB_8888
+    )
+
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    paint.color = if (isAccommodation) {
+        android.graphics.Color.parseColor("#FFC107")
+    } else {
+        android.graphics.Color.parseColor("#14B8A6")
+    }
+
+    paint.style = Paint.Style.FILL
+
+    canvas.drawCircle(
+        size / 2f,
+        size / 2f,
+        size / 2f,
+        paint
+    )
 
     if (isAccommodation) {
-        ContextCompat.getDrawable(context, R.drawable.stay_icon)?.let { drawable ->
-            val padding = (2 * density).toInt()
-            val iconSize = size - (padding * 2)
+        ContextCompat.getDrawable(
+            context,
+            R.drawable.stay_icon
+        )?.mutate()?.let { drawable ->
+            val padding = (2 * density).roundToInt()
+            val iconSize = size - padding * 2
             val left = (size - iconSize) / 2
             val top = (size - iconSize) / 2
-            drawable.setBounds(left, top, left + iconSize, top + iconSize)
+
+            drawable.setBounds(
+                left,
+                top,
+                left + iconSize,
+                top + iconSize
+            )
             drawable.setTintList(null)
             drawable.draw(canvas)
         }
@@ -636,92 +1253,290 @@ private fun createCustomMarkerBitmap(context: Context, text: String, isAccommoda
         paint.textSize = 13 * density
         paint.textAlign = Paint.Align.CENTER
         paint.typeface = Typeface.DEFAULT_BOLD
+
         val textBounds = Rect()
-        paint.getTextBounds(text, 0, text.length, textBounds)
-        val y = (size / 2f) + (textBounds.height() / 2f) - (0.5f * density)
-        canvas.drawText(text, size / 2f, y, paint)
+        paint.getTextBounds(
+            text,
+            0,
+            text.length,
+            textBounds
+        )
+
+        val baseline = size / 2f -
+                (paint.fontMetrics.ascent + paint.fontMetrics.descent) / 2f
+
+        canvas.drawText(
+            text,
+            size / 2f,
+            baseline,
+            paint
+        )
     }
+
     return bitmap
 }
 
-// ===================== Preview =====================
+// ===================== Preview Map =====================
+
+@Composable
+private fun MapPreviewBackground(
+    placeCount: Int,
+    selectedIndex: Int,
+    hasStay: Boolean
+) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFE5F0E8))
+    ) {
+        val mapWidth = maxWidth
+        val mapHeight = maxHeight
+
+        // 실제 지도가 아닌 프리뷰용 대체 배경
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxWidth(0.38f)
+                .fillMaxSize()
+                .background(Color(0xFFC7E6F2))
+        )
+
+        Text(
+            text = "지도 미리보기",
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp),
+            fontSize = 12.sp,
+            color = Color(0xFF70877C)
+        )
+
+        repeat(placeCount.coerceAtMost(6)) { index ->
+            val xFraction = when (index % 3) {
+                0 -> 0.48f
+                1 -> 0.67f
+                else -> 0.22f
+            }
+            val yFraction = when (index % 3) {
+                0 -> 0.26f
+                1 -> 0.16f
+                else -> 0.35f
+            }
+
+            val selected = index == selectedIndex
+
+            Surface(
+                modifier = Modifier
+                    .offset(
+                        x = mapWidth * xFraction,
+                        y = mapHeight * yFraction
+                    )
+                    .size(if (selected) 38.dp else 26.dp),
+                shape = CircleShape,
+                color = PrimaryTeal,
+                border = BorderStroke(1.dp, Color.White)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = (index + 1).toString(),
+                        fontSize = if (selected) 18.sp else 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        if (hasStay) {
+            Surface(
+                modifier = Modifier
+                    .offset(
+                        x = mapWidth * 0.35f,
+                        y = mapHeight * 0.43f
+                    )
+                    .size(28.dp),
+                shape = CircleShape,
+                color = Color(0xFFFFC107)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.stay_icon),
+                    contentDescription = "숙소",
+                    modifier = Modifier.padding(4.dp),
+                    tint = Color.Unspecified
+                )
+            }
+        }
+    }
+}
+
+// ===================== Preview Data =====================
 
 private fun mockCourse(): TravelCoursePresentationModel {
-    val mockAccessibility = AccessibilityInfoPresentationModel()
-    val mockSchedules = listOf(
+    val accessibility = AccessibilityInfoPresentationModel(
+        elevator = "엘리베이터 있음",
+        restroom = "장애인 화장실 있음",
+        exit = "입구 경사로 있음",
+        parking = "장애인 주차구역 있음"
+    )
+
+    val schedules = listOf(
         ScheduleItemPresentationModel(
-            scheduleId = "1", order = 1, scheduleName = "가덕휴게소",
-            latitude = 35.024, longitude = 128.825, accessibilityInfo = mockAccessibility
+            scheduleId = "1",
+            order = 1,
+            scheduleName = "가덕휴게소",
+            address = "부산광역시 강서구",
+            latitude = 35.024,
+            longitude = 128.825,
+            accessibilityInfo = accessibility
         ),
         ScheduleItemPresentationModel(
-            scheduleId = "2", order = 2, scheduleName = "매미성",
-            latitude = 34.975, longitude = 128.718, accessibilityInfo = mockAccessibility
+            scheduleId = "2",
+            order = 2,
+            scheduleName = "매미성",
+            address = "경상남도 거제시 장목면",
+            latitude = 34.975,
+            longitude = 128.718,
+            accessibilityInfo = accessibility
         ),
         ScheduleItemPresentationModel(
-            scheduleId = "3", order = 3, scheduleName = "학동흑진주몽돌해변",
-            latitude = 34.761, longitude = 128.659, accessibilityInfo = mockAccessibility
+            scheduleId = "3",
+            order = 3,
+            scheduleName = "학동흑진주몽돌해변",
+            address = "경상남도 거제시 동부면",
+            latitude = 34.761,
+            longitude = 128.659,
+            accessibilityInfo = AccessibilityInfoPresentationModel()
         )
     )
-    val mockStay = ScheduleItemPresentationModel(
-        scheduleId = "stay1", order = 0, scheduleName = "거제 YAHO HOTEL",
-        latitude = 34.880, longitude = 128.621
+
+    val stay = ScheduleItemPresentationModel(
+        scheduleId = "stay1",
+        order = 0,
+        scheduleName = "거제 YAHO HOTEL",
+        latitude = 34.880,
+        longitude = 128.621
     )
-    val mockDayPlans = listOf(
-        DayPlanPresentationModel(
-            dayLabel = "Day 1", dateLabel = "8/30", rawDayNumber = 1,
-            rawDate = 0L, schedules = mockSchedules, stay = mockStay
-        ),
-        DayPlanPresentationModel(
-            dayLabel = "Day 2", dateLabel = "8/31", rawDayNumber = 2,
-            rawDate = 0L, schedules = emptyList(), stay = mockStay
-        )
-    )
+
     return TravelCoursePresentationModel(
         courseId = "course1",
         courseName = "거제 여행",
         datePeriod = "2026.08.30 ~ 2026.08.31",
-        dayPlans = mockDayPlans
+        dayPlans = listOf(
+            DayPlanPresentationModel(
+                dayLabel = "Day 1",
+                dateLabel = "8/30",
+                rawDayNumber = 1,
+                rawDate = 0L,
+                schedules = schedules,
+                stay = stay
+            ),
+            DayPlanPresentationModel(
+                dayLabel = "Day 2",
+                dateLabel = "8/31",
+                rawDayNumber = 2,
+                rawDate = 0L,
+                schedules = emptyList(),
+                stay = stay
+            )
+        )
     )
 }
 
-@Preview(showBackground = true, name = "목록 상태")
+// ===================== Previews =====================
+
+// 인터랙티브 프리뷰에서 탭과 장소 선택도 가능
+@Composable
+private fun CourseMapPreviewContent(
+    initialDayNumber: Int = 1,
+    initialScheduleId: String? = null
+) {
+    val course = remember { mockCourse() }
+
+    var selectedDayNumber by remember {
+        mutableIntStateOf(initialDayNumber)
+    }
+    var selectedScheduleId by remember {
+        mutableStateOf(initialScheduleId)
+    }
+
+    MaterialTheme {
+        FullCourseMapScreen(
+            course = course,
+            selectedDayNumber = selectedDayNumber,
+            selectedScheduleId = selectedScheduleId,
+            onDaySelected = {
+                selectedDayNumber = it
+                selectedScheduleId = null
+            },
+            onPlaceSelected = {
+                selectedScheduleId = it
+            },
+            onDetailClosed = {
+                selectedScheduleId = null
+            },
+            onBackClick = {}
+        )
+    }
+}
+
+@Preview(
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    name = "지도 - 목록"
+)
 @Composable
 fun FullCourseMapScreenPreview() {
-    FullCourseMapScreen(
-        course = mockCourse(),
-        selectedDayNumber = 1,
-        selectedScheduleId = null,
-        onDaySelected = {},
-        onPlaceSelected = {},
-        onDetailClosed = {},
-        onBackClick = {}
-    )
+    CourseMapPreviewContent()
 }
 
-@Preview(showBackground = true, name = "상세 상태")
+@Preview(
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    name = "지도 - 장소 상세"
+)
 @Composable
 fun FullCourseMapScreenDetailPreview() {
-    FullCourseMapScreen(
-        course = mockCourse(),
-        selectedDayNumber = 1,
-        selectedScheduleId = "1",
-        onDaySelected = {},
-        onPlaceSelected = {},
-        onDetailClosed = {},
-        onBackClick = {}
+    CourseMapPreviewContent(
+        initialScheduleId = "1"
     )
 }
 
-@Preview(showBackground = true, name = "빈 일차 상태")
+@Preview(
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    name = "지도 - 편의시설 정보 없음"
+)
+@Composable
+fun FullCourseMapScreenUnknownInfoPreview() {
+    CourseMapPreviewContent(
+        initialScheduleId = "3"
+    )
+}
+
+@Preview(
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    name = "지도 - 빈 일차"
+)
 @Composable
 fun FullCourseMapScreenEmptyDayPreview() {
-    FullCourseMapScreen(
-        course = mockCourse(),
-        selectedDayNumber = 2,
-        selectedScheduleId = null,
-        onDaySelected = {},
-        onPlaceSelected = {},
-        onDetailClosed = {},
-        onBackClick = {}
+    CourseMapPreviewContent(
+        initialDayNumber = 2
+    )
+}
+
+@Preview(
+    showBackground = true,
+    widthDp = 320,
+    heightDp = 640,
+    name = "지도 - 작은 화면 상세"
+)
+@Composable
+fun FullCourseMapScreenSmallPreview() {
+    CourseMapPreviewContent(
+        initialScheduleId = "1"
     )
 }

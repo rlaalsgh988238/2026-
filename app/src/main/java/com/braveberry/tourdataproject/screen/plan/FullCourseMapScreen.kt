@@ -232,7 +232,8 @@ fun FullCourseMapScreen(
                 cameraFocusLatLng = focusedLatLng,
                 onCameraFocusConsumed = {
                     focusedLatLng = null
-                }
+                },
+                cameraDayKey = selectedDayNumber
             )
 
             CourseMapBottomSheet(
@@ -870,11 +871,8 @@ private fun AccessibilityCard(
             painter = painterResource(icon),
             contentDescription = null,
             modifier = Modifier.size(30.dp),
-            tint = if (description != null) {
-                Color(0xFF242424)
-            } else {
-                Color(0xFFAAAAAA)
-            }
+            // 설명 유무와 관계없이 동일한 색상
+            tint = Color(0xFF242424)
         )
 
         Text(
@@ -886,7 +884,10 @@ private fun AccessibilityCard(
         )
 
         Text(
-            text = description ?: "정보 없음",
+            text = description
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: "세부정보 없음",
             fontSize = 10.sp,
             lineHeight = 14.sp,
             color = SheetSecondaryText,
@@ -911,9 +912,9 @@ fun KakaoMap(
     draggedId: String? = null,
     selectedScheduleId: String? = null,
     cameraFocusLatLng: Pair<Double, Double>? = null,
-    onCameraFocusConsumed: () -> Unit = {}
+    onCameraFocusConsumed: () -> Unit = {},
+    cameraDayKey: Int? = null
 ) {
-    // Android Studio 프리뷰에서 실제 지도 SDK를 초기화하지 않음
     if (LocalInspectionMode.current) {
         MapPreviewBackground(
             placeCount = focusedSchedules.size,
@@ -1078,8 +1079,17 @@ fun KakaoMap(
         Triple(it.scheduleId, it.latitude, it.longitude)
     }
 
-    LaunchedEffect(schedulePositions, stayPosition, mapInstance) {
+    // 첫 진입·일차 변경: 줌 레벨 13
+    LaunchedEffect(
+        cameraDayKey,
+        schedulePositions,
+        stayPosition,
+        mapInstance
+    ) {
         val map = mapInstance ?: return@LaunchedEffect
+
+        // 상세 선택 중에는 초기 카메라 이동으로 덮어쓰지 않음
+        if (selectedScheduleId != null) return@LaunchedEffect
 
         val firstPoint = focusedSchedules.firstOrNull()?.let {
             LatLng.from(it.latitude, it.longitude)
@@ -1089,25 +1099,35 @@ fun KakaoMap(
 
         firstPoint?.let {
             map.moveCamera(
-                CameraUpdateFactory.newCenterPosition(it, 10)
+                CameraUpdateFactory.newCenterPosition(it, 13)
             )
         }
     }
 
     // 지도 준비 전에 들어온 선택 요청도 준비 완료 후 처리
+    // 선택한 장소를 화면 중앙보다 위쪽에 표시
+    // 일정 상세 선택: 줌 레벨 14
     LaunchedEffect(cameraFocusLatLng, mapInstance) {
         val map = mapInstance ?: return@LaunchedEffect
         val target = cameraFocusLatLng ?: return@LaunchedEffect
 
+        // 마커가 바텀시트 위에 보이도록 중심을 남쪽으로 보정
+        // 15 → 14로 축소한 만큼 기존 보정값도 늘림
+        val latitudeOffset = 0.008
+
         map.moveCamera(
             CameraUpdateFactory.newCenterPosition(
-                LatLng.from(target.first, target.second),
-                15
+                LatLng.from(
+                    target.first - latitudeOffset,
+                    target.second
+                ),
+                14
             )
         )
 
         onCameraFocusConsumed()
     }
+
 
     LaunchedEffect(draggedId, mapInstance, focusedSchedules) {
         val map = mapInstance ?: return@LaunchedEffect
@@ -1119,7 +1139,7 @@ fun KakaoMap(
             map.moveCamera(
                 CameraUpdateFactory.newCenterPosition(
                     LatLng.from(it.latitude, it.longitude),
-                    map.cameraPosition?.zoomLevel ?: 10
+                    map.cameraPosition?.zoomLevel ?: 15
                 )
             )
         }

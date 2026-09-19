@@ -1,4 +1,3 @@
-// 파일: DateSelectionUiState.kt
 package com.tourdataproject.presentation.viewmodel.plan.dateSelect.uiState
 
 import com.tourdataproject.presentation.viewmodel.base.BaseState
@@ -24,20 +23,38 @@ data class CalendarMonthPresentationModel(
 data class DateSelectionState(
     val targetMonths: List<YearMonth> = emptyList(),
     override val entryPoint: String? = null,
-    override val purpose: String? = null
+    override val purpose: String? = null,
+
+    // 기존 여행 날짜 수정용 임시 상태
+    val editCourseId: String = "",
+    val isEditInitialized: Boolean = false,
+    val editStartMillis: Long? = null,
+    val editEndMillis: Long? = null
 ) : BaseState<DateSelectionState> {
 
-    override fun setEntryPoint(entryPoint: String?): DateSelectionState =
-        copy(entryPoint = entryPoint)
+    override fun setEntryPoint(
+        entryPoint: String?
+    ): DateSelectionState = copy(entryPoint = entryPoint)
 
-    override fun setPurpose(purpose: String?): DateSelectionState =
-        copy(purpose = purpose)
+    override fun setPurpose(
+        purpose: String?
+    ): DateSelectionState = copy(purpose = purpose)
 }
 
 sealed interface DateSelectionIntent {
     object OnLoadMoreMonths : DateSelectionIntent
     object OnNextButtonClicked : DateSelectionIntent
     object OnBackButtonClicked : DateSelectionIntent
+
+    data class OnInitializeEdit(
+        val courseId: String,
+        val startMillis: Long,
+        val endMillis: Long
+    ) : DateSelectionIntent
+
+    data class OnEditDateTapped(
+        val date: LocalDate
+    ) : DateSelectionIntent
 }
 
 sealed interface DateSelectionEffect {

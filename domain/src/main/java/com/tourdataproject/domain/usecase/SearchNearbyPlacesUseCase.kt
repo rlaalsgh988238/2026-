@@ -1,8 +1,6 @@
 package com.tourdataproject.domain.usecase
 
 import com.braveberry.data_resource.DataResource
-import com.braveberry.data_resource.onError
-import com.braveberry.data_resource.onSuccess
 import com.tourdataproject.domain.model.KakaoMapItem
 import com.tourdataproject.domain.repository.MapRepository
 import kotlinx.coroutines.flow.Flow
@@ -18,14 +16,26 @@ class SearchNearbyPlacesUseCase @Inject constructor(
         longitude: Double? = null,
         latitude: Double? = null,
         radius: Int? = null,
-        page: Int = 1
+        page: Int = 1,
+        includeGlobalSearch: Boolean = true
     ): Flow<DataResource<List<KakaoMapItem>>> {
 
         if (query.isBlank()) {
             return flowOf(DataResource.Error(IllegalArgumentException("검색어를 입력해주세요.")))
         }
 
-        // 1. 전국 단위 검색 (유명 랜드마크 우선순위 확보)
+        // 자동완성: 주변 검색만 (빠름)
+        if (!includeGlobalSearch) {
+            return mapRepository.getNearbyPlaces(
+                query = query,
+                longitude = longitude,
+                latitude = latitude,
+                radius = radius,
+                page = page
+            )
+        }
+
+        // 일반 검색: 전국 + 주변 (느림)
         val globalSearchFlow = mapRepository.getNearbyPlaces(
             query = query,
             longitude = null,
@@ -34,7 +44,6 @@ class SearchNearbyPlacesUseCase @Inject constructor(
             page = 1
         )
 
-        // 2. 주변 검색 (현재 좌표 및 반경 기준 검색)
         val localSearchFlow = mapRepository.getNearbyPlaces(
             query = query,
             longitude = longitude,
@@ -48,7 +57,6 @@ class SearchNearbyPlacesUseCase @Inject constructor(
             if (globalResource is DataResource.Loading || localResource is DataResource.Loading) {
                 return@combine DataResource.Loading()
             }
-            //에러 어케 표시할지
 
             if (globalResource is DataResource.Error && localResource is DataResource.Error) {
                 val errorMsg = globalResource.throwable ?: localResource.throwable
@@ -60,23 +68,9 @@ class SearchNearbyPlacesUseCase @Inject constructor(
             val localData =
                 if (localResource is DataResource.Success) localResource.data else emptyList()
 
-            val combinedList =
-                (localData + globalData).distinctBy { it.id } // KakaoMapItem에 고유 id 필드가 있다고 가정
+            val combinedList = (localData + globalData).distinctBy { it.id }
 
             DataResource.Success(combinedList)
         }
     }
 }
-
-
-//        if (query.isBlank()) {
-//            flowOf(DataResource.error(IllegalArgumentException("검색어를 입력해주세요.")))
-//        } else {
-//            mapRepository.getNearbyPlaces(query, longitude, latitude, radius, page)
-//                .onSuccess { data ->
-//
-//                }
-//                .onError { throwable ->
-//                    //TODO: 에러 찍기? 혹은 어케하지
-//                }
-//        }

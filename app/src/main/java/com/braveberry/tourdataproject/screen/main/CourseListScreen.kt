@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +39,7 @@ import com.tourdataproject.presentation.viewmodel.course.courseList.CourseListVi
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
+import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.TravelFilter
 
 // 색상 정의
 val MintCardBg = Color(0xFFE4F2F1)
@@ -55,15 +57,14 @@ fun ListRoute(
     onShowToast: (String) -> Unit = {}
 ) {
     val uiState by listViewModel.state.collectAsStateWithLifecycle()
+    val selectedFilter by listViewModel.selectedFilter.collectAsStateWithLifecycle()
     val context = LocalContext.current
-
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val isGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-
         if (isGranted) {
             listViewModel.onRestroomGuideClicked()
         } else {
@@ -79,7 +80,7 @@ fun ListRoute(
         listViewModel.effect.collect { effect ->
             when (effect) {
                 is CourseListEffect.NavigateToCreatePlan -> onNavigateToCreateNewCourse()
-                is CourseListEffect.NavigateToRestroomGuide -> { onNavigateToNearbyToilet()}
+                is CourseListEffect.NavigateToRestroomGuide -> onNavigateToNearbyToilet()
                 is CourseListEffect.NavigateToCourseDetail -> onNavigateToCourseDetail(effect.courseId)
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
             }
@@ -88,43 +89,28 @@ fun ListRoute(
 
     CourseListScreen(
         state = uiState,
+        selectedFilter = selectedFilter,
+        onFilterClick = listViewModel::onFilterChanged,
         onAddClick = listViewModel::onCreatePlanClicked,
         onCourseClick = { clickedCourseId -> listViewModel.onCourseClicked(clickedCourseId) },
         onRestroomGuideClick = {
-             val hasFineLocation = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
-
-            val hasCoarseLocation = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
+            val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
             if (hasFineLocation || hasCoarseLocation) {
-                // 이미 권한이 있다면 바로 기능 실행
                 listViewModel.onRestroomGuideClicked()
             } else {
-                // 권한이 없다면 시스템 팝업을 띄워 요청
-                locationPermissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
-                )
+                locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
             }
         }
     )
 }
 
-
-
-
-
 @Composable
 fun CourseListScreen(
     state: CourseListUiState,
+    selectedFilter: TravelFilter,
+    onFilterClick: (TravelFilter) -> Unit,
     onAddClick: () -> Unit,
     onCourseClick: (String) -> Unit,
     onRestroomGuideClick: () -> Unit
@@ -137,26 +123,22 @@ fun CourseListScreen(
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // 로고 영역
+                // 로고 영역 복구
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // 1. 앱 아이콘 로고
                     Image(
                         painter = painterResource(id = R.drawable.app_logo),
                         contentDescription = "App Logo",
-                        modifier = Modifier.size(110.dp) // 아이콘도 살짝 키움
+                        modifier = Modifier.size(110.dp)
                     )
-
-                    // 2. 로고 텍스트 (화면의 85%까지 차지하도록 확대)
                     Image(
                         painter = painterResource(id = R.drawable.logo_string),
                         contentDescription = "변수없길",
-                        // FillWidth를 주어야 이미지 안의 글자가 실제 영역만큼 커집니다.
-                        contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
-                            .fillMaxWidth(0.85f) // 0.6에서 0.85로 대폭 상향
+                            .fillMaxWidth(0.85f)
                             .padding(top = 4.dp)
                     )
                 }
@@ -165,23 +147,33 @@ fun CourseListScreen(
 
                 // 필터 탭
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(text = "전체", selected = true)
-                    FilterChip(text = "예정된 여행", selected = false)
-                    FilterChip(text = "다녀온 여행", selected = false)
+                    TravelFilter.values().forEach { filter ->
+                        FilterChip(
+                            text = filter.text,
+                            selected = selectedFilter == filter,
+                            onClick = { onFilterClick(filter) }
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
                 // 리스트 영역
-                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(state.courses) { itemState ->
-                        CourseCardItem(itemState = itemState, onClick = { onCourseClick(itemState.courseId) })
+                if (state.isLoading) {
+                    Box(Modifier.weight(1f)) {
+                        CircularProgressIndicator(Modifier.align(Alignment.Center), color = MintCardBorder)
                     }
-                    item { Spacer(modifier = Modifier.height(120.dp)) } // 하단 버튼 공간 확보
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        items(state.courses, key = { it.courseId }) { itemState ->
+                            CourseCardItem(itemState = itemState, onClick = { onCourseClick(itemState.courseId) })
+                        }
+                        item { Spacer(modifier = Modifier.height(120.dp)) }
+                    }
                 }
             }
 
-            // 하단 고정 버튼 (이미지 1 스타일)
+            // 하단 고정 버튼
             Column(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 32.dp, end = 24.dp),
                 horizontalAlignment = Alignment.End,
@@ -191,7 +183,7 @@ fun CourseListScreen(
 
                 ExtendedFloatingActionButton(
                     onClick = onAddClick,
-                    containerColor = Color(0xFFF7CD18),
+                    containerColor = YellowFabBg,
                     contentColor = Color.Black,
                     shape = RoundedCornerShape(30.dp),
                     elevation = FloatingActionButtonDefaults.elevation(4.dp),
@@ -207,12 +199,12 @@ fun CourseListScreen(
 }
 
 @Composable
-fun FilterChip(text: String, selected: Boolean) {
+fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = if (selected) Color(0xFFE0F2F1) else Color.White,
         border = BorderStroke(1.dp, if (selected) Color(0xFF26A69A) else Color.LightGray),
-        modifier = Modifier.clickable { }
+        modifier = Modifier.clickable { onClick() }
     ) {
         Text(
             text = text,
@@ -237,9 +229,8 @@ fun RestroomGuideButton(onClick: () -> Unit) {
             modifier = Modifier.padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 이미지 속 느낌표(경고) 아이콘
             Icon(
-                painter = painterResource(id = R.drawable.accessible), // 적절한 아이콘 리소스 확인 필요
+                painter = painterResource(id = R.drawable.accessible),
                 contentDescription = null,
                 tint = Color.Red,
                 modifier = Modifier.size(20.dp)
@@ -282,7 +273,17 @@ fun CourseCardItem(itemState: CourseListItemState, onClick: () -> Unit) {
 @Composable
 fun CourseListScreenPreview() {
     CourseListScreen(
-        state = CourseListUiState(courses = listOf(CourseListItemState("1", "거제 여행", "2026.08.30 ~ 2026.08.31", "D-6"))),
-        onAddClick = {}, onCourseClick = {}, onRestroomGuideClick = {}
+        state = CourseListUiState(
+            isLoading = false,
+            courses = listOf(
+                CourseListItemState("1", "거제 여행", "2026.08.30 ~ 2026.08.31", "D-6"),
+                CourseListItemState("2", "제주도 여행", "2026.01.01 ~ 2026.01.05", "D+200")
+            )
+        ),
+        selectedFilter = TravelFilter.ALL,
+        onFilterClick = {},
+        onAddClick = {},
+        onCourseClick = {},
+        onRestroomGuideClick = {}
     )
 }

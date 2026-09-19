@@ -56,7 +56,6 @@ class PlanSharedViewModel @Inject constructor(
     private val getRestoredPlanStateUseCase: GetRestoredPlanStateUseCase,
     private val savePlanStateBackupUseCase: SavePlanStateBackupUseCase,
     private val clearPlanStateBackupUseCase: ClearPlanStateBackupUseCase,
-    // 🌟 1. UseCase 2개 의존성 주입
     private val getContentIdUseCase: GetContentIdUseCase,
     private val getTourDataToiletInfoUseCase: GetTourDataToiletInfoUseCase
 ) : ViewModel() {

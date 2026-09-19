@@ -82,3 +82,9 @@ private fun calculateDDayForList(startDateMillis: Long): String {
         "D-Day 오류"
     }
 }
+
+enum class TravelFilter(val text: String) {
+    ALL("전체"),
+    UPCOMING("예정된 여행"),
+    COMPLETED("다녀온 여행")
+}

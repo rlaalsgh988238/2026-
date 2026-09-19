@@ -126,24 +126,46 @@ fun ScheduleEditScreen(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("일정 편집", fontSize = 18.sp, fontWeight = FontWeight.Medium) },
-                navigationIcon = {
-                    IconButton(onClick = { onIntent(ScheduleEditIntent.OnBackClicked) }) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_circle_left),
-                            contentDescription = "뒤로가기",
-                            modifier = Modifier.fillMaxSize()
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "일정 편집",
+                            fontSize = 20.sp, // 20sp로 변경
+                            fontWeight = FontWeight.Bold, // Bold로 변경
+                            color = Color.Black
                         )
-                    }
-                },
-                actions = {
-                    TextButton(onClick = { onIntent(ScheduleEditIntent.OnSaveClicked) }) {
-                        Text("저장", color = PrimaryTeal, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
-            )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = { onIntent(ScheduleEditIntent.OnBackClicked) },
+                            modifier = Modifier.size(40.dp) // 40dp로 고정
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_circle_left),
+                                contentDescription = "뒤로가기",
+                                modifier = Modifier.fillMaxSize(), // 꽉 채움
+                                tint = Color.Unspecified
+                            )
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = { onIntent(ScheduleEditIntent.OnSaveClicked) }) {
+                            Text(
+                                text = "저장",
+                                color = PrimaryTeal,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp) // 좌측 여백 확보
+                )
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+            }
         }
     ) { paddingValues ->
         Column(

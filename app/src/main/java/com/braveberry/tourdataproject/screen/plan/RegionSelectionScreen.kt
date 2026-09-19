@@ -90,26 +90,39 @@ fun RegionSelectionScreen(
         containerColor = Color.White,
         contentWindowInsets = WindowInsets.ime,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "플랜 만들기",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        keyboardController?.hide()
-                        onIntent(RegionSelectionIntent.OnBackButtonClicked)
-                    }) {
-                        Icon(painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left), contentDescription = "뒤로가기")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "플랜 만들기",
+                            fontSize = 20.sp, // 20sp로 변경
+                            fontWeight = FontWeight.Bold, // Bold로 통일
+                            color = Color.Black
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                keyboardController?.hide()
+                                onIntent(RegionSelectionIntent.OnBackButtonClicked)
+                            },
+                            modifier = Modifier.size(40.dp) // 40dp로 고정
+                        ) {
+                            Icon(
+                                painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                                contentDescription = "뒤로가기",
+                                modifier = Modifier.fillMaxSize(), // 버튼 영역 꽉 채움
+                                tint = Color.Unspecified
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp) // 좌측 여백 일치
                 )
-            )
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+            }
         },
         bottomBar = {
             Column(

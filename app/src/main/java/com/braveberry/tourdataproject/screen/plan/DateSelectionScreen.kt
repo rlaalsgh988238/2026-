@@ -189,25 +189,36 @@ fun DateSelectionScreen(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        if (isStayMode) "숙소 체크인-체크아웃 선택" else "날짜 선택",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { onIntent(DateSelectionIntent.OnBackButtonClicked) }) {
-                        Icon(
-                            painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
-                            contentDescription = "뒤로가기",
-                            modifier = Modifier.fillMaxSize()
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = if (isStayMode) "숙소 체크인-체크아웃 선택" else "날짜 선택",
+                            fontSize = 20.sp, // 요청하신 20sp로 변경
+                            fontWeight = FontWeight.Bold, // 다른 화면과 통일감을 위해 Bold 권장
+                            color = Color.Black
                         )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
-            )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = { onIntent(DateSelectionIntent.OnBackButtonClicked) },
+                            modifier = Modifier.size(40.dp) // 요청하신 40dp로 고정
+                        ) {
+                            Icon(
+                                painter = painterResource(com.braveberry.tourdataproject.R.drawable.arrow_circle_left),
+                                contentDescription = "뒤로가기",
+                                modifier = Modifier.fillMaxSize(), // 버튼 영역 꽉 채움
+                                tint = Color.Unspecified
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp) // 왼쪽 여백 공간 확보
+                )
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+            }
         },
         bottomBar = {
             Surface(

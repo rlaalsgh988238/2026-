@@ -309,24 +309,16 @@ fun DayPlanItem(dayPlan: MakeCourseDayPlanState, onAddScheduleClick: () -> Unit,
         }
     }
 }
-
 @Composable
 fun ScheduleItemView(schedule: MakeCourseScheduleState) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.Top // 높이가 길어질 수 있으므로 Top으로 정렬
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top
     ) {
         // 좌측 순서 번호
         Surface(shape = CircleShape, color = Mint100, modifier = Modifier.size(28.dp)) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = schedule.order.toString(),
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = schedule.order.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -340,104 +332,25 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
             color = Color.White
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // 1. 상단 영역 (장소명, 메모, 상태 아이콘)
+                // 상단 영역 (장소명, 메모, 상태 아이콘)
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = schedule.placeName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
+                        Text(text = schedule.placeName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                         if (schedule.memo.isNotBlank()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(text = schedule.memo, fontSize = 12.sp, color = Color.DarkGray)
                         }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    val iconColor = when (schedule.accessibilityInfo?.status) {
-                        AccessibilityStatusPresentationModel.GOOD -> Green
-                        AccessibilityStatusPresentationModel.WARNING -> Yellow
-                        AccessibilityStatusPresentationModel.BAD -> Red
-                        else -> Color.Gray
-                    }
-                    Surface(shape = CircleShape, color = iconColor, modifier = Modifier.size(36.dp)) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(id = R.drawable.accessible),
-                                contentDescription = "접근성 아이콘",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
+                    AccessibilityStatusIcon(status = schedule.accessibilityInfo?.status)
                 }
 
-                val info = schedule.accessibilityInfo
-                if (info != null) {
-                    // 빈 문자열이 아닌 항목들만 필터링하여 Pair(아이콘 리소스, 표시할 텍스트) 리스트로 생성
-                    val featureList = listOfNotNull(
-                        if (!info.elevator.isNullOrBlank()) Pair(R.drawable.elevator_icon, "엘리베이터") else null,
-                        if (!info.restroom.isNullOrBlank()) Pair(R.drawable.wc, "장애인화장실") else null,
-                        if (!info.route.isNullOrBlank()) Pair(R.drawable.wheel_chair_ramp, "입구 경사로") else null,
-                        if (!info.parking.isNullOrBlank()) Pair(R.drawable.parking, "장애인 주차시설") else null,
-                        if (!info.wheelchair.isNullOrBlank()) Pair(R.drawable.accessible, "휠체어 대여") else null
-                    )
-
-                    if (featureList.isNotEmpty()) {
-                        // 구분선
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = Color(0xFFEEEEEE),
-                            thickness = 1.dp
-                        )
-
-                        // 2열 그리드로 무장애 정보 배치
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            featureList.chunked(2).forEach { rowItems ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = if (rowItems == featureList.chunked(2).last()) 0.dp else 8.dp)
-                                ) {
-                                    rowItems.forEach { item ->
-                                        Row(
-                                            modifier = Modifier.weight(1f),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(id = item.first),
-                                                contentDescription = null,
-                                                tint = Color.Black,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = item.second,
-                                                fontSize = 12.sp,
-                                                color = Color.Black
-                                            )
-                                        }
-                                    }
-                                    // 홀수 개일 경우 우측 빈 공간을 채워주기 위한 투명 뷰
-                                    if (rowItems.size == 1) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // 무장애 상세 정보 그리드 (공통 컴포넌트 사용)
+                AccessibilityFeatureGrid(info = schedule.accessibilityInfo)
             }
         }
     }
@@ -446,53 +359,110 @@ fun ScheduleItemView(schedule: MakeCourseScheduleState) {
 @Composable
 fun StayItemView(stay: MakeCourseScheduleState) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top // 높이가 길어질 수 있으므로 Top으로 변경
     ) {
-        // 배경 Surface를 제거하고, SVG 리소스 자체를 그대로 표시합니다.
-        // tint를 주면 SVG 내부의 노란색이 덮여버리므로 tint = Color.Unspecified가 핵심입니다.
         Icon(
             painter = painterResource(id = R.drawable.stay_icon),
             contentDescription = "숙소 마커",
-            tint = Color.Unspecified, // SVG 내부의 노란색과 흰색을 그대로 유지
+            tint = Color.Unspecified,
             modifier = Modifier.size(28.dp)
         )
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // 우측 정보 카드는 기존과 동일
+        // 우측 정보 카드
         Surface(
             modifier = Modifier.weight(1f),
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, Mint100),
             color = Color.White
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "숙소", fontSize = 12.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = stay.placeName,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "숙소", fontSize = 12.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(text = stay.placeName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    AccessibilityStatusIcon(status = stay.accessibilityInfo?.status)
                 }
 
-                // ... (접근성 아이콘 부분은 기존 코드 유지)
+                // 🌟 숙소에도 무장애 상세 정보 그리드 추가
+                AccessibilityFeatureGrid(info = stay.accessibilityInfo)
             }
         }
     }
 }
 
+// ---------------------------------------------------------
+// 🌟 새롭게 분리한 공통 무장애 정보 컴포넌트
+// ---------------------------------------------------------
+
+@Composable
+fun AccessibilityStatusIcon(status: AccessibilityStatusPresentationModel?) {
+    val iconColor = when (status) {
+        AccessibilityStatusPresentationModel.GOOD -> Green
+        AccessibilityStatusPresentationModel.WARNING -> Yellow
+        AccessibilityStatusPresentationModel.BAD -> Red
+        else -> Color.Gray
+    }
+    Surface(shape = CircleShape, color = iconColor, modifier = Modifier.size(36.dp)) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.accessible),
+                contentDescription = "접근성 아이콘",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun AccessibilityFeatureGrid(info: AccessibilityInfoPresentationModel?) {
+    if (info == null) return
+
+    // 🌟 단순 isNullOrBlank() 뿐만 아니라 "없음", "해당없음" 등의 부정 텍스트도 필터링
+    fun isFeatureAvailable(text: String?): Boolean {
+        if (text.isNullOrBlank()) return false
+        val falseKeywords = listOf("없음", "해당없음", "불가", "미설치", "0")
+        return falseKeywords.none { text.contains(it) }
+    }
+
+    val featureList = listOfNotNull(
+        if (isFeatureAvailable(info.elevator)) Pair(R.drawable.elevator_icon, "엘리베이터") else null,
+        if (isFeatureAvailable(info.restroom)) Pair(R.drawable.wc, "장애인화장실") else null,
+        if (isFeatureAvailable(info.route)) Pair(R.drawable.wheel_chair_ramp, "입구 경사로") else null,
+        if (isFeatureAvailable(info.parking)) Pair(R.drawable.parking, "장애인 주차시설") else null,
+        if (isFeatureAvailable(info.wheelchair)) Pair(R.drawable.accessible, "휠체어 대여") else null
+        // 필요하다면 여기에 점자블록, 안내견 등 다른 항목을 계속 추가하시면 됩니다.
+    )
+
+    if (featureList.isNotEmpty()) {
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFEEEEEE), thickness = 1.dp)
+
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+            featureList.chunked(2).forEach { rowItems ->
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = if (rowItems == featureList.chunked(2).last()) 0.dp else 8.dp)) {
+                    rowItems.forEach { item ->
+                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(painter = painterResource(id = item.first), contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(text = item.second, fontSize = 12.sp, color = Color.Black)
+                        }
+                    }
+                    if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
 
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable

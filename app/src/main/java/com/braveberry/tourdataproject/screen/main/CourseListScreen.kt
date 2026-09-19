@@ -15,11 +15,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,12 +35,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.R
 import com.tourdataproject.presentation.viewmodel.course.courseList.CourseListViewModel
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListEffect
+import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListIntent // 🌟 Intent 임포트 추가
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.TravelFilter
@@ -66,14 +72,15 @@ fun ListRoute(
         val isGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (isGranted) {
-            listViewModel.onRestroomGuideClicked()
+            // 🌟 MVI 적용: 함수 직접 호출 대신 Intent 전달
+            listViewModel.onIntent(CourseListIntent.OnRestroomGuideClicked)
         } else {
             onShowToast("근처 긴급 화장실을 찾으려면 위치 권한이 필요합니다.")
         }
     }
 
     LaunchedEffect(Unit) {
-        listViewModel.loadCourses()
+        listViewModel.onIntent(CourseListIntent.OnLoadCourses) // 🌟 MVI 적용
     }
 
     LaunchedEffect(listViewModel.effect) {
@@ -90,15 +97,13 @@ fun ListRoute(
     CourseListScreen(
         state = uiState,
         selectedFilter = selectedFilter,
-        onFilterClick = listViewModel::onFilterChanged,
-        onAddClick = listViewModel::onCreatePlanClicked,
-        onCourseClick = { clickedCourseId -> listViewModel.onCourseClicked(clickedCourseId) },
-        onRestroomGuideClick = {
+        onIntent = listViewModel::onIntent, // 🌟 MVI 핵심: 모든 이벤트를 이 단일 통로로 넘김
+        onRestroomPermissionCheck = {
             val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             val hasCoarseLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
             if (hasFineLocation || hasCoarseLocation) {
-                listViewModel.onRestroomGuideClicked()
+                listViewModel.onIntent(CourseListIntent.OnRestroomGuideClicked) // 🌟 MVI 적용
             } else {
                 locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
             }
@@ -110,10 +115,8 @@ fun ListRoute(
 fun CourseListScreen(
     state: CourseListUiState,
     selectedFilter: TravelFilter,
-    onFilterClick: (TravelFilter) -> Unit,
-    onAddClick: () -> Unit,
-    onCourseClick: (String) -> Unit,
-    onRestroomGuideClick: () -> Unit
+    onIntent: (CourseListIntent) -> Unit, // 🌟 개별 콜백들을 onIntent 하나로 통합
+    onRestroomPermissionCheck: () -> Unit
 ) {
     Scaffold(containerColor = Color.White) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -123,7 +126,7 @@ fun CourseListScreen(
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // 로고 영역 복구
+                // 로고 영역
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
@@ -151,7 +154,8 @@ fun CourseListScreen(
                         FilterChip(
                             text = filter.text,
                             selected = selectedFilter == filter,
-                            onClick = { onFilterClick(filter) }
+                            // 🌟 필터 클릭 인텐트 발생
+                            onClick = { onIntent(CourseListIntent.OnFilterChanged(filter)) }
                         )
                     }
                 }
@@ -166,7 +170,13 @@ fun CourseListScreen(
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         items(state.courses, key = { it.courseId }) { itemState ->
-                            CourseCardItem(itemState = itemState, onClick = { onCourseClick(itemState.courseId) })
+                            CourseCardItem(
+                                itemState = itemState,
+                                // 🌟 상세 이동 인텐트 발생
+                                onClick = { onIntent(CourseListIntent.OnCourseClicked(itemState.courseId)) },
+                                // 🌟 삭제 인텐트 발생 연결
+                                onDeleteClick = { onIntent(CourseListIntent.OnDeleteCourseClicked(itemState.courseId)) }
+                            )
                         }
                         item { Spacer(modifier = Modifier.height(120.dp)) }
                     }
@@ -179,10 +189,11 @@ fun CourseListScreen(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                RestroomGuideButton(onClick = onRestroomGuideClick)
+                RestroomGuideButton(onClick = onRestroomPermissionCheck)
 
                 ExtendedFloatingActionButton(
-                    onClick = onAddClick,
+                    // 🌟 생성 화면 이동 인텐트 발생
+                    onClick = { onIntent(CourseListIntent.OnCreatePlanClicked) },
                     containerColor = YellowFabBg,
                     contentColor = Color.Black,
                     shape = RoundedCornerShape(30.dp),
@@ -218,6 +229,7 @@ fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestroomGuideButton(onClick: () -> Unit) {
+    // 기존 코드 동일 유지...
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(30.dp),
@@ -241,8 +253,33 @@ fun RestroomGuideButton(onClick: () -> Unit) {
     }
 }
 
+
 @Composable
-fun CourseCardItem(itemState: CourseListItemState, onClick: () -> Unit) {
+fun CourseCardItem(
+    itemState: CourseListItemState,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    var showActionDialog by remember { mutableStateOf(false) }
+
+    if (showActionDialog) {
+        CourseActionDialog(
+            onDismiss = { showActionDialog = false },
+            onEditNameClick = {
+                showActionDialog = false
+                // TODO: 이름 변경 인텐트 연결
+            },
+            onEditDateClick = {
+                showActionDialog = false
+                // TODO: 날짜 변경 인텐트 연결
+            },
+            onDeleteClick = {
+                showActionDialog = false
+                onDeleteClick() // 실제 삭제 로직 실행
+            }
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -257,14 +294,72 @@ fun CourseCardItem(itemState: CourseListItemState, onClick: () -> Unit) {
                 Box(modifier = Modifier.background(MintCardBorder, RoundedCornerShape(50)).padding(horizontal = 14.dp, vertical = 6.dp)) {
                     Text(text = itemState.dDayText, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                 }
-                IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
-                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "더보기", tint = Color.DarkGray)
+
+                IconButton(onClick = { showActionDialog = true }, modifier = Modifier.size(24.dp)) {
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "더보기", tint = Color.Gray)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = itemState.courseName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = itemState.datePeriod, fontSize = 12.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun CourseActionDialog(
+    onDismiss: () -> Unit,
+    onEditNameClick: () -> Unit,
+    onEditDateClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            // 🌟 테두리 두께 2.dp, 색상 #B3B3B3 적용
+            border = BorderStroke(2.dp, Color(0xFFB3B3B3)),
+            modifier = Modifier.fillMaxWidth(0.9f)
+        ) {
+            Column(
+                modifier = Modifier.padding(vertical = 12.dp)
+            ) {
+                Text(
+                    text = "여행 이름 변경",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEditNameClick() }
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                )
+
+                HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
+
+                Text(
+                    text = "여행 도시/ 날짜변경",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEditDateClick() }
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                )
+
+                HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
+
+                Text(
+                    text = "일정 삭제",
+                    fontSize = 16.sp,
+                    color = Color.Red,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onDeleteClick() }
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                )
+            }
         }
     }
 }
@@ -281,9 +376,7 @@ fun CourseListScreenPreview() {
             )
         ),
         selectedFilter = TravelFilter.ALL,
-        onFilterClick = {},
-        onAddClick = {},
-        onCourseClick = {},
-        onRestroomGuideClick = {}
+        onIntent = {},
+        onRestroomPermissionCheck = {}
     )
 }

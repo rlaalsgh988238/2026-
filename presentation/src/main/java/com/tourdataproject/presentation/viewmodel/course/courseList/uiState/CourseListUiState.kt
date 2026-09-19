@@ -82,7 +82,16 @@ private fun calculateDDayForList(startDateMillis: Long): String {
         "D-Day 오류"
     }
 }
+sealed interface CourseListIntent {
+    object OnLoadCourses : CourseListIntent
+    data class OnFilterChanged(val filter: TravelFilter) : CourseListIntent
+    object OnCreatePlanClicked : CourseListIntent
+    object OnRestroomGuideClicked : CourseListIntent
+    data class OnCourseClicked(val courseId: String) : CourseListIntent
 
+    // 코스 삭제 액션
+    data class OnDeleteCourseClicked(val courseId: String) : CourseListIntent
+}
 enum class TravelFilter(val text: String) {
     ALL("전체"),
     UPCOMING("예정된 여행"),

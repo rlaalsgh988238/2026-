@@ -10,7 +10,6 @@ class DeleteCourseUseCase @Inject constructor(
     suspend operator fun invoke(courseId: String) {
         repository.deleteCourse(courseId)
 
-        val flow = flowOf<Int>()
 
     }
 }

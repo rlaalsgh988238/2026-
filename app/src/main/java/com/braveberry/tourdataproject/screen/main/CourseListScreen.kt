@@ -261,6 +261,7 @@ fun CourseCardItem(
     onDeleteClick: () -> Unit
 ) {
     var showActionDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) } // 🌟 삭제 확인 팝업 상태 추가
 
     if (showActionDialog) {
         CourseActionDialog(
@@ -275,7 +276,18 @@ fun CourseCardItem(
             },
             onDeleteClick = {
                 showActionDialog = false
-                onDeleteClick() // 실제 삭제 로직 실행
+                showDeleteConfirmDialog = true
+            }
+        )
+    }
+
+    if (showDeleteConfirmDialog) {
+        CourseDeleteConfirmDialog(
+            courseName = itemState.courseName,
+            onDismiss = { showDeleteConfirmDialog = false },
+            onConfirm = {
+                showDeleteConfirmDialog = false
+                onDeleteClick() // 실제 삭제 실행
             }
         )
     }
@@ -303,6 +315,80 @@ fun CourseCardItem(
             Text(text = itemState.courseName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = itemState.datePeriod, fontSize = 12.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun CourseDeleteConfirmDialog(
+    courseName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp), // 둥근 모서리 비율 반영
+            color = Color.White,
+            modifier = Modifier
+                .width(412.dp) // 시안 가로 비율
+                .height(205.dp) // 시안 세로 비율
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 타이틀 텍스트
+                Text(
+                    text = "$courseName 플랜을 삭제할까요?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFE0E0E0),
+                        border = BorderStroke(2.dp, Color(0xFFB3B3B3)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(67.dp)
+                            .clickable { onDismiss() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "취소",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MintCardBorder,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(67.dp)
+                            .clickable { onConfirm() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "삭제",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

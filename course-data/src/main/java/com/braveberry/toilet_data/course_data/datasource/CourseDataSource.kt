@@ -8,4 +8,6 @@ interface CourseDataSource {
     suspend fun getAllCourses(): List<CourseDataModel>
     suspend fun getCourseById(courseId: String): CourseDataModel?
     suspend fun deleteCourse(courseId: String)
+
+    suspend fun updateCourseName(courseId: String, newName: String)
 }

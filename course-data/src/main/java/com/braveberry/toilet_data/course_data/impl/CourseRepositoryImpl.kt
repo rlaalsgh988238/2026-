@@ -40,4 +40,8 @@ class CourseRepositoryImpl @Inject constructor(
     override suspend fun deleteCourse(courseId: String) {
         courseDataSource.deleteCourse(courseId)
     }
+
+    override suspend fun updateCourseName(courseId: String, newName: String) {
+        courseDataSource.updateCourseName(courseId, newName)
+    }
 }

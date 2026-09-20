@@ -60,6 +60,7 @@ fun ListRoute(
     onNavigateToCreateNewCourse: () -> Unit,
     onNavigateToCourseDetail: (String) -> Unit = {},
     onNavigateToNearbyToilet: () -> Unit,
+    onNavigateToEditCourseName: (String, String) -> Unit,
     onShowToast: (String) -> Unit = {}
 ) {
     val uiState by listViewModel.state.collectAsStateWithLifecycle()
@@ -80,7 +81,7 @@ fun ListRoute(
     }
 
     LaunchedEffect(Unit) {
-        listViewModel.onIntent(CourseListIntent.OnLoadCourses) // 🌟 MVI 적용
+        listViewModel.onIntent(CourseListIntent.OnLoadCourses)
     }
 
     LaunchedEffect(listViewModel.effect) {
@@ -90,6 +91,8 @@ fun ListRoute(
                 is CourseListEffect.NavigateToRestroomGuide -> onNavigateToNearbyToilet()
                 is CourseListEffect.NavigateToCourseDetail -> onNavigateToCourseDetail(effect.courseId)
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
+                is CourseListEffect.NavigateToEditCourseName ->
+                    onNavigateToEditCourseName(effect.courseId, effect.initialName)
             }
         }
     }
@@ -97,7 +100,7 @@ fun ListRoute(
     CourseListScreen(
         state = uiState,
         selectedFilter = selectedFilter,
-        onIntent = listViewModel::onIntent, // 🌟 MVI 핵심: 모든 이벤트를 이 단일 통로로 넘김
+        onIntent = listViewModel::onIntent,
         onRestroomPermissionCheck = {
             val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             val hasCoarseLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -115,7 +118,7 @@ fun ListRoute(
 fun CourseListScreen(
     state: CourseListUiState,
     selectedFilter: TravelFilter,
-    onIntent: (CourseListIntent) -> Unit, // 🌟 개별 콜백들을 onIntent 하나로 통합
+    onIntent: (CourseListIntent) -> Unit,
     onRestroomPermissionCheck: () -> Unit
 ) {
     Scaffold(containerColor = Color.White) { paddingValues ->
@@ -174,6 +177,9 @@ fun CourseListScreen(
                                 itemState = itemState,
                                 // 🌟 상세 이동 인텐트 발생
                                 onClick = { onIntent(CourseListIntent.OnCourseClicked(itemState.courseId)) },
+                                onEditNameClick = {
+                                    onIntent(CourseListIntent.OnEditNameClicked(itemState.courseId, itemState.courseName))
+                                },
                                 // 🌟 삭제 인텐트 발생 연결
                                 onDeleteClick = { onIntent(CourseListIntent.OnDeleteCourseClicked(itemState.courseId)) }
                             )
@@ -258,6 +264,7 @@ fun RestroomGuideButton(onClick: () -> Unit) {
 fun CourseCardItem(
     itemState: CourseListItemState,
     onClick: () -> Unit,
+    onEditNameClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     var showActionDialog by remember { mutableStateOf(false) }
@@ -268,7 +275,7 @@ fun CourseCardItem(
             onDismiss = { showActionDialog = false },
             onEditNameClick = {
                 showActionDialog = false
-                // TODO: 이름 변경 인텐트 연결
+                onEditNameClick()
             },
             onEditDateClick = {
                 showActionDialog = false

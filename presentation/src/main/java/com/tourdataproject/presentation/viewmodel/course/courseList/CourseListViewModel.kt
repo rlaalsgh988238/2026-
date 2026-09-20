@@ -48,6 +48,11 @@ class CourseListViewModel @Inject constructor(
                 viewModelScope.launch { _effect.emit(CourseListEffect.NavigateToCourseDetail(intent.courseId)) }
             is CourseListIntent.OnDeleteCourseClicked ->
                 deleteCourse(intent.courseId)
+            is CourseListIntent.OnEditNameClicked -> {
+                viewModelScope.launch {
+                    _effect.emit(CourseListEffect.NavigateToEditCourseName(intent.courseId, intent.initialName))
+                }
+            }
         }
     }
 
@@ -57,6 +62,7 @@ class CourseListViewModel @Inject constructor(
                 onSuccess = { Log.d(TAG, "백업데이터 삭제 성공") },
                 onError = { Log.d(TAG, "백업데이터 삭제 실패") }
             )
+
             getAllCoursesUseCase().collectDataResource(
                 onSuccess = { domainCourses ->
                     val sortedCourses = domainCourses.sortedBy { it.startDate }

@@ -14,43 +14,35 @@ class KakaoMapRemoteDataSourceImpl @Inject constructor(
     private val kakaoMapApi: KakaoMapApi
 ) : KakaoMapRemoteDataSource {
 
-    override fun getNearbyPlaces(
+    override suspend fun getNearbyPlaces(
         query: String,
         longitude: Double?,
         latitude: Double?,
         radius: Int?,
         page: Int
-    ): Flow<DataResource<List<KakaoMapDataModel>>> = flow {
-        emit(DataResource.Loading())
-        try {
-            val response = kakaoMapApi.getSearch(
-                query = query,
-                longitude = longitude,
-                latitude = latitude,
-                radius = radius,
-                page = page
-            )
+    ): List<KakaoMapDataModel> {
 
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
-                    val dataModels = body.toData().toDataModelList()
-                    emit(DataResource.success(dataModels))
-                } else {
-                    emit(DataResource.error(IllegalStateException("Response body is null")))
-                }
-            } else {
-                emit(DataResource.error(IllegalStateException("Network error: ${response.code()}")))
-            }
-        } catch (e: Exception) {
-            emit(DataResource.error(e))
+        // 1. API 호출 (suspend 함수이므로 코루틴 안에서 대기)
+        val response = kakaoMapApi.getSearch(
+            query = query,
+            longitude = longitude,
+            latitude = latitude,
+            radius = radius,
+            page = page
+        )
+
+        // 2. 성공 시 데이터 반환, 실패 시 예외(throw) 발생
+        if (response.isSuccessful) {
+            val body = response.body() ?: throw IllegalStateException("Response body is null")
+            return body.toData().toDataModelList()
+        } else {
+            throw IllegalStateException("Network error: ${response.code()}")
         }
     }
 
     override fun getQueryPosition(query: String): Flow<DataResource<LocationDataModel>> = flow {
         emit(DataResource.loading())
         try {
-            // 1. 카카오 주소 검색 API 호출
             val response = kakaoMapApi.getRegionCoordinate(
                 query = query,
                 page = 1
@@ -61,23 +53,18 @@ class KakaoMapRemoteDataSourceImpl @Inject constructor(
                 val firstDocument = body?.documents?.firstOrNull()
 
                 if (firstDocument != null) {
-                    // 2. 첫 번째 검색 결과에서 좌표를 추출하여 데이터 모델로 변환
-                    // x는 경도(longitude), y는 위도(latitude)입니다.
-                    val location = LocationDataModel(
+                   val location = LocationDataModel(
                         latitude = firstDocument.y.toDouble(),
                         longitude = firstDocument.x.toDouble()
                     )
                     emit(DataResource.success(location))
                 } else {
-                    // 검색 결과가 없는 경우
                     emit(DataResource.error(NoSuchElementException("해당 지역의 좌표 정보를 찾을 수 없습니다.")))
                 }
             } else {
-                // 서버 에러 발생 시
                 emit(DataResource.error(IllegalStateException("Network error: ${response.code()}")))
             }
         } catch (e: Exception) {
-            // 네트워크 장애 등 예외 처리
             emit(DataResource.error(e))
         }
     }

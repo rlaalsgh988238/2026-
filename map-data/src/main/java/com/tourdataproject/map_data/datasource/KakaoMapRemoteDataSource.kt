@@ -6,14 +6,13 @@ import com.tourdataproject.map_data.model.LocationDataModel
 import kotlinx.coroutines.flow.Flow
 
 interface KakaoMapRemoteDataSource {
-     fun getNearbyPlaces(
+     suspend fun getNearbyPlaces(
           query: String,
           longitude: Double? = null,
           latitude: Double? = null,
           radius: Int? = null,
           page: Int
-     ): Flow<DataResource<List<KakaoMapDataModel>>>
-
+     ): List<KakaoMapDataModel>
      fun getQueryPosition(
           query: String
      ): Flow<DataResource<LocationDataModel>>

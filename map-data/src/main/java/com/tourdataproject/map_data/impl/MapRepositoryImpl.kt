@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class MapRepositoryImpl @Inject constructor(
@@ -25,30 +26,26 @@ class MapRepositoryImpl @Inject constructor(
     private val regionLocalDataSource: RegionLocalDataSource
 ) : MapRepository {
 
-    override fun getNearbyPlaces(
+    override suspend fun getNearbyPlaces(
         query: String,
         longitude: Double?,
         latitude: Double?,
         radius: Int?,
         page: Int
-    ): Flow<DataResource<List<KakaoMapItem>>> = flow {
+    ): List<KakaoMapItem> {
 
         val params = locationLocalDataSource.calculateLocationParams(longitude, latitude, radius)
 
-        emitAll(
-            remoteDataSource.getNearbyPlaces(
-                query = query,
-                longitude = params.lng,
-                latitude = params.lat,
-                radius = params.radius,
-                page = page
-            ).mapListDataResource { dataModel -> dataModel.toDomainModel() }
+        val dataModels = remoteDataSource.getNearbyPlaces(
+            query = query,
+            longitude = params.lng,
+            latitude = params.lat,
+            radius = params.radius,
+            page = page
         )
 
-    }.catch { e ->
-        emit(DataResource.error(e))
+        return dataModels.map { it.toDomainModel() }
     }
-
     override fun getUserLocation(): Flow<DataResource<Location>> =
         locationLocalDataSource.getUserLocationFlow().mapDataResource { it.toDomain() }
 

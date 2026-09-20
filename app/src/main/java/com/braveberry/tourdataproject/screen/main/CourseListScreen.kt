@@ -46,6 +46,9 @@ import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.Cour
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.TravelFilter
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 
 // 색상 정의
 val MintCardBg = Color(0xFFE4F2F1)
@@ -61,7 +64,8 @@ fun ListRoute(
     onNavigateToCourseDetail: (String) -> Unit = {},
     onNavigateToNearbyToilet: () -> Unit,
     onNavigateToEditCourseName: (String, String) -> Unit,
-    onShowToast: (String) -> Unit = {}
+    onShowToast: (String) -> Unit = {},
+    onNavigateToEditCourse: (String) -> Unit = {}
 ) {
     val uiState by listViewModel.state.collectAsStateWithLifecycle()
     val selectedFilter by listViewModel.selectedFilter.collectAsStateWithLifecycle()
@@ -79,9 +83,16 @@ fun ListRoute(
             onShowToast("근처 긴급 화장실을 찾으려면 위치 권한이 필요합니다.")
         }
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) {
-        listViewModel.onIntent(CourseListIntent.OnLoadCourses)
+    LaunchedEffect(lifecycleOwner, listViewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(
+            Lifecycle.State.RESUMED
+        ) {
+            listViewModel.onIntent(
+                CourseListIntent.OnLoadCourses
+            )
+        }
     }
 
     LaunchedEffect(listViewModel.effect) {
@@ -99,6 +110,7 @@ fun ListRoute(
 
     CourseListScreen(
         state = uiState,
+        onEditCourseClick = onNavigateToEditCourse,
         selectedFilter = selectedFilter,
         onIntent = listViewModel::onIntent,
         onRestroomPermissionCheck = {
@@ -119,6 +131,7 @@ fun CourseListScreen(
     state: CourseListUiState,
     selectedFilter: TravelFilter,
     onIntent: (CourseListIntent) -> Unit,
+    onEditCourseClick: (String) -> Unit = {},
     onRestroomPermissionCheck: () -> Unit
 ) {
     Scaffold(containerColor = Color.White) { paddingValues ->
@@ -181,7 +194,10 @@ fun CourseListScreen(
                                     onIntent(CourseListIntent.OnEditNameClicked(itemState.courseId, itemState.courseName))
                                 },
                                 // 🌟 삭제 인텐트 발생 연결
-                                onDeleteClick = { onIntent(CourseListIntent.OnDeleteCourseClicked(itemState.courseId)) }
+                                onDeleteClick = { onIntent(CourseListIntent.OnDeleteCourseClicked(itemState.courseId)) },
+                                onEditDateClick = {
+                                    onEditCourseClick(itemState.courseId)
+                                }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(120.dp)) }
@@ -265,7 +281,8 @@ fun CourseCardItem(
     itemState: CourseListItemState,
     onClick: () -> Unit,
     onEditNameClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onEditDateClick: () -> Unit = {}
 ) {
     var showActionDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) } // 🌟 삭제 확인 팝업 상태 추가
@@ -279,7 +296,7 @@ fun CourseCardItem(
             },
             onEditDateClick = {
                 showActionDialog = false
-                // TODO: 날짜 변경 인텐트 연결
+                onEditDateClick()
             },
             onDeleteClick = {
                 showActionDialog = false

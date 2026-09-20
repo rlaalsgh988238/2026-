@@ -27,6 +27,7 @@ import com.braveberry.tourdataproject.screen.plan.ScheduleEditRoute
 import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.screen.toilet.NearbyToiletListRoute
 import com.braveberry.tourdataproject.screen.toilet.NearbyToiletListScreen
+import android.net.Uri
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
 import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -61,13 +62,22 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("plan_graph")
                             },
                             onNavigateToCourseDetail = { courseId ->
-                                navController.navigate("make_course?courseId=$courseId&purpose=VIEW_EXISTING_COURSE")
+                                navController.navigate(
+                                    "make_course?courseId=${Uri.encode(courseId)}&purpose=VIEW_EXISTING_COURSE"
+                                )
                             },
                             onNavigateToNearbyToilet = {
                                 navController.navigate("nearby_toilet")
                             },
                             onNavigateToEditCourseName = { courseId, initialName ->
                                 navController.navigate("edit_course_name/$courseId/$initialName")
+                            },
+                            onNavigateToEditCourse = { courseId ->
+                                navController.navigate(
+                                    "course_edit_graph/${Uri.encode(courseId)}"
+                                ) {
+                                    launchSingleTop = true
+                                }
                             }
 
                         )
@@ -94,12 +104,92 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+
                     composable(route = "nearby_toilet") {
                         NearbyToiletListRoute(
                             onBackClick = { navController.popBackStack() }
                         )
                     }
 
+                    navigation(
+                        route = "course_edit_graph/{editCourseId}",
+                        startDestination = "edit_region",
+                        arguments = listOf(
+                            navArgument("editCourseId") {
+                                type = NavType.StringType
+                            }
+                        )
+                    ) {
+                        // 1. 여행 도시 변경
+                        composable("edit_region") { entry ->
+                            val parentEntry = remember(entry) {
+                                navController.getBackStackEntry(
+                                    "course_edit_graph/{editCourseId}"
+                                )
+                            }
+
+                            val sharedViewModel: PlanSharedViewModel = hiltViewModel(
+                                parentEntry
+                            )
+
+                            val courseId = requireNotNull(
+                                parentEntry.arguments?.getString("editCourseId")
+                            )
+
+                            RegionSelectionRoute(
+                                sharedViewModel = sharedViewModel,
+                                isEditMode = true,
+                                editCourseId = courseId,
+                                onNavigateToDateSelection = {
+                                    // 도시·좌표 반영 성공 후 날짜 변경 화면으로 이동
+                                    navController.navigate("edit_dates") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateBack = {
+                                    // 수정 흐름을 종료하고 목록으로 복귀
+                                    navController.popBackStack(
+                                        route = "course_list",
+                                        inclusive = false
+                                    )
+                                }
+                            )
+                        }
+
+                        // 2. 여행 날짜 변경
+                        composable("edit_dates") { entry ->
+                            val parentEntry = remember(entry) {
+                                navController.getBackStackEntry(
+                                    "course_edit_graph/{editCourseId}"
+                                )
+                            }
+
+                            val sharedViewModel: PlanSharedViewModel = hiltViewModel(
+                                parentEntry
+                            )
+
+                            val courseId = requireNotNull(
+                                parentEntry.arguments?.getString("editCourseId")
+                            )
+
+                            DateSelectionRoute(
+                                sharedViewModel = sharedViewModel,
+                                isEditMode = true,
+                                editCourseId = courseId,
+                                onNavigateToNext = {
+                                    // 날짜 화면에서 DB 저장 성공을 확인한 뒤 호출
+                                    navController.popBackStack(
+                                        route = "course_list",
+                                        inclusive = false
+                                    )
+                                },
+                                onNavigateBack = {
+                                    // 저장하지 않고 도시 변경 화면으로 복귀
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+                    }
 
                     navigation(
                         startDestination = "region_selection?from={from}&purpose={purpose}",

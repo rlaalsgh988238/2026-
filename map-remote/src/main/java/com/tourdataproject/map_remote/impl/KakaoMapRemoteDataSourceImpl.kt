@@ -9,6 +9,7 @@ import com.tourdataproject.map_remote.mapper.toDataModelList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 class KakaoMapRemoteDataSourceImpl @Inject constructor(
     private val kakaoMapApi: KakaoMapApi
@@ -65,6 +66,7 @@ class KakaoMapRemoteDataSourceImpl @Inject constructor(
                 emit(DataResource.error(IllegalStateException("Network error: ${response.code()}")))
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             emit(DataResource.error(e))
         }
     }

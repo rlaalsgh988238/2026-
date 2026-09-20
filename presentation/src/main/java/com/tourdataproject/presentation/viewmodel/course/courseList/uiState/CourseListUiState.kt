@@ -30,6 +30,7 @@ sealed interface CourseListEffect {
     object NavigateToRestroomGuide : CourseListEffect
     data class NavigateToCourseDetail(val courseId: String) : CourseListEffect
     data class ShowToast(val message: String) : CourseListEffect
+    data class NavigateToEditCourseName(val courseId: String, val initialName: String) : CourseListEffect
 }
 
 // ================= 여기서부터 ViewModel이 사용할 매퍼(조립 공정) =================
@@ -88,8 +89,7 @@ sealed interface CourseListIntent {
     object OnCreatePlanClicked : CourseListIntent
     object OnRestroomGuideClicked : CourseListIntent
     data class OnCourseClicked(val courseId: String) : CourseListIntent
-
-    // 코스 삭제 액션
+    data class OnEditNameClicked(val courseId: String, val initialName: String) : CourseListIntent
     data class OnDeleteCourseClicked(val courseId: String) : CourseListIntent
 }
 enum class TravelFilter(val text: String) {

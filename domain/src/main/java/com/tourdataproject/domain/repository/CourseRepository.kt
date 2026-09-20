@@ -17,4 +17,6 @@ interface CourseRepository {
 
     // 4. 코스 삭제 (Delete)
     suspend fun deleteCourse(courseId: String)
+    //코스 이름 변경
+    suspend fun updateCourseName(courseId: String, newName: String)
 }

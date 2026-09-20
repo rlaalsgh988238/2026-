@@ -63,6 +63,7 @@ fun ListRoute(
     onNavigateToCreateNewCourse: () -> Unit,
     onNavigateToCourseDetail: (String) -> Unit = {},
     onNavigateToNearbyToilet: () -> Unit,
+    onNavigateToEditCourseName: (String, String) -> Unit,
     onShowToast: (String) -> Unit = {},
     onNavigateToEditCourse: (String) -> Unit = {}
 ) {
@@ -101,6 +102,8 @@ fun ListRoute(
                 is CourseListEffect.NavigateToRestroomGuide -> onNavigateToNearbyToilet()
                 is CourseListEffect.NavigateToCourseDetail -> onNavigateToCourseDetail(effect.courseId)
                 is CourseListEffect.ShowToast -> onShowToast(effect.message)
+                is CourseListEffect.NavigateToEditCourseName ->
+                    onNavigateToEditCourseName(effect.courseId, effect.initialName)
             }
         }
     }
@@ -109,7 +112,7 @@ fun ListRoute(
         state = uiState,
         onEditCourseClick = onNavigateToEditCourse,
         selectedFilter = selectedFilter,
-        onIntent = listViewModel::onIntent, // 🌟 MVI 핵심: 모든 이벤트를 이 단일 통로로 넘김
+        onIntent = listViewModel::onIntent,
         onRestroomPermissionCheck = {
             val hasFineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             val hasCoarseLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -128,8 +131,8 @@ fun CourseListScreen(
     state: CourseListUiState,
     selectedFilter: TravelFilter,
     onIntent: (CourseListIntent) -> Unit,
-    onRestroomPermissionCheck: () -> Unit,
-    onEditCourseClick: (String) -> Unit = {}
+    onEditCourseClick: (String) -> Unit = {},
+    onRestroomPermissionCheck: () -> Unit
 ) {
     Scaffold(containerColor = Color.White) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -185,16 +188,13 @@ fun CourseListScreen(
                         items(state.courses, key = { it.courseId }) { itemState ->
                             CourseCardItem(
                                 itemState = itemState,
-                                onClick = {
-                                    onIntent(
-                                        CourseListIntent.OnCourseClicked(itemState.courseId)
-                                    )
+                                // 🌟 상세 이동 인텐트 발생
+                                onClick = { onIntent(CourseListIntent.OnCourseClicked(itemState.courseId)) },
+                                onEditNameClick = {
+                                    onIntent(CourseListIntent.OnEditNameClicked(itemState.courseId, itemState.courseName))
                                 },
-                                onDeleteClick = {
-                                    onIntent(
-                                        CourseListIntent.OnDeleteCourseClicked(itemState.courseId)
-                                    )
-                                },
+                                // 🌟 삭제 인텐트 발생 연결
+                                onDeleteClick = { onIntent(CourseListIntent.OnDeleteCourseClicked(itemState.courseId)) },
                                 onEditDateClick = {
                                     onEditCourseClick(itemState.courseId)
                                 }
@@ -280,19 +280,19 @@ fun RestroomGuideButton(onClick: () -> Unit) {
 fun CourseCardItem(
     itemState: CourseListItemState,
     onClick: () -> Unit,
+    onEditNameClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onEditDateClick: () -> Unit = {}
 ) {
     var showActionDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) } // 🌟 삭제 확인 팝업 상태 추가
 
     if (showActionDialog) {
         CourseActionDialog(
-            onDismiss = {
-                showActionDialog = false
-            },
+            onDismiss = { showActionDialog = false },
             onEditNameClick = {
                 showActionDialog = false
-                // 이름 변경은 기존처럼 미연결
+                onEditNameClick()
             },
             onEditDateClick = {
                 showActionDialog = false
@@ -300,7 +300,18 @@ fun CourseCardItem(
             },
             onDeleteClick = {
                 showActionDialog = false
-                onDeleteClick()
+                showDeleteConfirmDialog = true
+            }
+        )
+    }
+
+    if (showDeleteConfirmDialog) {
+        CourseDeleteConfirmDialog(
+            courseName = itemState.courseName,
+            onDismiss = { showDeleteConfirmDialog = false },
+            onConfirm = {
+                showDeleteConfirmDialog = false
+                onDeleteClick() // 실제 삭제 실행
             }
         )
     }
@@ -328,6 +339,80 @@ fun CourseCardItem(
             Text(text = itemState.courseName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = itemState.datePeriod, fontSize = 12.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun CourseDeleteConfirmDialog(
+    courseName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp), // 둥근 모서리 비율 반영
+            color = Color.White,
+            modifier = Modifier
+                .width(412.dp) // 시안 가로 비율
+                .height(205.dp) // 시안 세로 비율
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 타이틀 텍스트
+                Text(
+                    text = "$courseName 플랜을 삭제할까요?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFE0E0E0),
+                        border = BorderStroke(2.dp, Color(0xFFB3B3B3)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(67.dp)
+                            .clickable { onDismiss() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "취소",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MintCardBorder,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(67.dp)
+                            .clickable { onConfirm() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "삭제",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

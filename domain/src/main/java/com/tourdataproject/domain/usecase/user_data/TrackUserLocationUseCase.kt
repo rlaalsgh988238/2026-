@@ -15,7 +15,6 @@ class TrackUserLocationUseCase @Inject constructor(private val mapRepository: Ma
                     emit(resource)
                 }
                 is DataResource.Error -> {
-                    TODO("상황에 맞는 에러 처리")
                 }
                 is DataResource.Loading -> {
                     emit(resource)

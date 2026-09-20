@@ -15,8 +15,8 @@ android {
 
     defaultConfig {
         applicationId = "com.braveberry.tourdataproject"
-        versionCode = 5
-        versionName = "vp1.1.0"
+        versionCode = 4
+        versionName = "vp1.0.1"
         buildConfigField("String", "KAKAO_MAP_KEY", "\"$kakaoMapKey\"")
     }
 

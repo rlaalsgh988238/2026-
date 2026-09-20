@@ -19,4 +19,7 @@ internal interface CourseDao : BaseDao<CourseLocalModel> {
 
     @Query("DELETE FROM ${RoomConstant.Table.COURSE} WHERE courseId = :courseId")
     suspend fun deleteCourseById(courseId: String)
+
+    @Query("UPDATE ${RoomConstant.Table.COURSE} SET courseName = :newName WHERE courseId = :courseId")
+    suspend fun updateCourseName(courseId: String, newName: String)
 }

@@ -1,10 +1,12 @@
 package com.braveberry.tourdataproject
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,6 +19,7 @@ import com.braveberry.tourdataproject.screen.plan.AddLocationRoute
 import com.braveberry.tourdataproject.screen.plan.AddScheduleDetailRoute
 import com.braveberry.tourdataproject.screen.plan.DateSelectionRoute
 import com.braveberry.tourdataproject.screen.main.ListRoute
+import com.braveberry.tourdataproject.screen.plan.EditCourseNameRoute
 import com.braveberry.tourdataproject.screen.plan.FullCourseMapRoute
 import com.braveberry.tourdataproject.screen.plan.MakeCourseRoute
 import com.braveberry.tourdataproject.screen.plan.RegionSelectionRoute
@@ -25,7 +28,6 @@ import com.braveberry.tourdataproject.screen.splash.SplashScreen
 import com.braveberry.tourdataproject.screen.toilet.NearbyToiletListRoute
 import com.braveberry.tourdataproject.screen.toilet.NearbyToiletListScreen
 import android.net.Uri
-import android.widget.Toast
 import com.braveberry.tourdataproject.ui.theme.TourDataProjectTheme
 import com.tourdataproject.presentation.utility.ScreenPurpose
 import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
@@ -67,12 +69,37 @@ class MainActivity : ComponentActivity() {
                             onNavigateToNearbyToilet = {
                                 navController.navigate("nearby_toilet")
                             },
+                            onNavigateToEditCourseName = { courseId, initialName ->
+                                navController.navigate("edit_course_name/$courseId/$initialName")
+                            },
                             onNavigateToEditCourse = { courseId ->
                                 navController.navigate(
                                     "course_edit_graph/${Uri.encode(courseId)}"
                                 ) {
                                     launchSingleTop = true
                                 }
+                            }
+
+                        )
+                    }
+
+                    composable(
+                        route = "edit_course_name/{courseId}/{initialName}",
+                        arguments = listOf(
+                            navArgument("courseId") { type = NavType.StringType },
+                            navArgument("initialName") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val courseId = backStackEntry.arguments?.getString("courseId") ?: ""
+                        val initialName = backStackEntry.arguments?.getString("initialName") ?: ""
+                        val context = LocalContext.current // Toast 출력을 위해 Context 가져오기
+
+                        EditCourseNameRoute(
+                            courseId = courseId,
+                            initialName = initialName,
+                            onNavigateUp = { navController.popBackStack() }, // 뒤로가기
+                            onShowToast = { message ->
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                             }
                         )
                     }

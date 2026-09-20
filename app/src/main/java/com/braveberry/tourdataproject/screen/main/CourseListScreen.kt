@@ -46,6 +46,9 @@ import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.Cour
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListItemState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.CourseListUiState
 import com.tourdataproject.presentation.viewmodel.course.courseList.uiState.TravelFilter
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 
 // 색상 정의
 val MintCardBg = Color(0xFFE4F2F1)
@@ -60,7 +63,8 @@ fun ListRoute(
     onNavigateToCreateNewCourse: () -> Unit,
     onNavigateToCourseDetail: (String) -> Unit = {},
     onNavigateToNearbyToilet: () -> Unit,
-    onShowToast: (String) -> Unit = {}
+    onShowToast: (String) -> Unit = {},
+    onNavigateToEditCourse: (String) -> Unit = {}
 ) {
     val uiState by listViewModel.state.collectAsStateWithLifecycle()
     val selectedFilter by listViewModel.selectedFilter.collectAsStateWithLifecycle()
@@ -78,9 +82,16 @@ fun ListRoute(
             onShowToast("근처 긴급 화장실을 찾으려면 위치 권한이 필요합니다.")
         }
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) {
-        listViewModel.onIntent(CourseListIntent.OnLoadCourses) // 🌟 MVI 적용
+    LaunchedEffect(lifecycleOwner, listViewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(
+            Lifecycle.State.RESUMED
+        ) {
+            listViewModel.onIntent(
+                CourseListIntent.OnLoadCourses
+            )
+        }
     }
 
     LaunchedEffect(listViewModel.effect) {
@@ -96,6 +107,7 @@ fun ListRoute(
 
     CourseListScreen(
         state = uiState,
+        onEditCourseClick = onNavigateToEditCourse,
         selectedFilter = selectedFilter,
         onIntent = listViewModel::onIntent, // 🌟 MVI 핵심: 모든 이벤트를 이 단일 통로로 넘김
         onRestroomPermissionCheck = {
@@ -115,8 +127,9 @@ fun ListRoute(
 fun CourseListScreen(
     state: CourseListUiState,
     selectedFilter: TravelFilter,
-    onIntent: (CourseListIntent) -> Unit, // 🌟 개별 콜백들을 onIntent 하나로 통합
-    onRestroomPermissionCheck: () -> Unit
+    onIntent: (CourseListIntent) -> Unit,
+    onRestroomPermissionCheck: () -> Unit,
+    onEditCourseClick: (String) -> Unit = {}
 ) {
     Scaffold(containerColor = Color.White) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -172,10 +185,19 @@ fun CourseListScreen(
                         items(state.courses, key = { it.courseId }) { itemState ->
                             CourseCardItem(
                                 itemState = itemState,
-                                // 🌟 상세 이동 인텐트 발생
-                                onClick = { onIntent(CourseListIntent.OnCourseClicked(itemState.courseId)) },
-                                // 🌟 삭제 인텐트 발생 연결
-                                onDeleteClick = { onIntent(CourseListIntent.OnDeleteCourseClicked(itemState.courseId)) }
+                                onClick = {
+                                    onIntent(
+                                        CourseListIntent.OnCourseClicked(itemState.courseId)
+                                    )
+                                },
+                                onDeleteClick = {
+                                    onIntent(
+                                        CourseListIntent.OnDeleteCourseClicked(itemState.courseId)
+                                    )
+                                },
+                                onEditDateClick = {
+                                    onEditCourseClick(itemState.courseId)
+                                }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(120.dp)) }
@@ -258,24 +280,27 @@ fun RestroomGuideButton(onClick: () -> Unit) {
 fun CourseCardItem(
     itemState: CourseListItemState,
     onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onEditDateClick: () -> Unit = {}
 ) {
     var showActionDialog by remember { mutableStateOf(false) }
 
     if (showActionDialog) {
         CourseActionDialog(
-            onDismiss = { showActionDialog = false },
+            onDismiss = {
+                showActionDialog = false
+            },
             onEditNameClick = {
                 showActionDialog = false
-                // TODO: 이름 변경 인텐트 연결
+                // 이름 변경은 기존처럼 미연결
             },
             onEditDateClick = {
                 showActionDialog = false
-                // TODO: 날짜 변경 인텐트 연결
+                onEditDateClick()
             },
             onDeleteClick = {
                 showActionDialog = false
-                onDeleteClick() // 실제 삭제 로직 실행
+                onDeleteClick()
             }
         )
     }

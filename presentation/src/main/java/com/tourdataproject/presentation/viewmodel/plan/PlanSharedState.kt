@@ -10,12 +10,22 @@ import java.time.LocalDate
 data class PlanSharedState(
     val course: TravelCoursePresentationModel = TravelCoursePresentationModel(),
     val currentAddingDayNumber: Int = 1,
-    //========= 드래프트 영역 ============
+
     val draftSchedule: ScheduleItemPresentationModel? = null,
     val draftStartDate: Long? = null,
     val draftEndDate: Long? = null,
-    val draftStay: ScheduleItemPresentationModel? = null
+    val draftStay: ScheduleItemPresentationModel? = null,
+
+    val isCourseLoading: Boolean = false,
+    val courseLoadError: String? = null,
+
+    // 기존 여행 수정 저장 상태
+    val isSavingEdit: Boolean = false,
+    val editSaveError: String? = null,
+    val savedEditCourseId: String? = null
 )
+
+
 
 fun PlanSharedState.toBackUp(): PlanBackup =
     PlanBackup(

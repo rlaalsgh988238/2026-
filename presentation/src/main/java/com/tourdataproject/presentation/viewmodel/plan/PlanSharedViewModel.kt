@@ -41,6 +41,10 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import com.braveberry.data_resource.DataResource
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -68,10 +72,19 @@ class PlanSharedViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<PlanSharedEffect>()
     val effect: SharedFlow<PlanSharedEffect> = _effect.asSharedFlow()
 
+    private val editCourseId: String? = savedStateHandle["editCourseId"]
+
+    private var courseLoadJob: Job? = null
+
     init {
-        backUpData()
-        initializePlanState()
-        observeAndBackupState()
+        if (editCourseId != null) {
+            // 기존 코스 수정은 신규 작성 백업과 분리합니다.
+            loadCourseById(editCourseId)
+        } else {
+            backUpData()
+            initializePlanState()
+            observeAndBackupState()
+        }
     }
 
     fun onIntent(intent: PlanSharedIntent) {
@@ -141,6 +154,160 @@ class PlanSharedViewModel @Inject constructor(
             )
         }
     }
+    fun saveEditedCourseDates(
+        courseId: String,
+        startMillis: Long,
+        endMillis: Long
+    ) {
+        val current = _sharedState.value
+
+        if (current.isSavingEdit) return
+        if (current.savedEditCourseId != null) return
+
+        if (
+            courseId.isBlank() ||
+            current.course.courseId != courseId ||
+            current.isCourseLoading ||
+            current.courseLoadError != null
+        ) {
+            _sharedState.update {
+                it.copy(
+                    editSaveError = "수정 중인 여행 정보를 확인할 수 없습니다."
+                )
+            }
+            return
+        }
+
+        val startDate = startMillis.toLocalDate()
+        val endDate = endMillis.toLocalDate()
+
+        if (endDate.isBefore(startDate)) {
+            _sharedState.update {
+                it.copy(
+                    editSaveError = "종료일은 시작일보다 빠를 수 없습니다."
+                )
+            }
+            return
+        }
+
+        // 도시 화면에서 반영한 도시·좌표가 포함된 코스
+        val originalCourse = current.course
+
+        _sharedState.update {
+            it.copy(
+                isSavingEdit = true,
+                editSaveError = null,
+                savedEditCourseId = null
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val calculated = calculateCourseDatesUseCase(
+                    startDate,
+                    endDate
+                )
+
+                val oldDayPlans = originalCourse.dayPlans
+                    .sortedBy { it.rawDayNumber }
+
+                val updatedDayPlans = calculated.dayPlans.mapIndexed { index, day ->
+                    val newDay = day.toUiModel()
+                    val oldDay = oldDayPlans.getOrNull(index)
+
+                    if (oldDay == null) {
+                        // 추가된 일차는 빈 일정과 숙소로 구성
+                        newDay.copy(
+                            schedules = emptyList(),
+                            stay = ScheduleItemPresentationModel()
+                        )
+                    } else {
+                        // 새 날짜·일차 정보에 기존 같은 순번의 내용을 복사
+                        newDay.copy(
+                            schedules = oldDay.schedules,
+                            stay = oldDay.stay
+                        )
+                    }
+                }
+
+                val formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+
+                val updatedCourse = originalCourse.copy(
+                    rawStartDate = calculated.startMillis,
+                    rawEndDate = calculated.endMillis,
+                    datePeriod = "${startDate.format(formatter)} ~ " +
+                            endDate.format(formatter),
+                    dayPlans = updatedDayPlans
+                )
+
+                // 동일한 courseId를 유지한 채 저장
+                saveCourseUseCase(updatedCourse.toDomain())
+
+                _sharedState.update {
+                    it.copy(
+                        course = updatedCourse,
+                        draftStartDate = null,
+                        draftEndDate = null,
+                        isSavingEdit = false,
+                        editSaveError = null,
+                        savedEditCourseId = courseId
+                    )
+                }
+            } catch (e: CancellationException) {
+                _sharedState.update {
+                    it.copy(isSavingEdit = false)
+                }
+                throw e
+            } catch (e: Exception) {
+                Log.e(
+                    TAG,
+                    "여행 수정 저장 실패: ${e.message}"
+                )
+
+                _sharedState.update {
+                    it.copy(
+                        isSavingEdit = false,
+                        editSaveError = "여행 변경 사항을 저장하지 못했습니다. 다시 시도해주세요."
+                    )
+                }
+            }
+        }
+    }
+
+
+    fun applyEditedDestination(
+        courseId: String,
+        cityName: String,
+        latitude: Double,
+        longitude: Double
+    ): Boolean {
+        if (courseId.isBlank() || cityName.isBlank()) return false
+
+        if (!latitude.isFinite() || !longitude.isFinite()) return false
+        if (latitude !in -90.0..90.0) return false
+        if (longitude !in -180.0..180.0) return false
+
+        while (true) {
+            val current = _sharedState.value
+
+            if (current.isCourseLoading) return false
+            if (current.courseLoadError != null) return false
+            if (current.course.courseId != courseId) return false
+
+            val updated = current.copy(
+                course = current.course.copy(
+                    destination = cityName,
+                    destinationLatitude = latitude,
+                    destinationLongitude = longitude
+                )
+            )
+
+            if (_sharedState.compareAndSet(current, updated)) {
+                return true
+            }
+        }
+    }
+
 
     private fun clearBackUp(){
         viewModelScope.launch {
@@ -189,20 +356,64 @@ class PlanSharedViewModel @Inject constructor(
     }
 
     private fun loadCourseById(courseId: String) {
-        viewModelScope.launch {
-            getCourseByIdUseCase(courseId).collectDataResource(
-                onSuccess = { domainCourse ->
-                    if (domainCourse != null) {
-                        val uiModel = domainCourse.toUiModel()
-                        _sharedState.update { currentState ->
-                            currentState.copy(
-                                course = uiModel
+        courseLoadJob?.cancel()
+
+        _sharedState.update {
+            it.copy(
+                isCourseLoading = true,
+                courseLoadError = null
+            )
+        }
+
+        courseLoadJob = viewModelScope.launch {
+            try {
+                val result = getCourseByIdUseCase(courseId).first { resource ->
+                    resource !is DataResource.Loading
+                }
+
+                when (result) {
+                    is DataResource.Success -> {
+                        val course = result.data
+
+                        if (course == null) {
+                            _sharedState.update {
+                                it.copy(
+                                    isCourseLoading = false,
+                                    courseLoadError = "여행 정보를 찾을 수 없습니다."
+                                )
+                            }
+                        } else {
+                            _sharedState.update {
+                                it.copy(
+                                    course = course.toUiModel(),
+                                    isCourseLoading = false,
+                                    courseLoadError = null
+                                )
+                            }
+                        }
+                    }
+
+                    is DataResource.Error -> {
+                        _sharedState.update {
+                            it.copy(
+                                isCourseLoading = false,
+                                courseLoadError = "여행 정보를 불러오지 못했습니다."
                             )
                         }
                     }
-                },
-                onError = { Log.e(TAG, "코스 불러오기 에러: ${it.message}") }
-            )
+
+                    is DataResource.Loading -> Unit
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _sharedState.update {
+                    it.copy(
+                        isCourseLoading = false,
+                        courseLoadError = "여행 정보를 불러오지 못했습니다."
+                    )
+                }
+            }
         }
     }
 

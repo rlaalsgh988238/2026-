@@ -120,7 +120,7 @@ fun AddLocationScreen(
         ) {
             Text(
                 text = when(state.viewMode){
-                    AddLocationViewMode.AddScheduleMode -> "어디를 방문할껀가요?"
+                    AddLocationViewMode.AddScheduleMode -> "어디를 방문할 건가요?"
                     AddLocationViewMode.AddStayMode -> sharedState.course.destination
                 },
                 fontSize = 22.sp,

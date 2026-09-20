@@ -31,8 +31,8 @@ android {
     defaultConfig {
         applicationId = "com.braveberry.tourdataproject"
 
-        versionCode = 4
-        versionName = "vp1.0.1"
+        versionCode = 6
+        versionName = "vp1.2.0"
 
         buildConfigField(
             "String",

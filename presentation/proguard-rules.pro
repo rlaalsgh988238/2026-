@@ -1,21 +1,37 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ==========================================
+# 1. 제네릭, 어노테이션, 내부 클래스 및 크래시 위치 정보
+# ==========================================
+-keepattributes Signature,InnerClasses,EnclosingMethod
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ==========================================
+# 2. 카카오맵 SDK
+# ==========================================
+-keep class com.kakao.vectormap.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ==========================================
+# 3. 네트워크 DTO 및 Model
+# 실제 클래스의 package와 일치해야 적용됨
+# ==========================================
+-keep class com.braveberry.tourdataproject.**.model.** { *; }
+-keep class com.braveberry.tourdataproject.**.dto.** { *; }
+-keep class com.tourdataproject.**.model.** { *; }
+-keep class com.tourdataproject.**.dto.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ==========================================
+# 4. Retrofit API 인터페이스
+# ==========================================
+-keep interface com.braveberry.tourdataproject.**.api.** { *; }
+-keep interface com.tourdataproject.**.api.** { *; }
+
+# suspend API 및 Response의 제네릭 정보 보존
+-keep,allowobfuscation,allowoptimization class kotlin.coroutines.Continuation
+-keep,allowobfuscation,allowoptimization class retrofit2.Response
+
+# ==========================================
+# 5. Gson TypeToken
+# ==========================================
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken { *; }

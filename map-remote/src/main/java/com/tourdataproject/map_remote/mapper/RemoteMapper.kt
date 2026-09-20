@@ -1,6 +1,8 @@
 package com.tourdataproject.map_remote.mapper
 
-//TODO: Model 타입 맞추기
+import androidx.annotation.Keep
+
+@Keep
 interface RemoteMapper<T> {
     fun toData(): T
 }

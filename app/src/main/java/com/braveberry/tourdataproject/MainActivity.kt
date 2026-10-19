@@ -1,5 +1,7 @@
 package com.braveberry.tourdataproject
 
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -295,10 +297,14 @@ class MainActivity : ComponentActivity() {
                                 remember(entry) { navController.getBackStackEntry("plan_graph") }
                             )
 
+                            val planState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
+                            val dayNumber = entry.arguments?.getInt("dayNum")
                             ScheduleEditRoute(
-                                sharedViewModel = sharedViewModel,
-                                viewModel = hiltViewModel(),
-                                onNavigateBack = { navController.popBackStack() }
+                                initialDay = planState.course.dayPlans.find { it.rawDayNumber == dayNumber },
+                                isLoading = planState.isCourseLoading,
+                                onCommit = sharedViewModel::commitScheduleEdit,
+                                onNavigateBack = { navController.popBackStack() },
+                                onShowToast = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show() }
                             )
                         }
 

@@ -19,4 +19,8 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":data-resource"))
 
+    // 로컬 JVM에서 실제 ViewModel의 State / Effect를 검증합니다.
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+
 }

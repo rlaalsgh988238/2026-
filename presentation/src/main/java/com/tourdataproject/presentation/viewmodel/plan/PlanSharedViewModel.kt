@@ -20,6 +20,7 @@ import com.tourdataproject.presentation.mapper.toUiModel
 import com.tourdataproject.presentation.model.KakaoMapPresentationModel
 import com.tourdataproject.presentation.model.plan.AccessibilityInfoPresentationModel
 import com.tourdataproject.presentation.model.plan.AccessibilityStatusPresentationModel
+import com.tourdataproject.presentation.model.plan.ScheduleEditResult
 import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
 import com.tourdataproject.presentation.utility.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -111,6 +112,25 @@ class PlanSharedViewModel @Inject constructor(
             is PlanSharedIntent.OnConfirmStaySelection -> confirmStaySelection()
             is PlanSharedIntent.OnClearDraftStay -> clearDraftStay()
             is PlanSharedIntent.OnDeleteStay -> deleteStay(intent.scheduleId)
+        }
+    }
+
+    fun commitScheduleEdit(edit: ScheduleEditResult): Boolean {
+        while (true) {
+            val current = _sharedState.value
+            if (current.course.dayPlans.none { it.rawDayNumber == edit.targetDay }) return false
+            val days = current.course.dayPlans.map { day ->
+                day.copy(
+                    schedules = if (day.rawDayNumber == edit.targetDay) edit.schedules else day.schedules,
+                    // 기존 정책: 동일 숙소 ID를 가진 모든 날짜에서 삭제합니다.
+                    stay = if (!edit.deletedStayId.isNullOrBlank() &&
+                        day.stay.scheduleId == edit.deletedStayId
+                    ) ScheduleItemPresentationModel() else day.stay
+                )
+            }
+            if (_sharedState.compareAndSet(current, current.copy(course = current.course.copy(dayPlans = days)))) {
+                return true
+            }
         }
     }
 

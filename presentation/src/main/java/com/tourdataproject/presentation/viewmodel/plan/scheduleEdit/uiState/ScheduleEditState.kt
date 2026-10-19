@@ -1,5 +1,6 @@
 package com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState
 
+import com.tourdataproject.presentation.model.plan.ScheduleEditResult
 import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
 
 data class ScheduleEditState(
@@ -7,17 +8,14 @@ data class ScheduleEditState(
     val dateLabel: String = "",
     val schedules: List<ScheduleItemPresentationModel> = emptyList(),
     val stay: ScheduleItemPresentationModel? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val deletedStayId: String? = null
 ){
     val dayLabel: String = "Day $dayNumber"
 }
 
 sealed class ScheduleEditIntent {
-    data class OnInit(
-        val dateLabel: String,
-        val schedules: List<ScheduleItemPresentationModel>,
-        val stay: ScheduleItemPresentationModel?
-    ) : ScheduleEditIntent()
+    data class OnSaveCompleted(val accepted: Boolean) : ScheduleEditIntent()
     data class OnScheduleDeleted(val scheduleId: String) : ScheduleEditIntent()
     data class OnScheduleMoved(val fromIndex: Int, val toIndex: Int) : ScheduleEditIntent()
     object OnScheduleMoveFinished : ScheduleEditIntent()
@@ -29,6 +27,5 @@ sealed class ScheduleEditIntent {
 sealed class ScheduleEditEffect {
     object NavigateBack : ScheduleEditEffect()
     data class ShowToast(val message: String) : ScheduleEditEffect()
-    data class SaveToShared(val dayNumber: Int, val schedules: List<ScheduleItemPresentationModel>) : ScheduleEditEffect()
-    data class DeleteStayFromShared(val scheduleId: String) : ScheduleEditEffect()
+    data class SaveRequested(val result: ScheduleEditResult) : ScheduleEditEffect()
 }

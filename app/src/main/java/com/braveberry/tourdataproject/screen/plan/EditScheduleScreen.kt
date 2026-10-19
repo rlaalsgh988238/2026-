@@ -38,7 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tourdataproject.presentation.model.plan.DayPlanPresentationModel
+import com.tourdataproject.presentation.model.plan.ScheduleEditResult
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.braveberry.tourdataproject.R
 import com.braveberry.tourdataproject.ui.theme.PrimaryTeal
@@ -58,62 +60,58 @@ import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.route.RouteLineStylesSet
 import com.tourdataproject.presentation.model.plan.ScheduleItemPresentationModel
 import com.tourdataproject.presentation.utility.Log
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedIntent
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedState
-import com.tourdataproject.presentation.viewmodel.plan.PlanSharedViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.ScheduleEditViewModel
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditEffect
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditIntent
 import com.tourdataproject.presentation.viewmodel.plan.scheduleEdit.uiState.ScheduleEditState
 
+/** Navigation 경계에서 원본과 확정 콜백을 받습니다. 공유 ViewModel에는 의존하지 않습니다. */
 @Composable
 fun ScheduleEditRoute(
-    sharedViewModel: PlanSharedViewModel,
-    viewModel: ScheduleEditViewModel = hiltViewModel(),
+    initialDay: DayPlanPresentationModel?,
+    isLoading: Boolean,
+    onCommit: (ScheduleEditResult) -> Boolean,
     onNavigateBack: () -> Unit,
     onShowToast: (String) -> Unit = {}
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val sharedState by sharedViewModel.sharedState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(sharedState.course.dayPlans) {
-        val dayPlan = sharedState.course.dayPlans.find { it.rawDayNumber == viewModel.dayNum }
-        if (dayPlan != null) {
-            val stay = dayPlan.stay.takeIf { it.scheduleId.isNotBlank() }
-            viewModel.onIntent(ScheduleEditIntent.OnInit(dayPlan.dateLabel, dayPlan.schedules, stay))
+    if (initialDay == null) {
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center) {
+            if (isLoading) CircularProgressIndicator()
+            else Text("편집할 날짜를 찾을 수 없습니다.")
+            TextButton(onClick = onNavigateBack) { Text("돌아가기") }
         }
+        return
     }
-
-    LaunchedEffect(Unit) {
-        viewModel.effect.collect { effect ->
+    // factory는 최초 생성에만 사용합니다. 같은 navigation entry에서는 기존 인스턴스를 반환합니다.
+    val editor: ScheduleEditViewModel = viewModel(
+        key = "schedule-edit-${initialDay.rawDayNumber}",
+        factory = ScheduleEditViewModel.factory(initialDay)
+    )
+    val state by editor.state.collectAsStateWithLifecycle()
+    val commit by rememberUpdatedState(onCommit)
+    val navigateBack by rememberUpdatedState(onNavigateBack)
+    val showToast by rememberUpdatedState(onShowToast)
+    LaunchedEffect(editor) {
+        editor.effect.collect { effect ->
             when (effect) {
-                is ScheduleEditEffect.NavigateBack -> onNavigateBack()
-                is ScheduleEditEffect.ShowToast -> onShowToast(effect.message)
-                is ScheduleEditEffect.SaveToShared -> {
-                    sharedViewModel.onIntent(PlanSharedIntent.OnReorderSchedules(effect.dayNumber, effect.schedules))
-                }
-                is ScheduleEditEffect.DeleteStayFromShared -> {
-                    sharedViewModel.onIntent(PlanSharedIntent.OnDeleteStay(effect.scheduleId))
+                is ScheduleEditEffect.NavigateBack -> navigateBack()
+                is ScheduleEditEffect.ShowToast -> showToast(effect.message)
+                is ScheduleEditEffect.SaveRequested -> {
+                    val accepted = commit(effect.result)
+                    editor.onIntent(ScheduleEditIntent.OnSaveCompleted(accepted))
                 }
             }
         }
     }
-
-    ScheduleEditScreen(
-        state = state,
-        sharedState = sharedState,
-        onIntent = viewModel::onIntent,
-        onSharedIntent = sharedViewModel::onIntent
-    )
+    ScheduleEditScreen(state = state, onIntent = editor::onIntent)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleEditScreen(
     state: ScheduleEditState,
-    sharedState: PlanSharedState,
-    onIntent: (ScheduleEditIntent) -> Unit,
-    onSharedIntent: (PlanSharedIntent) -> Unit
+    onIntent: (ScheduleEditIntent) -> Unit
 ) {
     val schedules = state.schedules.map { it.toScreen() }
     val stay = state.stay?.toScreen()
@@ -150,7 +148,7 @@ fun ScheduleEditScreen(
                         }
                     },
                     actions = {
-                        TextButton(onClick = { onIntent(ScheduleEditIntent.OnSaveClicked) }) {
+                        TextButton(enabled = !state.isLoading, onClick = { onIntent(ScheduleEditIntent.OnSaveClicked) }) {
                             Text(
                                 text = "저장",
                                 color = PrimaryTeal,
@@ -651,9 +649,7 @@ fun ScheduleEditScreenPreview() {
             schedules = scheduleList,
             stay = stayItem
         ),
-        sharedState = PlanSharedState(),
-        onIntent = {},
-        onSharedIntent = {}
+        onIntent = {}
     )
 }
 
